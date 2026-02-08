@@ -76,16 +76,20 @@ async function assertAdmin(openid) {
   }
 }
 
-function getStrength(player) {
-  if (player.strength != null) return player.strength;
-  return 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+function ntrpToUTR(ntrp) {
+  return 1.0 + ((ntrp || 3.0) - 1.0) * 2.5;
+}
+
+function getUTR(player) {
+  if (player.utr != null) return player.utr;
+  return ntrpToUTR(player.ntrp);
 }
 
 function classifyPlayers(players) {
   const males = players.filter(p => (p.gender || '').toUpperCase() === 'M')
-    .sort((a, b) => getStrength(b) - getStrength(a));
+    .sort((a, b) => getUTR(b) - getUTR(a));
   const females = players.filter(p => (p.gender || '').toUpperCase() === 'F')
-    .sort((a, b) => getStrength(b) - getStrength(a));
+    .sort((a, b) => getUTR(b) - getUTR(a));
   return { males, females };
 }
 
@@ -113,11 +117,11 @@ function planMatchDistribution(maleCount, femaleCount) {
 }
 
 function formBalancedTeam(pool, usedPartners, playerId) {
-  const sorted = pool.slice().sort((a, b) => getStrength(b) - getStrength(a));
+  const sorted = pool.slice().sort((a, b) => getUTR(b) - getUTR(a));
   const midpoint = Math.floor(sorted.length / 2);
 
   const playerPartners = usedPartners.get(playerId) || new Set();
-  const playerStrength = getStrength(sorted.find(p => p._id === playerId) || { ntrp: 3.0 });
+  const playerStrength = getUTR(sorted.find(p => p._id === playerId) || { ntrp: 3.0 });
   const isStrong = sorted.findIndex(p => p._id === playerId) < midpoint;
 
   const searchPool = isStrong ? sorted.slice(midpoint) : sorted.slice(0, midpoint);

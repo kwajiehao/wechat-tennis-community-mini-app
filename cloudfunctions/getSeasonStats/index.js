@@ -64,6 +64,7 @@ exports.main = async (event, context) => {
 
     const eventsRes = await db.collection('events')
       .where({ seasonId, status: 'completed' })
+      .field({ playerPoints: true })
       .get();
     const completedEvents = eventsRes.data || [];
 
@@ -121,6 +122,7 @@ exports.main = async (event, context) => {
 
   const eventsRes = await db.collection('events')
     .where({ seasonId, status: 'completed' })
+    .field({ playerPoints: true })
     .get();
   const completedEvents = eventsRes.data || [];
 

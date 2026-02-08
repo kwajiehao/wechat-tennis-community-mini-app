@@ -60,66 +60,128 @@ async function getPlayerByOpenId(openid) {
   return res.data[0] || null;
 }
 
-function getStrength(player) {
-  if (player.strength != null) return player.strength;
-  return 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+function ntrpToUTR(ntrp) {
+  return 1.0 + ((ntrp || 3.0) - 1.0) * 2.5;
 }
 
-function calculateELODelta(winnerStrength, loserStrength) {
-  const K = 32;
-  const D = 400;
-  const expectedWin = 1 / (1 + Math.pow(10, (loserStrength - winnerStrength) / D));
-  return K * (1 - expectedWin);
+function getUTR(player) {
+  if (player.utr != null) return player.utr;
+  return ntrpToUTR(player.ntrp);
 }
 
-async function updatePlayerStrength(match, winnerSide) {
-  const winnerIds = winnerSide === 'A' ? match.teamA : match.teamB;
-  const loserIds = winnerSide === 'A' ? match.teamB : match.teamA;
-  const allIds = [...winnerIds, ...loserIds];
+function calculateMatchRating(opponentUTR, gamesWon, gamesLost, didWin) {
+  const totalGames = gamesWon + gamesLost;
+  if (totalGames === 0) {
+    return opponentUTR + (didWin ? 0.5 : -0.5);
+  }
+  const gamePercentage = gamesWon / totalGames;
+  const adjustment = (gamePercentage - 0.5) * 3.0;
+  return opponentUTR + adjustment;
+}
+
+function extractGamesFromSets(sets, isTeamA) {
+  if (!sets || sets.length === 0) return { won: 0, lost: 0 };
+  let won = 0, lost = 0;
+  for (const set of sets) {
+    const teamAGames = set.teamAGames || 0;
+    const teamBGames = set.teamBGames || 0;
+    if (isTeamA) {
+      won += teamAGames;
+      lost += teamBGames;
+    } else {
+      won += teamBGames;
+      lost += teamAGames;
+    }
+  }
+  return { won, lost };
+}
+
+async function recalculatePlayerUTR(playerId) {
+  // Fetch completed matches for this player
+  const allMatches = await store.collection('matches').get();
+  const matches = (allMatches.data || [])
+    .filter(m => m.status === 'completed' && (m.participants || []).includes(playerId))
+    .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
+    .slice(0, 30);
+
+  if (matches.length === 0) return null;
+
+  const resultsRes = await store.collection('results').get();
+  const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
+
+  const opponentIds = new Set();
+  matches.forEach(m => {
+    (m.teamA || []).forEach(id => { if (id !== playerId) opponentIds.add(id); });
+    (m.teamB || []).forEach(id => { if (id !== playerId) opponentIds.add(id); });
+  });
 
   const playersRes = await store.collection('players').get();
-  const players = playersRes.data.filter(p => allIds.includes(p._id));
-  const playerMap = new Map(players.map(p => [p._id, p]));
+  const opponentMap = new Map(
+    (playersRes.data || []).filter(p => opponentIds.has(p._id)).map(p => [p._id, p])
+  );
 
-  // Initialize strength for players without it
+  let weightedSum = 0;
+  let totalWeight = 0;
+  const now = Date.now();
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const result = resultMap.get(match._id);
+    if (!result) continue;
+
+    const isTeamA = (match.teamA || []).includes(playerId);
+    const didWin = (result.winnerPlayers || []).includes(playerId);
+
+    const opponentTeam = isTeamA ? match.teamB : match.teamA;
+    let opponentUTR = 0;
+    for (const oppId of opponentTeam) {
+      const opp = opponentMap.get(oppId);
+      opponentUTR += opp ? getUTR(opp) : 5.0;
+    }
+    opponentUTR = opponentUTR / opponentTeam.length;
+
+    const games = extractGamesFromSets(result.sets, isTeamA);
+    const matchRating = calculateMatchRating(opponentUTR, games.won, games.lost, didWin);
+
+    const matchDate = new Date(match.completedAt || match.generatedAt).getTime();
+    const daysAgo = (now - matchDate) / (1000 * 60 * 60 * 24);
+    const timeDecay = Math.exp(-daysAgo / 180);
+    const positionWeight = (matches.length - i) / matches.length;
+    const weight = timeDecay * positionWeight;
+
+    weightedSum += matchRating * weight;
+    totalWeight += weight;
+  }
+
+  if (totalWeight === 0) return null;
+  const newUTR = Math.max(1.0, Math.min(16.5, weightedSum / totalWeight));
+  return Math.round(newUTR * 100) / 100;
+}
+
+async function updatePlayerStrength(match, winnerSide, sets) {
+  const allIds = [...(match.teamA || []), ...(match.teamB || [])];
+
+  const playersRes = await store.collection('players').get();
+  const players = (playersRes.data || []).filter(p => allIds.includes(p._id));
+
+  const now = new Date().toISOString();
+
   for (const player of players) {
-    if (player.strength == null) {
-      const initialStrength = 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+    if (player.utr == null) {
+      const initialUTR = ntrpToUTR(player.ntrp);
       await store.collection('players').doc(player._id).update({
-        data: { strength: initialStrength, strengthUpdatedAt: new Date().toISOString() }
+        data: { utr: initialUTR, utrUpdatedAt: now }
       });
-      player.strength = initialStrength;
     }
   }
 
-  // Calculate average team strengths
-  const isDoubles = winnerIds.length === 2;
-  const winnerStrength = isDoubles
-    ? (getStrength(playerMap.get(winnerIds[0])) + getStrength(playerMap.get(winnerIds[1]))) / 2
-    : getStrength(playerMap.get(winnerIds[0]));
-  const loserStrength = isDoubles
-    ? (getStrength(playerMap.get(loserIds[0])) + getStrength(playerMap.get(loserIds[1]))) / 2
-    : getStrength(playerMap.get(loserIds[0]));
-
-  const delta = calculateELODelta(winnerStrength, loserStrength);
-  const now = new Date().toISOString();
-
-  // Update winners (+delta)
-  for (const id of winnerIds) {
-    const player = playerMap.get(id);
-    const newStrength = getStrength(player) + delta;
-    await store.collection('players').doc(id).update({
-      data: { strength: newStrength, strengthUpdatedAt: now }
-    });
-  }
-
-  // Update losers (-delta)
-  for (const id of loserIds) {
-    const player = playerMap.get(id);
-    const newStrength = Math.max(100, getStrength(player) - delta);
-    await store.collection('players').doc(id).update({
-      data: { strength: newStrength, strengthUpdatedAt: now }
-    });
+  for (const playerId of allIds) {
+    const newUTR = await recalculatePlayerUTR(playerId);
+    if (newUTR !== null) {
+      await store.collection('players').doc(playerId).update({
+        data: { utr: newUTR, utrUpdatedAt: now }
+      });
+    }
   }
 }
 
@@ -501,9 +563,9 @@ const handlers = {
 
     function classifyPlayers(playerList) {
       const males = playerList.filter(p => (p.gender || '').toUpperCase() === 'M')
-        .sort((a, b) => getStrength(b) - getStrength(a));
+        .sort((a, b) => getUTR(b) - getUTR(a));
       const females = playerList.filter(p => (p.gender || '').toUpperCase() === 'F')
-        .sort((a, b) => getStrength(b) - getStrength(a));
+        .sort((a, b) => getUTR(b) - getUTR(a));
       return { males, females };
     }
 
@@ -531,7 +593,7 @@ const handlers = {
     }
 
     function formBalancedTeam(pool, usedPartners, playerId) {
-      const sorted = pool.slice().sort((a, b) => getStrength(b) - getStrength(a));
+      const sorted = pool.slice().sort((a, b) => getUTR(b) - getUTR(a));
       const midpoint = Math.floor(sorted.length / 2);
 
       const playerPartners = usedPartners.get(playerId) || new Set();
@@ -869,8 +931,8 @@ const handlers = {
       }
     });
 
-    // Update player strength ratings
-    await updatePlayerStrength(match, winnerSide);
+    // Update player UTR ratings
+    await updatePlayerStrength(match, winnerSide, sets);
 
     return { resultId: resultRes._id };
   },

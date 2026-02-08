@@ -43,68 +43,152 @@ async function assertAdmin(openid) {
   return settings;
 }
 
-function getStrength(player) {
-  if (player.strength != null) return player.strength;
-  return 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+function ntrpToUTR(ntrp) {
+  // Convert NTRP (1.0-7.0) to UTR scale (1.0-16.5)
+  // NTRP 2.5 ≈ UTR 2, NTRP 4.0 ≈ UTR 6, NTRP 5.5 ≈ UTR 10
+  return 1.0 + ((ntrp || 3.0) - 1.0) * 2.5;
 }
 
-function calculateELODelta(winnerStrength, loserStrength) {
-  const K = 32;
-  const D = 400;
-  const expectedWin = 1 / (1 + Math.pow(10, (loserStrength - winnerStrength) / D));
-  return K * (1 - expectedWin);
+function getUTR(player) {
+  if (player.utr != null) return player.utr;
+  return ntrpToUTR(player.ntrp);
 }
 
-async function updatePlayerStrength(match, winnerSide) {
-  const winnerIds = winnerSide === 'A' ? match.teamA : match.teamB;
-  const loserIds = winnerSide === 'A' ? match.teamB : match.teamA;
-  const allIds = [...winnerIds, ...loserIds];
+function calculateMatchRating(opponentUTR, gamesWon, gamesLost, didWin) {
+  const totalGames = gamesWon + gamesLost;
+  if (totalGames === 0) {
+    // No game data, use simple win/loss adjustment
+    return opponentUTR + (didWin ? 0.5 : -0.5);
+  }
+
+  const gamePercentage = gamesWon / totalGames;
+  // Adjustment ranges from -1.5 (0% games) to +1.5 (100% games)
+  // 50% games = 0 adjustment (you performed at opponent's level)
+  const adjustment = (gamePercentage - 0.5) * 3.0;
+
+  return opponentUTR + adjustment;
+}
+
+function extractGamesFromSets(sets, isTeamA) {
+  if (!sets || sets.length === 0) return { won: 0, lost: 0 };
+
+  let won = 0, lost = 0;
+  for (const set of sets) {
+    const teamAGames = set.teamAGames || 0;
+    const teamBGames = set.teamBGames || 0;
+    if (isTeamA) {
+      won += teamAGames;
+      lost += teamBGames;
+    } else {
+      won += teamBGames;
+      lost += teamAGames;
+    }
+  }
+  return { won, lost };
+}
+
+async function recalculatePlayerUTR(playerId) {
+  // Fetch last 30 completed matches for this player
+  const matchesRes = await db.collection('matches')
+    .where({ status: 'completed', participants: _.in([playerId]) })
+    .orderBy('completedAt', 'desc')
+    .limit(30)
+    .get();
+  const matches = matchesRes.data || [];
+
+  if (matches.length === 0) return null;
+
+  const matchIds = matches.map(m => m._id);
+  const resultsRes = await db.collection('results')
+    .where({ matchId: _.in(matchIds) })
+    .get();
+  const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
+
+  // Get all opponent player IDs
+  const opponentIds = new Set();
+  matches.forEach(m => {
+    (m.teamA || []).forEach(id => { if (id !== playerId) opponentIds.add(id); });
+    (m.teamB || []).forEach(id => { if (id !== playerId) opponentIds.add(id); });
+  });
+
+  const opponentsRes = await db.collection('players')
+    .where({ _id: _.in([...opponentIds]) })
+    .get();
+  const opponentMap = new Map((opponentsRes.data || []).map(p => [p._id, p]));
+
+  // Calculate weighted average of match ratings
+  let weightedSum = 0;
+  let totalWeight = 0;
+  const now = Date.now();
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const result = resultMap.get(match._id);
+    if (!result) continue;
+
+    const isTeamA = (match.teamA || []).includes(playerId);
+    const didWin = (result.winnerPlayers || []).includes(playerId);
+
+    // Get opponent team UTR
+    const opponentTeam = isTeamA ? match.teamB : match.teamA;
+    let opponentUTR = 0;
+    for (const oppId of opponentTeam) {
+      const opp = opponentMap.get(oppId);
+      opponentUTR += opp ? getUTR(opp) : 5.0; // Default 5.0 if unknown
+    }
+    opponentUTR = opponentUTR / opponentTeam.length;
+
+    // Extract games from sets
+    const games = extractGamesFromSets(result.sets, isTeamA);
+    const matchRating = calculateMatchRating(opponentUTR, games.won, games.lost, didWin);
+
+    // Recency weight: newer matches count more
+    // Decay factor based on match age (days) and position
+    const matchDate = new Date(match.completedAt || match.generatedAt).getTime();
+    const daysAgo = (now - matchDate) / (1000 * 60 * 60 * 24);
+    const timeDecay = Math.exp(-daysAgo / 180); // Half-life of ~180 days
+    const positionWeight = (matches.length - i) / matches.length;
+    const weight = timeDecay * positionWeight;
+
+    weightedSum += matchRating * weight;
+    totalWeight += weight;
+  }
+
+  if (totalWeight === 0) return null;
+
+  // Clamp to valid UTR range
+  const newUTR = Math.max(1.0, Math.min(16.5, weightedSum / totalWeight));
+  return Math.round(newUTR * 100) / 100; // Round to 2 decimals
+}
+
+async function updatePlayerStrength(match, winnerSide, sets) {
+  const allIds = [...(match.teamA || []), ...(match.teamB || [])];
 
   const playersRes = await db.collection('players')
     .where({ _id: _.in(allIds) })
     .get();
   const players = playersRes.data || [];
-  const playerMap = new Map(players.map(p => [p._id, p]));
 
-  // Initialize strength for players without it
+  const now = new Date().toISOString();
+
+  // Initialize UTR for players without it (from NTRP)
   for (const player of players) {
-    if (player.strength == null) {
-      const initialStrength = 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+    if (player.utr == null) {
+      const initialUTR = ntrpToUTR(player.ntrp);
       await db.collection('players').doc(player._id).update({
-        data: { strength: initialStrength, strengthUpdatedAt: new Date().toISOString() }
+        data: { utr: initialUTR, utrUpdatedAt: now }
       });
-      player.strength = initialStrength;
     }
   }
 
-  // Calculate average team strengths
-  const isDoubles = winnerIds.length === 2;
-  const winnerStrength = isDoubles
-    ? (getStrength(playerMap.get(winnerIds[0])) + getStrength(playerMap.get(winnerIds[1]))) / 2
-    : getStrength(playerMap.get(winnerIds[0]));
-  const loserStrength = isDoubles
-    ? (getStrength(playerMap.get(loserIds[0])) + getStrength(playerMap.get(loserIds[1]))) / 2
-    : getStrength(playerMap.get(loserIds[0]));
-
-  const delta = calculateELODelta(winnerStrength, loserStrength);
-  const now = new Date().toISOString();
-
-  // Update winners (+delta)
-  for (const id of winnerIds) {
-    const player = playerMap.get(id);
-    const newStrength = getStrength(player) + delta;
-    await db.collection('players').doc(id).update({
-      data: { strength: newStrength, strengthUpdatedAt: now }
-    });
-  }
-
-  // Update losers (-delta)
-  for (const id of loserIds) {
-    const player = playerMap.get(id);
-    const newStrength = Math.max(100, getStrength(player) - delta);
-    await db.collection('players').doc(id).update({
-      data: { strength: newStrength, strengthUpdatedAt: now }
-    });
+  // Recalculate UTR for all participants based on match history
+  for (const playerId of allIds) {
+    const newUTR = await recalculatePlayerUTR(playerId);
+    if (newUTR !== null) {
+      await db.collection('players').doc(playerId).update({
+        data: { utr: newUTR, utrUpdatedAt: now }
+      });
+    }
   }
 }
 
@@ -242,8 +326,8 @@ exports.main = async (event, context) => {
   const participants = match.participants || [].concat(match.teamA || [], match.teamB || []);
   await recalcStatsForPlayers(participants, settings ? settings.pointsConfig : { win: 3, loss: 1 });
 
-  // Update player strength ratings
-  await updatePlayerStrength(match, winnerSide);
+  // Update player UTR ratings
+  await updatePlayerStrength(match, winnerSide, sets);
 
   return { resultId: resultRes._id };
 };

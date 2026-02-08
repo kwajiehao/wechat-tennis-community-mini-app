@@ -100,56 +100,43 @@ Page({
         return Promise.all([
           callFunction('listSignups', { eventId: this.data.eventId, mine: true }),
           callFunction('listSignups', { eventId: this.data.eventId, includeNames: true }),
-          callFunction('listMatches', { eventId: this.data.eventId }),
-          callFunction('listPlayers', {})
+          callFunction('listMatches', { eventId: this.data.eventId })
         ]);
       })
       .then(results => {
         const r0 = (results[0] && results[0].result) || {};
         const r1 = (results[1] && results[1].result) || {};
         const r2 = (results[2] && results[2].result) || {};
-        const r3 = (results[3] && results[3].result) || {};
 
         const mySignup = (r0.signups || [])[0];
         const allSignups = r1.signups || [];
         const allMatches = r2.matches || [];
-        const allPlayers = r3.players || [];
 
-        const playerLookup = new Map(allPlayers.map(p => [p._id, p]));
-        const signedUpPlayers = allSignups.map(s => {
-          const player = playerLookup.get(s.playerId) || {};
-          return {
-            playerId: s.playerId,
-            name: s.playerName || player.name || 'Unknown',
-            ntrp: s.playerNtrp !== undefined ? s.playerNtrp : player.ntrp,
-            gender: (s.playerGender || player.gender || '').toUpperCase(),
-            isTestPlayer: s.isTestPlayer || player.isTestPlayer || false
-          };
-        });
+        const signedUpPlayers = allSignups.map(s => ({
+          playerId: s.playerId,
+          name: s.playerName || 'Unknown',
+          ntrp: s.playerNtrp,
+          gender: (s.playerGender || '').toUpperCase(),
+          isTestPlayer: s.isTestPlayer || false
+        }));
 
-        const playerMap = new Map(allPlayers.map(p => [p._id, p.name || 'Unknown']));
         const matches = allMatches
           .filter(m => m.status === 'approved' || m.status === 'published' || m.status === 'completed')
           .map(m => {
             const typeObj = getMatchTypes().find(t => t.value === m.matchType);
             return {
               ...m,
-              teamANames: (m.teamA || []).map(id => playerMap.get(id) || id).join(', '),
-              teamBNames: (m.teamB || []).map(id => playerMap.get(id) || id).join(', '),
               matchTypeLabel: typeObj ? typeObj.label : m.matchType
             };
           });
 
         const pendingMatches = matches.filter(m => m.status !== 'completed');
 
-        const filteredPlayersForMatchup = filterPlayersByMatchType(allPlayers, this.data.newMatchup.matchType);
         this.setData({
           signupStatus: mySignup ? mySignup.status : '',
           signedUpPlayers,
           matches,
-          pendingMatches,
-          players: allPlayers,
-          filteredPlayersForMatchup
+          pendingMatches
         });
       })
       .catch(err => {
@@ -236,7 +223,25 @@ Page({
       });
   },
   toggleAddMatchup() {
-    this.setData({ showAddMatchup: !this.data.showAddMatchup });
+    const showAddMatchup = !this.data.showAddMatchup;
+    if (showAddMatchup && this.data.players.length === 0) {
+      callFunction('listPlayers', {})
+        .then(res => {
+          const allPlayers = res.result.players || [];
+          const filteredPlayersForMatchup = filterPlayersByMatchType(allPlayers, this.data.newMatchup.matchType);
+          this.setData({
+            showAddMatchup: true,
+            players: allPlayers,
+            filteredPlayersForMatchup
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          wx.showToast({ title: 'Failed to load players', icon: 'none' });
+        });
+    } else {
+      this.setData({ showAddMatchup });
+    }
   },
   onAddMatchupTypePicker(e) {
     const index = e.detail.value;

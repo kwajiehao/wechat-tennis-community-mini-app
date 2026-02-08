@@ -14,8 +14,7 @@ Page({
   onLoad() {
     initCloud();
     this.loadI18n();
-    this.fetchStats();
-    this.fetchSeasonStats();
+    this.fetchAllStats();
   },
   onShow() {
     this.loadI18n();
@@ -23,27 +22,21 @@ Page({
   loadI18n() {
     this.setData({ i18n: i18n.getStrings() });
   },
-  fetchStats() {
-    callFunction('getStats', { mine: true })
-      .then(res => {
-        this.setData({ stats: res.result.stats || null });
-      })
-      .catch(err => {
-        console.error(err);
-        wx.showToast({ title: this.data.i18n.toast_failed_load_stats, icon: 'none' });
-      });
-  },
-  fetchSeasonStats() {
-    callFunction('getSeasonStats', { mine: true })
-      .then(res => {
+  fetchAllStats() {
+    Promise.all([
+      callFunction('getStats', { mine: true }),
+      callFunction('getSeasonStats', { mine: true })
+    ])
+      .then(([statsRes, seasonStatsRes]) => {
         this.setData({
-          seasonStats: res.result.stats || null,
-          season: res.result.season || null
+          stats: statsRes.result.stats || null,
+          seasonStats: seasonStatsRes.result.stats || null,
+          season: seasonStatsRes.result.season || null
         });
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: this.data.i18n.toast_failed_load_season_stats, icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_stats, icon: 'none' });
       });
   }
 });
