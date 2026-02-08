@@ -159,6 +159,8 @@ Page({
           message = this.data.i18n.event_no_profile;
         } else if (err.message === 'PROFILE_INCOMPLETE') {
           message = this.data.i18n.event_profile_incomplete;
+        } else {
+          message = i18n.translateError(err.message) || message;
         }
         wx.showToast({ title: message, icon: 'none', duration: 3000 });
       });
@@ -175,6 +177,29 @@ Page({
         console.error(err);
         wx.showToast({ title: err.message || 'Withdraw failed', icon: 'none' });
       });
+  },
+  removePlayer(e) {
+    const playerId = e.currentTarget.dataset.playerId;
+    wx.showModal({
+      title: '',
+      content: this.data.i18n.admin_confirm_remove_player || 'Remove this player from event?',
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('removeSignup', {
+            eventId: this.data.eventId,
+            playerId: playerId
+          })
+            .then(() => {
+              wx.showToast({ title: this.data.i18n.toast_removed || 'Removed', icon: 'success' });
+              this.fetchEventData();
+            })
+            .catch(err => {
+              console.error(err);
+              wx.showToast({ title: err.message || 'Remove failed', icon: 'none' });
+            });
+        }
+      }
+    });
   },
   generateMatchups() {
     const eventId = this.data.eventId;

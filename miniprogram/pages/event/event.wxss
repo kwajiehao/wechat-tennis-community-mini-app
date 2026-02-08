@@ -68,6 +68,19 @@
   color: #e65100;
 }
 
+.player-remove {
+  font-size: 36rpx;
+  color: #c62828;
+  padding: 0 12rpx;
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
 .matchup-item {
   background: #f8f8f8;
   border-radius: 12rpx;

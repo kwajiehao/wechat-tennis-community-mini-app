@@ -40,6 +40,7 @@ const strings = {
     error_event_not_in_progress: 'Event must be in progress to complete',
     error_event_not_open: 'Cannot withdraw once event is in progress',
     error_event_full: 'Event is full (max 9 players)',
+    error_male_limit_reached: 'Male limit reached (max 5 men)',
 
     // Gender
     gender_male: 'Male',
@@ -73,6 +74,7 @@ const strings = {
     event_preferred_types: 'Preferred match types',
     event_signup_status: 'Current signup status',
     event_not_signed: 'not signed',
+    event_status_signed: 'signed up',
     event_submit_signup: 'Submit Signup',
     event_signup_success: 'Signed up',
     event_signup_failed: 'Signup failed',
@@ -187,6 +189,7 @@ const strings = {
     admin_complete_event: 'Complete Event',
     admin_reopen_event: 'Reopen Event',
     admin_need_players: 'Need at least 2 players signed up',
+    admin_min_players_hint: 'Minimum 4 players required',
     admin_test_players: 'Test Players',
     admin_test_players_desc: 'Manage test players for matchup testing',
     admin_add_test_player: 'Add Test Player',
@@ -198,6 +201,7 @@ const strings = {
     admin_add_matchup: '+ Add Matchup',
     admin_no_matchups: 'No matchups yet',
     admin_confirm_delete_matchup: 'Delete this matchup?',
+    admin_confirm_remove_player: 'Remove this player from event?',
     admin_start_time: 'Start Time',
     admin_end_time: 'End Time',
     admin_set_label: 'Set',
@@ -217,6 +221,7 @@ const strings = {
     toast_withdrawn: 'Withdrawn',
     toast_saved: 'Saved',
     toast_deleted: 'Deleted',
+    toast_removed: 'Removed',
     toast_season_created: 'Season created',
     toast_event_created: 'Event created',
     toast_event_completed: 'Event completed',
@@ -292,6 +297,7 @@ const strings = {
     error_event_not_in_progress: '活动必须处于进行中状态才能完成',
     error_event_not_open: '活动进行中无法取消报名',
     error_event_full: '活动已满（最多9人）',
+    error_male_limit_reached: '男性名额已满（最多5人）',
 
     // Gender
     gender_male: '男',
@@ -325,6 +331,7 @@ const strings = {
     event_preferred_types: '偏好的比赛类型',
     event_signup_status: '当前报名状态',
     event_not_signed: '未报名',
+    event_status_signed: '已报名',
     event_submit_signup: '提交报名',
     event_signup_success: '报名成功',
     event_signup_failed: '报名失败',
@@ -439,6 +446,7 @@ const strings = {
     admin_complete_event: '结束活动',
     admin_reopen_event: '重新开放',
     admin_need_players: '至少需要2名球员报名',
+    admin_min_players_hint: '至少需要4名球员',
     admin_test_players: '测试球员',
     admin_test_players_desc: '管理用于测试对阵的球员',
     admin_add_test_player: '添加测试球员',
@@ -450,6 +458,7 @@ const strings = {
     admin_add_matchup: '+ 添加对阵',
     admin_no_matchups: '暂无对阵',
     admin_confirm_delete_matchup: '删除此对阵？',
+    admin_confirm_remove_player: '将此球员移出活动？',
     admin_start_time: '开始时间',
     admin_end_time: '结束时间',
     admin_set_label: '第',
@@ -469,6 +478,7 @@ const strings = {
     toast_withdrawn: '已取消',
     toast_saved: '已保存',
     toast_deleted: '已删除',
+    toast_removed: '已移除',
     toast_season_created: '赛季已创建',
     toast_event_created: '活动已创建',
     toast_event_completed: '活动已结束',
@@ -556,7 +566,8 @@ const errorCodeMap = {
   'CANNOT_REGENERATE': 'error_cannot_regenerate',
   'EVENT_NOT_IN_PROGRESS': 'error_event_not_in_progress',
   'EVENT_NOT_OPEN': 'error_event_not_open',
-  'EVENT_FULL': 'error_event_full'
+  'EVENT_FULL': 'error_event_full',
+  'MALE_LIMIT_REACHED': 'error_male_limit_reached'
 };
 
 function translateError(errorMessage, context) {

@@ -17,7 +17,8 @@
     <block wx:if="{{isAdmin && event.status !== 'completed'}}">
       <view class="card">
         <view class="title">{{i18n.nav_admin}}</view>
-        <view class="button {{event.status === 'in_progress' ? 'disabled' : ''}}" bindtap="{{event.status === 'in_progress' ? '' : 'generateMatchups'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="button {{event.status === 'in_progress' || signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{event.status === 'in_progress' || signedUpPlayers.length < 4 ? '' : 'generateMatchups'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="hint" wx:if="{{event.status === 'open' && signedUpPlayers.length < 4}}">{{i18n.admin_min_players_hint || 'Minimum 4 players required'}}</view>
         <view class="button" bindtap="completeEvent">{{i18n.admin_complete_event || 'Complete Event'}}</view>
 
         <view class="divider"></view>
@@ -84,6 +85,7 @@
                 <text class="player-badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player}}</text>
               </view>
             </view>
+            <view class="player-remove" wx:if="{{isAdmin && event.status !== 'completed'}}" data-player-id="{{item.playerId}}" catchtap="removePlayer">×</view>
           </view>
         </view>
       </block>
@@ -193,7 +195,7 @@
     <block wx:if="{{event.status !== 'completed'}}">
       <view class="card">
         <view class="title">{{i18n.event_signup_title}}</view>
-        <view class="label">{{i18n.event_signup_status}}: {{signupStatus || i18n.event_not_signed}}</view>
+        <view class="label">{{i18n.event_signup_status}}: {{signupStatus === 'signed' ? i18n.event_status_signed : i18n.event_not_signed}}</view>
         <block wx:if="{{signupStatus === 'signed'}}">
           <view class="button secondary" bindtap="withdraw" wx:if="{{event.status === 'open'}}">{{i18n.event_withdraw}}</view>
         </block>

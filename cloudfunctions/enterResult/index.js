@@ -87,7 +87,7 @@ function extractGamesFromSets(sets, isTeamA) {
   return { won, lost };
 }
 
-async function recalculatePlayerUTR(playerId) {
+async function recalculatePlayerUTR(playerId, playerNtrp) {
   // Fetch last 30 completed matches for this player
   const matchesRes = await db.collection('matches')
     .where({ status: 'completed', participants: _.in([playerId]) })
@@ -97,6 +97,8 @@ async function recalculatePlayerUTR(playerId) {
   const matches = matchesRes.data || [];
 
   if (matches.length === 0) return null;
+
+  const PROVISIONAL_THRESHOLD = 5;
 
   const matchIds = matches.map(m => m._id);
   const resultsRes = await db.collection('results')
@@ -156,9 +158,28 @@ async function recalculatePlayerUTR(playerId) {
 
   if (totalWeight === 0) return null;
 
+  const calculatedUTR = weightedSum / totalWeight;
+
+  // Provisional period: blend NTRP-based UTR with calculated UTR
+  // Weight shifts as more matches are played:
+  // 1 match: 80% NTRP, 20% calculated
+  // 2 matches: 60% NTRP, 40% calculated
+  // 3 matches: 40% NTRP, 60% calculated
+  // 4 matches: 20% NTRP, 80% calculated
+  // 5+ matches: 100% calculated
+  let finalUTR;
+  if (matches.length >= PROVISIONAL_THRESHOLD) {
+    finalUTR = calculatedUTR;
+  } else {
+    const ntrpBasedUTR = ntrpToUTR(playerNtrp);
+    const calculatedWeight = matches.length / PROVISIONAL_THRESHOLD;
+    const ntrpWeight = 1 - calculatedWeight;
+    finalUTR = (ntrpBasedUTR * ntrpWeight) + (calculatedUTR * calculatedWeight);
+  }
+
   // Clamp to valid UTR range
-  const newUTR = Math.max(1.0, Math.min(16.5, weightedSum / totalWeight));
-  return Math.round(newUTR * 100) / 100; // Round to 2 decimals
+  const clampedUTR = Math.max(1.0, Math.min(16.5, finalUTR));
+  return Math.round(clampedUTR * 100) / 100; // Round to 2 decimals
 }
 
 async function updatePlayerStrength(match, winnerSide, sets) {
@@ -182,8 +203,11 @@ async function updatePlayerStrength(match, winnerSide, sets) {
   }
 
   // Recalculate UTR for all participants based on match history
+  const playerMap = new Map(players.map(p => [p._id, p]));
   for (const playerId of allIds) {
-    const newUTR = await recalculatePlayerUTR(playerId);
+    const player = playerMap.get(playerId);
+    const playerNtrp = player ? player.ntrp : 3.0;
+    const newUTR = await recalculatePlayerUTR(playerId, playerNtrp);
     if (newUTR !== null) {
       await db.collection('players').doc(playerId).update({
         data: { utr: newUTR, utrUpdatedAt: now }

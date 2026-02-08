@@ -89,6 +89,25 @@ exports.main = async (event, context) => {
     if (signupCount.total >= maxPlayers) {
       throw new Error('EVENT_FULL');
     }
+
+    // Gender restriction: limit 5 men for self-signups (admin can bypass)
+    if (!targetPlayerId && (player.gender || '').toUpperCase() === 'M') {
+      const allSignups = await db.collection('signups')
+        .where({ eventId, status: 'signed' })
+        .get();
+      const playerIds = (allSignups.data || []).map(s => s.playerId);
+      if (playerIds.length > 0) {
+        const playersRes = await db.collection('players')
+          .where({ _id: db.command.in(playerIds) })
+          .get();
+        const maleCount = (playersRes.data || []).filter(p =>
+          (p.gender || '').toUpperCase() === 'M'
+        ).length;
+        if (maleCount >= 5) {
+          throw new Error('MALE_LIMIT_REACHED');
+        }
+      }
+    }
   }
 
   const settings = await getSettings();

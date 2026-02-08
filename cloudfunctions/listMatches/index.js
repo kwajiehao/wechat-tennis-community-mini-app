@@ -100,7 +100,7 @@ exports.main = async (event, context) => {
       .get();
     matches = res.data || [];
   } else if (eventId) {
-    await assertAdmin(OPENID);
+    // Anyone can view matches for a specific event
     const res = await db.collection('matches')
       .where({ eventId })
       .get();

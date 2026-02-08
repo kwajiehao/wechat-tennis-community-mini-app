@@ -96,7 +96,7 @@ function extractGamesFromSets(sets, isTeamA) {
   return { won, lost };
 }
 
-async function recalculatePlayerUTR(playerId) {
+async function recalculatePlayerUTR(playerId, playerNtrp) {
   // Fetch completed matches for this player
   const allMatches = await store.collection('matches').get();
   const matches = (allMatches.data || [])
@@ -105,6 +105,8 @@ async function recalculatePlayerUTR(playerId) {
     .slice(0, 30);
 
   if (matches.length === 0) return null;
+
+  const PROVISIONAL_THRESHOLD = 5;
 
   const resultsRes = await store.collection('results').get();
   const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
@@ -154,8 +156,22 @@ async function recalculatePlayerUTR(playerId) {
   }
 
   if (totalWeight === 0) return null;
-  const newUTR = Math.max(1.0, Math.min(16.5, weightedSum / totalWeight));
-  return Math.round(newUTR * 100) / 100;
+
+  const calculatedUTR = weightedSum / totalWeight;
+
+  // Provisional period: blend NTRP-based UTR with calculated UTR
+  let finalUTR;
+  if (matches.length >= PROVISIONAL_THRESHOLD) {
+    finalUTR = calculatedUTR;
+  } else {
+    const ntrpBasedUTR = ntrpToUTR(playerNtrp);
+    const calculatedWeight = matches.length / PROVISIONAL_THRESHOLD;
+    const ntrpWeight = 1 - calculatedWeight;
+    finalUTR = (ntrpBasedUTR * ntrpWeight) + (calculatedUTR * calculatedWeight);
+  }
+
+  const clampedUTR = Math.max(1.0, Math.min(16.5, finalUTR));
+  return Math.round(clampedUTR * 100) / 100;
 }
 
 async function updatePlayerStrength(match, winnerSide, sets) {
@@ -175,8 +191,11 @@ async function updatePlayerStrength(match, winnerSide, sets) {
     }
   }
 
+  const playerMap = new Map(players.map(p => [p._id, p]));
   for (const playerId of allIds) {
-    const newUTR = await recalculatePlayerUTR(playerId);
+    const player = playerMap.get(playerId);
+    const playerNtrp = player ? player.ntrp : 3.0;
+    const newUTR = await recalculatePlayerUTR(playerId, playerNtrp);
     if (newUTR !== null) {
       await store.collection('players').doc(playerId).update({
         data: { utr: newUTR, utrUpdatedAt: now }
@@ -418,6 +437,24 @@ const handlers = {
       const maxPlayers = eventData.maxPlayers || 9;
       if ((signupCount.data || []).length >= maxPlayers) {
         throw new Error('EVENT_FULL');
+      }
+
+      // Gender restriction: limit 5 men for self-signups (admin can bypass)
+      if (!targetPlayerId && (player.gender || '').toUpperCase() === 'M') {
+        const allSignups = await store.collection('signups')
+          .where({ eventId, status: 'signed' })
+          .get();
+        const signedPlayerIds = (allSignups.data || []).map(s => s.playerId);
+        if (signedPlayerIds.length > 0) {
+          const playersRes = await store.collection('players').get();
+          const signedPlayers = (playersRes.data || []).filter(p => signedPlayerIds.includes(p._id));
+          const maleCount = signedPlayers.filter(p =>
+            (p.gender || '').toUpperCase() === 'M'
+          ).length;
+          if (maleCount >= 5) {
+            throw new Error('MALE_LIMIT_REACHED');
+          }
+        }
       }
     }
 
@@ -1287,6 +1324,41 @@ const handlers = {
     });
 
     return { matchId: res._id };
+  },
+
+  async removeSignup(event) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+    const { eventId, playerId } = event;
+
+    if (!eventId || !playerId) {
+      throw new Error('MISSING_FIELDS');
+    }
+
+    const eventRes = await store.collection('events').doc(eventId).get();
+    const eventData = eventRes.data;
+    if (!eventData) throw new Error('EVENT_NOT_FOUND');
+
+    if (eventData.status === 'completed') {
+      throw new Error('EVENT_COMPLETED');
+    }
+
+    const existing = await store.collection('signups')
+      .where({ eventId, playerId })
+      .get();
+
+    if (existing.data.length === 0) {
+      throw new Error('NOT_SIGNED_UP');
+    }
+
+    await store.collection('signups').doc(existing.data[0]._id).update({
+      data: {
+        status: 'withdrawn',
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    return { success: true };
   },
 
   async deleteMatchup(data) {
