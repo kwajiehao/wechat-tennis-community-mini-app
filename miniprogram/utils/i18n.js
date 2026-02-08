@@ -78,6 +78,7 @@ const strings = {
     event_submit_signup: 'Submit Signup',
     event_signup_success: 'Signed up',
     event_signup_failed: 'Signup failed',
+    event_withdraw_failed: 'Withdraw failed',
     event_profile_incomplete: 'Please complete your profile (name, gender, NTRP) before signing up',
     event_no_profile: 'Please create your profile before signing up',
     event_withdraw: 'Withdraw',
@@ -190,6 +191,8 @@ const strings = {
     admin_reopen_event: 'Reopen Event',
     admin_need_players: 'Need at least 2 players signed up',
     admin_min_players_hint: 'Minimum 4 players required',
+    admin_match_started_hint: 'Matches have started - cannot regenerate',
+    event_status_match_started: 'Match Started',
     admin_test_players: 'Test Players',
     admin_test_players_desc: 'Manage test players for matchup testing',
     admin_add_test_player: 'Add Test Player',
@@ -202,6 +205,9 @@ const strings = {
     admin_no_matchups: 'No matchups yet',
     admin_confirm_delete_matchup: 'Delete this matchup?',
     admin_confirm_remove_player: 'Remove this player from event?',
+    admin_matchups_removed_regen: 'Matchups involving this player were removed. Regenerate matchups?',
+    admin_confirm_regenerate: 'This will remove existing matchups and create new ones. Continue?',
+    admin_add_player: '+ Add Player',
     admin_start_time: 'Start Time',
     admin_end_time: 'End Time',
     admin_set_label: 'Set',
@@ -335,6 +341,7 @@ const strings = {
     event_submit_signup: '提交报名',
     event_signup_success: '报名成功',
     event_signup_failed: '报名失败',
+    event_withdraw_failed: '取消报名失败',
     event_profile_incomplete: '报名前请先完善个人资料（姓名、性别、NTRP等级）',
     event_no_profile: '报名前请先创建个人资料',
     event_withdraw: '取消报名',
@@ -447,6 +454,8 @@ const strings = {
     admin_reopen_event: '重新开放',
     admin_need_players: '至少需要2名球员报名',
     admin_min_players_hint: '至少需要4名球员',
+    admin_match_started_hint: '比赛已开始 - 无法重新生成',
+    event_status_match_started: '比赛中',
     admin_test_players: '测试球员',
     admin_test_players_desc: '管理用于测试对阵的球员',
     admin_add_test_player: '添加测试球员',
@@ -459,6 +468,9 @@ const strings = {
     admin_no_matchups: '暂无对阵',
     admin_confirm_delete_matchup: '删除此对阵？',
     admin_confirm_remove_player: '将此球员移出活动？',
+    admin_matchups_removed_regen: '涉及该球员的对阵已被移除。是否重新生成对阵？',
+    admin_confirm_regenerate: '这将移除现有对阵并创建新对阵。继续？',
+    admin_add_player: '+ 添加球员',
     admin_start_time: '开始时间',
     admin_end_time: '结束时间',
     admin_set_label: '第',
@@ -567,8 +579,31 @@ const errorCodeMap = {
   'EVENT_NOT_IN_PROGRESS': 'error_event_not_in_progress',
   'EVENT_NOT_OPEN': 'error_event_not_open',
   'EVENT_FULL': 'error_event_full',
-  'MALE_LIMIT_REACHED': 'error_male_limit_reached'
+  'MALE_LIMIT_REACHED': 'error_male_limit_reached',
+  'MISSING_PROFILE': 'event_no_profile',
+  'PROFILE_INCOMPLETE': 'event_profile_incomplete'
 };
+
+function extractErrorCode(errorMessage) {
+  if (!errorMessage) return null;
+  // Check if it's already a simple error code
+  if (errorCodeMap[errorMessage]) {
+    return errorMessage;
+  }
+  // Extract error code from cloud function error format
+  // Format: "...errMsg: Error: ERROR_CODE..." or "Error: ERROR_CODE"
+  const patterns = [
+    /errMsg:\s*Error:\s*(\w+)/,
+    /Error:\s*(\w+)/
+  ];
+  for (const pattern of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match && match[1] && errorCodeMap[match[1]]) {
+      return match[1];
+    }
+  }
+  return null;
+}
 
 function translateError(errorMessage, context) {
   const strs = getStrings();
@@ -578,11 +613,14 @@ function translateError(errorMessage, context) {
   if (context === 'winner' && errorMessage === 'MISSING_FIELDS') {
     return strs.error_missing_winner || errorMessage;
   }
-  const i18nKey = errorCodeMap[errorMessage];
+
+  // Try to extract error code from wrapped cloud function errors
+  const errorCode = extractErrorCode(errorMessage) || errorMessage;
+  const i18nKey = errorCodeMap[errorCode];
   if (i18nKey && strs[i18nKey]) {
     return strs[i18nKey];
   }
-  return errorMessage;
+  return null;
 }
 
 module.exports = {

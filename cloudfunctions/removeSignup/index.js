@@ -78,5 +78,21 @@ exports.main = async (event, context) => {
     }
   });
 
-  return { success: true };
+  // Remove all non-completed matchups involving this player
+  const _ = db.command;
+  const matchups = await db.collection('matches')
+    .where({
+      eventId,
+      participants: _.in([playerId]),
+      status: _.neq('completed')
+    })
+    .get();
+
+  const removedMatchups = [];
+  for (const match of matchups.data || []) {
+    await db.collection('matches').doc(match._id).remove();
+    removedMatchups.push(match._id);
+  }
+
+  return { success: true, removedMatchups };
 };

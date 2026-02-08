@@ -17,9 +17,11 @@
     <block wx:if="{{isAdmin && event.status !== 'completed'}}">
       <view class="card">
         <view class="title">{{i18n.nav_admin}}</view>
-        <view class="button {{event.status === 'in_progress' || signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{event.status === 'in_progress' || signedUpPlayers.length < 4 ? '' : 'generateMatchups'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="button {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'generateMatchups'}}" wx:if="{{event.status === 'open'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="button secondary {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'confirmRegenerateMatchups'}}" wx:if="{{event.status === 'in_progress'}}">{{i18n.admin_regenerate_matchups || 'Regenerate Matchups'}}</view>
         <view class="hint" wx:if="{{event.status === 'open' && signedUpPlayers.length < 4}}">{{i18n.admin_min_players_hint || 'Minimum 4 players required'}}</view>
-        <view class="button" bindtap="completeEvent">{{i18n.admin_complete_event || 'Complete Event'}}</view>
+        <view class="hint" wx:if="{{event.status === 'match_started'}}">{{i18n.admin_match_started_hint || 'Matches have started - cannot regenerate'}}</view>
+        <view class="button" bindtap="completeEvent" wx:if="{{event.status === 'in_progress' || event.status === 'match_started'}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
 
         <view class="divider"></view>
 
@@ -88,6 +90,27 @@
             <view class="player-remove" wx:if="{{isAdmin && event.status !== 'completed'}}" data-player-id="{{item.playerId}}" catchtap="removePlayer">×</view>
           </view>
         </view>
+      </block>
+
+      <block wx:if="{{isAdmin && event.status !== 'completed'}}">
+        <view class="divider"></view>
+        <view class="button secondary" bindtap="toggleAddPlayer" wx:if="{{!showAddPlayer}}">{{i18n.admin_add_player || '+ Add Player'}}</view>
+        <block wx:if="{{showAddPlayer}}">
+          <view class="add-player-form">
+            <view class="label">{{i18n.admin_select_player}}</view>
+            <searchable-picker
+              items="{{availablePlayersForSignup}}"
+              selectedIds="{{selectedPlayerToAdd}}"
+              placeholder="{{i18n.common_search}}"
+              maxSelect="{{1}}"
+              bind:change="onAddPlayerChange"
+            />
+            <view class="button-row">
+              <view class="button" bindtap="addPlayerToEvent">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
+              <view class="button secondary" bindtap="toggleAddPlayer">{{i18n.common_cancel}}</view>
+            </view>
+          </view>
+        </block>
       </block>
     </view>
 

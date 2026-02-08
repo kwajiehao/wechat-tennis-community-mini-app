@@ -61,11 +61,15 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_COMPLETED');
   }
 
+  // Restore to previous status (in_progress or match_started)
+  const restoreStatus = eventData.previousStatus || 'in_progress';
+
   await db.collection('events').doc(eventId).update({
     data: {
-      status: 'in_progress',
+      status: restoreStatus,
       playerPoints: db.command.remove,
-      completedAt: db.command.remove
+      completedAt: db.command.remove,
+      previousStatus: db.command.remove
     }
   });
 

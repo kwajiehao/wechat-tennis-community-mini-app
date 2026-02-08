@@ -283,6 +283,10 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_FOUND');
   }
 
+  if (eventData.status === 'completed' || eventData.status === 'match_started') {
+    throw new Error('CANNOT_REGENERATE');
+  }
+
   let seasonId = eventData.seasonId;
   if (!seasonId) {
     seasonId = await ensureActiveSeason(OPENID, eventData.date);
@@ -291,8 +295,9 @@ exports.main = async (event, context) => {
     });
   }
 
+  // Remove all non-completed matches (allows regeneration)
   await db.collection('matches')
-    .where({ eventId, status: _.in(['draft', 'needs_admin']) })
+    .where({ eventId, status: _.neq('completed') })
     .remove();
 
   const signupsRes = await db.collection('signups')

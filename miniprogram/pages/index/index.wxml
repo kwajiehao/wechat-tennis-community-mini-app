@@ -13,7 +13,7 @@
       <view class="button secondary" bindtap="goStats">{{i18n.nav_stats}}</view>
       <view class="button secondary" bindtap="goPlayers">{{i18n.nav_players}}</view>
       <view class="button secondary" bindtap="goSettings">{{i18n.nav_settings}}</view>
-      <view class="button" bindtap="goAdmin">{{i18n.nav_admin}}</view>
+      <view class="button" bindtap="goAdmin" wx:if="{{isAdmin}}">{{i18n.nav_admin}}</view>
     </view>
 
     <view class="section-title">{{i18n.index_upcoming_events}}</view>

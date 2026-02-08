@@ -12,7 +12,8 @@ Page({
     loading: false,
     hasProfile: false,
     playerId: null,
-    dataLoaded: false
+    dataLoaded: false,
+    isAdmin: false
   },
   onLoad() {
     initCloud();
@@ -31,10 +32,20 @@ Page({
     this.setData({ loading: true });
     Promise.all([
       this.fetchProfile(),
-      this.fetchEventsData()
+      this.fetchEventsData(),
+      this.fetchAdminStatus()
     ]).finally(() => {
       this.setData({ loading: false, dataLoaded: true });
     });
+  },
+  fetchAdminStatus() {
+    return callFunction('checkAdmin', {})
+      .then(res => {
+        this.setData({ isAdmin: res.result.isAdmin === true });
+      })
+      .catch(() => {
+        this.setData({ isAdmin: false });
+      });
   },
   fetchProfile() {
     return callFunction('getPlayer', {})

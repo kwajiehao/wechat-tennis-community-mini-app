@@ -81,6 +81,13 @@
   margin-top: 8rpx;
 }
 
+.add-player-form {
+  background: #f8f8f8;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-top: 16rpx;
+}
+
 .matchup-item {
   background: #f8f8f8;
   border-radius: 12rpx;
@@ -216,6 +223,11 @@
 .status-badge.in_progress {
   background: #fff3e0;
   color: #e65100;
+}
+
+.status-badge.match_started {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-badge.completed {

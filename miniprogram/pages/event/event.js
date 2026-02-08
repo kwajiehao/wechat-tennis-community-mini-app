@@ -38,6 +38,9 @@ Page({
     players: [],
     filteredPlayersForMatchup: [],
     showAddMatchup: false,
+    showAddPlayer: false,
+    availablePlayersForSignup: [],
+    selectedPlayerToAdd: [],
     dataLoaded: false,
     newMatchup: {
       matchType: 'mens_singles',
@@ -154,14 +157,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        let message = err.message || 'Signup failed';
-        if (err.message === 'MISSING_PROFILE') {
-          message = this.data.i18n.event_no_profile;
-        } else if (err.message === 'PROFILE_INCOMPLETE') {
-          message = this.data.i18n.event_profile_incomplete;
-        } else {
-          message = i18n.translateError(err.message) || message;
-        }
+        const message = i18n.translateError(err.message) || this.data.i18n.event_signup_failed || 'Signup failed';
         wx.showToast({ title: message, icon: 'none', duration: 3000 });
       });
   },
@@ -175,7 +171,8 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: err.message || 'Withdraw failed', icon: 'none' });
+        const message = i18n.translateError(err.message) || this.data.i18n.event_withdraw_failed || 'Withdraw failed';
+        wx.showToast({ title: message, icon: 'none' });
       });
   },
   removePlayer(e) {
@@ -189,9 +186,24 @@ Page({
             eventId: this.data.eventId,
             playerId: playerId
           })
-            .then(() => {
-              wx.showToast({ title: this.data.i18n.toast_removed || 'Removed', icon: 'success' });
+            .then((res) => {
+              const removedMatchups = (res.result && res.result.removedMatchups) || [];
               this.fetchEventData();
+              if (removedMatchups.length > 0 && this.data.event && this.data.event.status === 'in_progress') {
+                wx.showModal({
+                  title: this.data.i18n.toast_removed || 'Removed',
+                  content: this.data.i18n.admin_matchups_removed_regen || 'Matchups involving this player were removed. Regenerate matchups?',
+                  confirmText: this.data.i18n.common_yes || 'Yes',
+                  cancelText: this.data.i18n.common_no || 'No',
+                  success: (modalRes) => {
+                    if (modalRes.confirm) {
+                      this.regenerateMatchups();
+                    }
+                  }
+                });
+              } else {
+                wx.showToast({ title: this.data.i18n.toast_removed || 'Removed', icon: 'success' });
+              }
             })
             .catch(err => {
               console.error(err);
@@ -221,6 +233,71 @@ Page({
       .catch(err => {
         console.error(err);
         wx.showToast({ title: err.message || 'Generate failed', icon: 'none' });
+      });
+  },
+  confirmRegenerateMatchups() {
+    wx.showModal({
+      title: '',
+      content: this.data.i18n.admin_confirm_regenerate || 'This will remove existing matchups and create new ones. Continue?',
+      success: (res) => {
+        if (res.confirm) {
+          this.generateMatchups();
+        }
+      }
+    });
+  },
+  toggleAddPlayer() {
+    const showAddPlayer = !this.data.showAddPlayer;
+    if (showAddPlayer) {
+      this.loadAvailablePlayers();
+    } else {
+      this.setData({ showAddPlayer: false, selectedPlayerToAdd: [] });
+    }
+  },
+  loadAvailablePlayers() {
+    callFunction('listPlayers', {})
+      .then(res => {
+        const allPlayers = res.result.players || [];
+        const signedUpIds = this.data.signedUpPlayers.map(p => p.playerId);
+        const available = allPlayers
+          .filter(p => !signedUpIds.includes(p._id) && p.name && p.gender && p.ntrp != null)
+          .map(p => ({
+            _id: p._id,
+            name: `${p.name} (${p.gender}, NTRP ${p.ntrp})`
+          }));
+        this.setData({
+          showAddPlayer: true,
+          availablePlayersForSignup: available,
+          selectedPlayerToAdd: []
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: 'Failed to load players', icon: 'none' });
+      });
+  },
+  onAddPlayerChange(e) {
+    this.setData({ selectedPlayerToAdd: e.detail.selectedIds || [] });
+  },
+  addPlayerToEvent() {
+    const selected = this.data.selectedPlayerToAdd;
+    if (selected.length === 0) {
+      wx.showToast({ title: this.data.i18n.admin_select_player || 'Select a player', icon: 'none' });
+      return;
+    }
+    callFunction('signupEvent', {
+      eventId: this.data.eventId,
+      playerId: selected[0]
+    })
+      .then(() => {
+        wx.showToast({ title: this.data.i18n.toast_player_signed_up || 'Player signed up', icon: 'success' });
+        this.setData({ showAddPlayer: false, selectedPlayerToAdd: [] });
+        this.fetchEventData();
+      })
+      .catch(err => {
+        console.error(err);
+        const message = i18n.translateError(err.message) || 'Signup failed';
+        wx.showToast({ title: message, icon: 'none' });
       });
   },
   completeEvent() {

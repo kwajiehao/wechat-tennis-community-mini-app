@@ -353,5 +353,16 @@ exports.main = async (event, context) => {
   // Update player UTR ratings
   await updatePlayerStrength(match, winnerSide, sets);
 
+  // Update event status to match_started if this is the first result
+  const matchEventId = match.eventId || eventId;
+  if (matchEventId) {
+    const eventRes = await db.collection('events').doc(matchEventId).get().catch(() => null);
+    if (eventRes && eventRes.data && eventRes.data.status === 'in_progress') {
+      await db.collection('events').doc(matchEventId).update({
+        data: { status: 'match_started' }
+      });
+    }
+  }
+
   return { resultId: resultRes._id };
 };

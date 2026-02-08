@@ -92,20 +92,27 @@ Page({
     deleteTestPlayerInput: {
       playerId: '',
       playerName: ''
-    },
-    playerSignup: {
-      eventId: '',
-      eventTitle: '',
-      eventDisplayName: '',
-      playerId: '',
-      playerName: '',
-      availablePlayers: []
     }
   },
   onLoad() {
     initCloud();
     this.loadI18n();
-    this.refresh();
+    this.checkAdminAccess();
+  },
+  checkAdminAccess() {
+    callFunction('checkAdmin', {})
+      .then(res => {
+        if (res.result.isAdmin !== true) {
+          wx.showToast({ title: i18n.t('error_permission_denied'), icon: 'none' });
+          wx.navigateBack({ delta: 1 });
+        } else {
+          this.refresh();
+        }
+      })
+      .catch(() => {
+        wx.showToast({ title: i18n.t('error_permission_denied'), icon: 'none' });
+        wx.navigateBack({ delta: 1 });
+      });
   },
   onShow() {
     this.loadI18n();
@@ -766,105 +773,5 @@ Page({
         }
       }
     });
-  },
-  onSignupEventPicker(e) {
-    const index = e.detail.value;
-    const event = this.data.events[index];
-    if (!event) return;
-
-    this.setData({
-      'playerSignup.eventId': event._id,
-      'playerSignup.eventTitle': event.title,
-      'playerSignup.eventDisplayName': event.displayName,
-      'playerSignup.playerId': '',
-      'playerSignup.playerName': '',
-      'playerSignup.availablePlayers': []
-    });
-
-    Promise.all([
-      callFunction('listPlayers', {}),
-      callFunction('listSignups', { eventId: event._id })
-    ])
-      .then(([playersRes, signupsRes]) => {
-        const allPlayers = (playersRes.result.players || []).filter(p => p.isActive !== false);
-        const signups = signupsRes.result.signups || [];
-        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
-        const availablePlayers = allPlayers
-          .filter(p => !signedUpPlayerIds.has(p._id))
-          .map(p => ({
-            ...p,
-            displayName: p.isTestPlayer ? `${p.name} (Test)` : p.name
-          }));
-        this.setData({
-          'playerSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        wx.showToast({ title: this.data.i18n.toast_failed_load_players, icon: 'none' });
-      });
-  },
-  onSignupPlayerPicker(e) {
-    const index = e.detail.value;
-    const player = this.data.playerSignup.availablePlayers[index];
-    if (player) {
-      this.setData({
-        'playerSignup.playerId': player._id,
-        'playerSignup.playerName': player.displayName || player.name
-      });
-    }
-  },
-  refreshSignupPlayers() {
-    const eventId = this.data.playerSignup.eventId;
-    if (!eventId) return;
-
-    Promise.all([
-      callFunction('listPlayers', {}),
-      callFunction('listSignups', { eventId })
-    ])
-      .then(([playersRes, signupsRes]) => {
-        const allPlayers = (playersRes.result.players || []).filter(p => p.isActive !== false);
-        const signups = signupsRes.result.signups || [];
-        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
-        const availablePlayers = allPlayers
-          .filter(p => !signedUpPlayerIds.has(p._id))
-          .map(p => ({
-            ...p,
-            displayName: p.isTestPlayer ? `${p.name} (Test)` : p.name
-          }));
-        this.setData({
-          'playerSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-      });
-  },
-  signupPlayer() {
-    const input = this.data.playerSignup;
-    if (!input.playerId || !input.eventId) {
-      wx.showToast({ title: this.data.i18n.admin_select_player_event || 'Select player and event', icon: 'none' });
-      return;
-    }
-    callFunction('signupEvent', {
-      eventId: input.eventId,
-      playerId: input.playerId
-    })
-      .then(() => {
-        wx.showToast({ title: this.data.i18n.admin_player_signed_up || 'Player signed up', icon: 'success' });
-        const availablePlayers = this.data.playerSignup.availablePlayers.filter(
-          p => p._id !== input.playerId
-        );
-        this.setData({
-          'playerSignup.playerId': '',
-          'playerSignup.playerName': '',
-          'playerSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        const msg = i18n.translateError(err.message) || 'Signup failed';
-        wx.showToast({ title: msg, icon: 'none' });
-      });
   }
 });

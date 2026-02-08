@@ -101,21 +101,4 @@
     <view class="button secondary" bindtap="deleteTestPlayer">{{i18n.admin_delete_player}}</view>
   </view>
 
-  <view class="card">
-    <view class="title">{{i18n.admin_signup_players || 'Sign Up Players'}}</view>
-    <view class="label">{{i18n.admin_signup_players_desc || 'Sign up players for events'}}</view>
-
-    <view class="label">{{i18n.admin_select_event}}</view>
-    <picker mode="selector" range="{{events}}" range-key="displayName" bindchange="onSignupEventPicker">
-      <view class="input picker-value">{{playerSignup.eventDisplayName || i18n.common_select}}</view>
-    </picker>
-
-    <view class="label">{{i18n.admin_select_player}}</view>
-    <picker mode="selector" range="{{playerSignup.availablePlayers}}" range-key="displayName" bindchange="onSignupPlayerPicker" disabled="{{!playerSignup.eventId}}" catchtap="refreshSignupPlayers">
-      <view class="input picker-value {{!playerSignup.eventId ? 'disabled' : ''}}">{{playerSignup.playerName || (playerSignup.eventId ? i18n.admin_select_player : i18n.admin_select_event_first)}}</view>
-    </picker>
-
-    <view class="button" bindtap="signupPlayer">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
-  </view>
-
 </view>

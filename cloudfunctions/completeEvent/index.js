@@ -58,9 +58,11 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_FOUND');
   }
 
-  if (eventData.status !== 'in_progress') {
+  if (eventData.status !== 'in_progress' && eventData.status !== 'match_started') {
     throw new Error('EVENT_NOT_IN_PROGRESS');
   }
+
+  const previousStatus = eventData.status;
 
   const matchesRes = await db.collection('matches')
     .where({ eventId, status: 'completed' })
@@ -89,6 +91,7 @@ exports.main = async (event, context) => {
   await db.collection('events').doc(eventId).update({
     data: {
       status: 'completed',
+      previousStatus,
       playerPoints,
       completedAt: now
     }

@@ -572,9 +572,14 @@ const handlers = {
     const eventData = eventRes.data;
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
 
+    if (eventData.status === 'completed' || eventData.status === 'match_started') {
+      throw new Error('CANNOT_REGENERATE');
+    }
+
+    // Remove all non-completed matches (allows regeneration)
     const existingMatches = await store.collection('matches').where({ eventId }).get();
     for (const m of existingMatches.data || []) {
-      if (['draft', 'needs_admin'].includes(m.status)) {
+      if (m.status !== 'completed') {
         await store.collection('matches').doc(m._id).remove();
       }
     }
@@ -814,23 +819,6 @@ const handlers = {
     return { matchCount: matchesToCreate.length, waitlist };
   },
 
-  async regenerateMatchups(event) {
-    const { OPENID } = getWXContext();
-    await assertAdmin(OPENID);
-    const { eventId } = event;
-    if (!eventId) throw new Error('MISSING_EVENT_ID');
-
-    const eventRes = await store.collection('events').doc(eventId).get();
-    const eventData = eventRes.data;
-    if (!eventData) throw new Error('EVENT_NOT_FOUND');
-
-    if (eventData.status === 'in_progress' || eventData.status === 'completed') {
-      throw new Error('CANNOT_REGENERATE');
-    }
-
-    return handlers.generateMatchups(event);
-  },
-
   async approveMatchups(event) {
     const { OPENID } = getWXContext();
     await assertAdmin(OPENID);
@@ -851,7 +839,10 @@ const handlers = {
     const eventRes = await store.collection('events').doc(eventId).get();
     const eventData = eventRes.data;
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
-    if (eventData.status !== 'in_progress') throw new Error('EVENT_NOT_IN_PROGRESS');
+    if (eventData.status !== 'in_progress' && eventData.status !== 'match_started') {
+      throw new Error('EVENT_NOT_IN_PROGRESS');
+    }
+    const previousStatus = eventData.status;
 
     const matchesRes = await store.collection('matches').where({ eventId, status: 'completed' }).get();
     const completedMatches = matchesRes.data || [];
@@ -875,6 +866,7 @@ const handlers = {
     await store.collection('events').doc(eventId).update({
       data: {
         status: 'completed',
+        previousStatus,
         playerPoints,
         completedAt: now
       }
@@ -894,11 +886,15 @@ const handlers = {
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
     if (eventData.status !== 'completed') throw new Error('EVENT_NOT_COMPLETED');
 
+    // Restore to previous status (in_progress or match_started)
+    const restoreStatus = eventData.previousStatus || 'in_progress';
+
     await store.collection('events').doc(eventId).update({
       data: {
-        status: 'in_progress',
+        status: restoreStatus,
         playerPoints: null,
-        completedAt: null
+        completedAt: null,
+        previousStatus: null
       }
     });
 
@@ -970,6 +966,17 @@ const handlers = {
 
     // Update player UTR ratings
     await updatePlayerStrength(match, winnerSide, sets);
+
+    // Update event status to match_started if this is the first result
+    const matchEventId = match.eventId || eventId;
+    if (matchEventId) {
+      const eventRes = await store.collection('events').doc(matchEventId).get();
+      if (eventRes.data && eventRes.data.status === 'in_progress') {
+        await store.collection('events').doc(matchEventId).update({
+          data: { status: 'match_started' }
+        });
+      }
+    }
 
     return { resultId: resultRes._id };
   },
@@ -1358,7 +1365,17 @@ const handlers = {
       }
     });
 
-    return { success: true };
+    // Remove all non-completed matchups involving this player
+    const allMatches = await store.collection('matches').where({ eventId }).get();
+    const removedMatchups = [];
+    for (const match of allMatches.data || []) {
+      if (match.status !== 'completed' && (match.participants || []).includes(playerId)) {
+        await store.collection('matches').doc(match._id).remove();
+        removedMatchups.push(match._id);
+      }
+    }
+
+    return { success: true, removedMatchups };
   },
 
   async deleteMatchup(data) {
