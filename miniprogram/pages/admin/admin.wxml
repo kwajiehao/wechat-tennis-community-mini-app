@@ -203,37 +203,26 @@
   </view>
 
   <view class="card">
-    <view class="title">{{i18n.admin_upsert_player}}</view>
-    <view class="label">{{i18n.admin_player_id_hint}}</view>
-    <input class="input" data-field="playerId" bindinput="onPlayerInput" />
+    <view class="title">{{i18n.admin_test_players || 'Test Players'}}</view>
+    <view class="label">{{i18n.admin_test_players_desc || 'Manage test players for matchup testing'}}</view>
+
     <view class="label">{{i18n.profile_name}}</view>
-    <input class="input" data-field="name" bindinput="onPlayerInput" value="{{playerInput.name}}" />
+    <input class="input" data-field="name" bindinput="onTestPlayerInput" value="{{testPlayerInput.name}}" />
     <view class="label">{{i18n.profile_gender}}</view>
-    <picker mode="selector" range="{{genderOptions}}" value="{{playerInput.genderIndex}}" bindchange="onPlayerGenderChange">
-      <view class="input picker-value">{{playerInput.gender === 'M' ? i18n.gender_male : (playerInput.gender === 'F' ? i18n.gender_female : i18n.common_select)}}</view>
+    <picker mode="selector" range="{{genderOptions}}" value="{{testPlayerInput.genderIndex}}" bindchange="onTestPlayerGenderChange">
+      <view class="input picker-value">{{testPlayerInput.gender === 'M' ? i18n.gender_male : (testPlayerInput.gender === 'F' ? i18n.gender_female : i18n.common_select)}}</view>
     </picker>
     <view class="label">{{i18n.profile_ntrp}}</view>
-    <picker mode="selector" range="{{ntrpOptions}}" value="{{playerInput.ntrpIndex}}" bindchange="onPlayerNtrpChange">
-      <view class="input picker-value">{{playerInput.ntrp || i18n.common_select}}</view>
+    <picker mode="selector" range="{{ntrpOptions}}" value="{{testPlayerInput.ntrpIndex}}" bindchange="onTestPlayerNtrpChange">
+      <view class="input picker-value">{{testPlayerInput.ntrp || i18n.common_select}}</view>
     </picker>
-    <view class="label">{{i18n.admin_notes}}</view>
-    <input class="input" data-field="notes" bindinput="onPlayerInput" />
-    <view class="button" bindtap="upsertPlayer">{{i18n.admin_save_player || 'Save Player'}}</view>
-    <view class="button secondary" bindtap="deletePlayer" wx:if="{{playerInput.playerId}}">{{i18n.admin_delete_player || 'Delete Player'}}</view>
-  </view>
+    <view class="button" bindtap="addTestPlayer">{{i18n.admin_add_test_player || 'Add Test Player'}}</view>
 
-  <view class="card">
-    <view class="title">{{i18n.admin_signup}}</view>
-    <view class="label">{{i18n.admin_signup_desc}}</view>
-    <view class="label">{{i18n.admin_select_event}}</view>
-    <picker mode="selector" range="{{events}}" range-key="title" bindchange="onAdminSignupEventPicker">
-      <view class="input picker-value">{{adminSignup.eventTitle || i18n.common_select}}</view>
+    <view class="label" style="margin-top: 20px;">{{i18n.admin_remove_test_player || 'Remove Test Player'}}</view>
+    <picker mode="selector" range="{{testPlayers}}" range-key="name" bindchange="onDeleteTestPlayerPicker">
+      <view class="input picker-value">{{deleteTestPlayerInput.playerName || i18n.common_select}}</view>
     </picker>
-    <view class="label">{{i18n.admin_players}}</view>
-    <picker mode="selector" range="{{adminSignup.availablePlayers}}" range-key="name" bindchange="onAdminSignupPlayerPicker" disabled="{{!adminSignup.eventId}}" catchtap="refreshAvailablePlayers">
-      <view class="input picker-value {{!adminSignup.eventId ? 'disabled' : ''}}">{{adminSignup.playerName || (adminSignup.eventId ? i18n.admin_select_player : i18n.admin_select_event_first)}}</view>
-    </picker>
-    <view class="button" bindtap="adminSignupPlayer">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
+    <view class="button secondary" bindtap="deleteTestPlayer">{{i18n.admin_delete_player}}</view>
   </view>
 
   <view class="modal-overlay" wx:if="{{matchupsModal.visible}}" bindtap="closeMatchupsModal">

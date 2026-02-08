@@ -61,6 +61,15 @@ async function getPlayerByOpenId(openid) {
 }
 
 const handlers = {
+  async checkAdmin(event) {
+    const { OPENID } = getWXContext();
+    const settings = await getSettings();
+    if (!settings || !settings.adminOpenIds) {
+      return { isAdmin: false };
+    }
+    return { isAdmin: settings.adminOpenIds.includes(OPENID) };
+  },
+
   async getPlayer(event) {
     const { OPENID } = getWXContext();
     const { playerId } = event;
@@ -82,12 +91,13 @@ const handlers = {
     const { playerId, createNew, name, gender, ntrp, isActive, notes } = event;
     const now = new Date().toISOString();
 
-    // Admin creating a new player (no OPENID link)
+    // Admin creating a test player (no OPENID link)
     if (createNew) {
       await assertAdmin(OPENID);
       const res = await store.collection('players').add({
         data: {
           wechatOpenId: null,
+          isTestPlayer: true,
           name,
           gender,
           ntrp,

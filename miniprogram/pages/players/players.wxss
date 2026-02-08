@@ -1,4 +1,4 @@
-/* ABOUTME: Styles for the players list page with filter controls. */
+/* ABOUTME: Styles for the players list page with filter controls and modal. */
 
 .filter-bar {
   background: #fff;
@@ -63,6 +63,7 @@
 
 .player-details {
   display: flex;
+  flex-wrap: wrap;
   gap: 12rpx;
 }
 
@@ -74,4 +75,89 @@
 .badge.gender {
   background: #f3e5f5;
   color: #7b1fa2;
+}
+
+.badge.points {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.arrow {
+  font-size: 40rpx;
+  color: #999;
+  margin-left: 16rpx;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 16rpx;
+  width: 85%;
+  max-width: 600rpx;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  padding: 0 8rpx;
+}
+
+.modal-body {
+  padding: 24rpx 32rpx;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.delete-btn {
+  margin-top: 32rpx;
 }

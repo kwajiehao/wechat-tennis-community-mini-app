@@ -37,14 +37,48 @@
   </block>
 
   <block wx:for="{{players}}" wx:key="_id">
-    <view class="card player-card">
+    <view class="card player-card" data-id="{{item._id}}" bindtap="openPlayerModal">
       <view class="player-info">
         <view class="player-name">{{item.name || i18n.common_unnamed}}</view>
         <view class="player-details">
           <text class="badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
           <text class="badge gender">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+          <text class="badge points" wx:if="{{item.points > 0}}">{{item.points}} {{i18n.season_points || 'pts'}}</text>
+        </view>
+      </view>
+      <view class="arrow">›</view>
+    </view>
+  </block>
+
+  <!-- Player Detail Modal -->
+  <view class="modal-overlay" wx:if="{{modal.visible}}" bindtap="closePlayerModal">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">{{modal.player.name}}</text>
+        <text class="modal-close" bindtap="closePlayerModal">×</text>
+      </view>
+      <view class="modal-body">
+        <view class="detail-row">
+          <text class="detail-label">{{i18n.profile_gender}}</text>
+          <text class="detail-value">{{modal.player.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">{{i18n.profile_ntrp}}</text>
+          <text class="detail-value">{{modal.player.ntrp || 'N/A'}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{modal.stats}}">
+          <text class="detail-label">{{i18n.season_points || 'Season Points'}}</text>
+          <text class="detail-value">{{modal.stats.points || 0}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{modal.player.notes}}">
+          <text class="detail-label">{{i18n.admin_notes || 'Notes'}}</text>
+          <text class="detail-value">{{modal.player.notes}}</text>
+        </view>
+
+        <view class="button secondary delete-btn" bindtap="deletePlayer" wx:if="{{isAdmin}}">
+          {{i18n.admin_delete_player || 'Delete Player'}}
         </view>
       </view>
     </view>
-  </block>
+  </view>
 </view>

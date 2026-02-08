@@ -61,16 +61,6 @@ Page({
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
     },
-    playerInput: {
-      playerId: '',
-      name: '',
-      gender: 'M',
-      genderIndex: 0,
-      ntrp: '',
-      ntrpIndex: -1,
-      isActive: 'true',
-      notes: ''
-    },
     genderOptions: ['M', 'F'],
     ntrpOptions: ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'],
     matchupsModal: {
@@ -81,12 +71,17 @@ Page({
       waitlist: [],
       waitlistNames: ''
     },
-    adminSignup: {
+    testPlayerInput: {
+      name: '',
+      gender: 'M',
+      genderIndex: 0,
+      ntrp: '',
+      ntrpIndex: -1
+    },
+    testPlayers: [],
+    deleteTestPlayerInput: {
       playerId: '',
-      playerName: '',
-      eventId: '',
-      eventTitle: '',
-      availablePlayers: []
+      playerName: ''
     }
   },
   onLoad() {
@@ -126,7 +121,12 @@ Page({
   fetchPlayers() {
     callFunction('listPlayers', {})
       .then(res => {
-        this.setData({ players: res.result.players || [] });
+        const allPlayers = res.result.players || [];
+        const testPlayers = allPlayers.filter(p => p.isTestPlayer === true);
+        this.setData({
+          players: allPlayers,
+          testPlayers: testPlayers
+        });
       })
       .catch(err => {
         console.error(err);
@@ -559,70 +559,78 @@ Page({
         wx.showToast({ title: msg, icon: 'none' });
       });
   },
-  onPlayerInput(e) {
+  viewSeasonResults(e) {
+    const seasonId = e.currentTarget.dataset.id;
+    const season = this.data.seasons.find(s => s._id === seasonId);
+    const seasonName = season ? season.name : 'Season';
+    wx.navigateTo({
+      url: `/pages/season/season?seasonId=${seasonId}&seasonName=${encodeURIComponent(seasonName)}`
+    });
+  },
+  onTestPlayerInput(e) {
     const field = e.currentTarget.dataset.field;
-    this.setData({ [`playerInput.${field}`]: e.detail.value });
+    this.setData({ [`testPlayerInput.${field}`]: e.detail.value });
   },
-  onPlayerGenderChange(e) {
+  onTestPlayerGenderChange(e) {
     const index = parseInt(e.detail.value);
     this.setData({
-      'playerInput.genderIndex': index,
-      'playerInput.gender': this.data.genderOptions[index]
+      'testPlayerInput.genderIndex': index,
+      'testPlayerInput.gender': this.data.genderOptions[index]
     });
   },
-  onPlayerNtrpChange(e) {
+  onTestPlayerNtrpChange(e) {
     const index = parseInt(e.detail.value);
     this.setData({
-      'playerInput.ntrpIndex': index,
-      'playerInput.ntrp': this.data.ntrpOptions[index]
+      'testPlayerInput.ntrpIndex': index,
+      'testPlayerInput.ntrp': this.data.ntrpOptions[index]
     });
   },
-  upsertPlayer() {
-    const input = this.data.playerInput;
+  addTestPlayer() {
+    const input = this.data.testPlayerInput;
+    if (!input.name || !input.name.trim()) {
+      wx.showToast({ title: this.data.i18n.error_missing_fields || 'Name is required', icon: 'none' });
+      return;
+    }
     const ntrpValue = parseFloat(input.ntrp);
-    const hasPlayerId = input.playerId && input.playerId.trim() !== '';
-
-    const payload = {
+    callFunction('upsertPlayer', {
+      createNew: true,
       name: input.name,
       gender: input.gender,
-      ntrp: Number.isNaN(ntrpValue) ? null : ntrpValue,
-      isActive: input.isActive === 'true',
-      notes: input.notes
-    };
-
-    if (hasPlayerId) {
-      payload.playerId = input.playerId;
-    } else {
-      payload.createNew = true;
-    }
-
-    callFunction('upsertPlayer', payload)
+      ntrp: Number.isNaN(ntrpValue) ? null : ntrpValue
+    })
       .then(() => {
-        wx.showToast({ title: 'Player saved', icon: 'success' });
+        wx.showToast({ title: 'Test player added', icon: 'success' });
         this.setData({
-          'playerInput.playerId': '',
-          'playerInput.name': '',
-          'playerInput.gender': 'M',
-          'playerInput.genderIndex': 0,
-          'playerInput.ntrp': '',
-          'playerInput.ntrpIndex': -1,
-          'playerInput.notes': ''
+          'testPlayerInput.name': '',
+          'testPlayerInput.gender': 'M',
+          'testPlayerInput.genderIndex': 0,
+          'testPlayerInput.ntrp': '',
+          'testPlayerInput.ntrpIndex': -1
         });
         this.fetchPlayers();
       })
       .catch(err => {
         console.error(err);
-        const msg = i18n.translateError(err.message) || 'Save failed';
+        const msg = i18n.translateError(err.message) || 'Failed to add test player';
         wx.showToast({ title: msg, icon: 'none' });
       });
   },
-  deletePlayer() {
-    const playerId = this.data.playerInput.playerId;
-    if (!playerId || playerId.trim() === '') {
+  onDeleteTestPlayerPicker(e) {
+    const index = e.detail.value;
+    const player = this.data.testPlayers[index];
+    if (!player) return;
+    this.setData({
+      'deleteTestPlayerInput.playerId': player._id,
+      'deleteTestPlayerInput.playerName': player.name
+    });
+  },
+  deleteTestPlayer() {
+    const playerId = this.data.deleteTestPlayerInput.playerId;
+    if (!playerId) {
       return;
     }
-
-    const confirmMsg = this.data.i18n.admin_confirm_delete_player || 'Are you sure you want to delete this player?';
+    const playerName = this.data.deleteTestPlayerInput.playerName;
+    const confirmMsg = (this.data.i18n.admin_confirm_delete_player || 'Are you sure you want to delete this player?') + `\n\n${playerName}`;
     wx.showModal({
       title: '',
       content: confirmMsg,
@@ -632,13 +640,8 @@ Page({
             .then(() => {
               wx.showToast({ title: 'Deleted', icon: 'success' });
               this.setData({
-                'playerInput.playerId': '',
-                'playerInput.name': '',
-                'playerInput.gender': 'M',
-                'playerInput.genderIndex': 0,
-                'playerInput.ntrp': '',
-                'playerInput.ntrpIndex': -1,
-                'playerInput.notes': ''
+                'deleteTestPlayerInput.playerId': '',
+                'deleteTestPlayerInput.playerName': ''
               });
               this.fetchPlayers();
             })
@@ -650,104 +653,5 @@ Page({
         }
       }
     });
-  },
-  viewSeasonResults(e) {
-    const seasonId = e.currentTarget.dataset.id;
-    const season = this.data.seasons.find(s => s._id === seasonId);
-    const seasonName = season ? season.name : 'Season';
-    wx.navigateTo({
-      url: `/pages/season/season?seasonId=${seasonId}&seasonName=${encodeURIComponent(seasonName)}`
-    });
-  },
-  onAdminSignupEventPicker(e) {
-    const index = e.detail.value;
-    const event = this.data.events[index];
-    if (!event) return;
-
-    this.setData({
-      'adminSignup.eventId': event._id,
-      'adminSignup.eventTitle': event.title,
-      'adminSignup.playerId': '',
-      'adminSignup.playerName': '',
-      'adminSignup.availablePlayers': []
-    });
-
-    Promise.all([
-      callFunction('listPlayers', {}),
-      callFunction('listSignups', { eventId: event._id })
-    ])
-      .then(([playersRes, signupsRes]) => {
-        const allPlayers = playersRes.result.players || [];
-        const signups = signupsRes.result.signups || [];
-        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
-        const availablePlayers = allPlayers.filter(p => !signedUpPlayerIds.has(p._id));
-        this.setData({
-          players: allPlayers,
-          'adminSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        this.setData({ 'adminSignup.availablePlayers': this.data.players });
-      });
-  },
-  refreshAvailablePlayers() {
-    const eventId = this.data.adminSignup.eventId;
-    if (!eventId) return;
-
-    Promise.all([
-      callFunction('listPlayers', {}),
-      callFunction('listSignups', { eventId })
-    ])
-      .then(([playersRes, signupsRes]) => {
-        const allPlayers = playersRes.result.players || [];
-        const signups = signupsRes.result.signups || [];
-        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
-        const availablePlayers = allPlayers.filter(p => !signedUpPlayerIds.has(p._id));
-        this.setData({
-          players: allPlayers,
-          'adminSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-      });
-  },
-  onAdminSignupPlayerPicker(e) {
-    const index = e.detail.value;
-    const player = this.data.adminSignup.availablePlayers[index];
-    if (player) {
-      this.setData({
-        'adminSignup.playerId': player._id,
-        'adminSignup.playerName': player.name
-      });
-    }
-  },
-  adminSignupPlayer() {
-    const input = this.data.adminSignup;
-    if (!input.playerId || !input.eventId) {
-      wx.showToast({ title: 'Select player and event', icon: 'none' });
-      return;
-    }
-    callFunction('signupEvent', {
-      eventId: input.eventId,
-      playerId: input.playerId
-    })
-      .then(() => {
-        wx.showToast({ title: 'Player signed up', icon: 'success' });
-        const availablePlayers = this.data.adminSignup.availablePlayers.filter(
-          p => p._id !== input.playerId
-        );
-        this.setData({
-          'adminSignup.playerId': '',
-          'adminSignup.playerName': '',
-          'adminSignup.availablePlayers': availablePlayers
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        const msg = i18n.translateError(err.message) || 'Signup failed';
-        wx.showToast({ title: msg, icon: 'none' });
-      });
   }
 });

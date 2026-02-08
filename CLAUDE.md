@@ -28,8 +28,9 @@ miniprogram/           # Client-side WeChat Mini Program
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
 
-cloudfunctions/        # 24 serverless functions (Node.js)
-  # Player: upsertPlayer, getPlayer, listPlayers
+cloudfunctions/        # 26 serverless functions (Node.js)
+  # Player: upsertPlayer, getPlayer, listPlayers, deletePlayer
+  # Auth: checkAdmin
   # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent
   # Signups: signupEvent, listSignups
   # Matchmaking: generateMatchups, regenerateMatchups, approveMatchups
@@ -41,7 +42,7 @@ cloudfunctions/        # 24 serverless functions (Node.js)
 
 ## Database Collections
 
-- `players` - Player profiles (name, gender, NTRP, wechatOpenId)
+- `players` - Player profiles (name, gender, NTRP, wechatOpenId, isTestPlayer)
 - `events` - Tennis events (date, location, startTime, endTime, matchTypesAllowed, seasonId, status, playerPoints, completedAt)
 - `signups` - Event signups (playerId, eventId, preferredMatchTypes, seasonId)
 - `matches` - Generated matches (teamsA/B, matchType, status, seasonId)
@@ -118,6 +119,8 @@ Filters players by gender per match type, then pairs by NTRP:
 
 6. **Error messages are uppercase codes** - e.g., `throw new Error('NOT_ADMIN')`, `throw new Error('EVENT_NOT_FOUND')`
 
+7. **Test players** - Players with `isTestPlayer: true` and `wechatOpenId: null` are for testing matchup generation. Created/deleted via admin panel. Regular players have a wechatOpenId linking them to their WeChat account.
+
 ## Development Workflow
 
 ### Configuration
@@ -164,5 +167,6 @@ Core features complete including:
 - listMatches supports filtering by seasonId
 - Event-based points system (1 point per win, calculated when event is completed)
 - Season leaderboard shows aggregated points from completed events
+- Test player management in admin panel for matchup testing
 
 No automated tests exist - testing is manual via DevTools or local mode.

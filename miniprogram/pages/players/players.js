@@ -1,7 +1,7 @@
 // ABOUTME: Players list page showing all registered players.
-// ABOUTME: Displays player names, NTRP ratings, and gender with sorting options.
+// ABOUTME: Includes admin delete functionality and player detail modal.
 
-const { callFunction } = require('../../utils/cloud');
+const { initCloud, callFunction } = require('../../utils/cloud');
 const i18n = require('../../utils/i18n');
 
 Page({
@@ -9,13 +9,23 @@ Page({
     i18n: {},
     allPlayers: [],
     players: [],
+    playerStats: {},
     loading: false,
+    isAdmin: false,
     genderFilter: 'all',
-    sortBy: 'ntrp'
+    sortBy: 'ntrp',
+    // Player detail modal
+    modal: {
+      visible: false,
+      player: null,
+      stats: null
+    }
   },
 
   onLoad() {
+    initCloud();
     this.loadI18n();
+    this.checkAdminStatus();
     this.fetchPlayers();
   },
 
@@ -27,6 +37,17 @@ Page({
     this.setData({ i18n: i18n.getStrings() });
   },
 
+  checkAdminStatus() {
+    callFunction('checkAdmin', {})
+      .then(res => {
+        this.setData({ isAdmin: res.result.isAdmin });
+      })
+      .catch(err => {
+        console.error('Failed to check admin status:', err);
+        this.setData({ isAdmin: false });
+      });
+  },
+
   onPullDownRefresh() {
     this.fetchPlayers().finally(() => wx.stopPullDownRefresh());
   },
@@ -34,10 +55,27 @@ Page({
   fetchPlayers() {
     this.setData({ loading: true });
     return callFunction('listPlayers', {})
-      .then(res => {
-        const allPlayers = (res.result.players || [])
+      .then(playersRes => {
+        const allPlayers = (playersRes.result.players || [])
           .filter(p => p.isActive !== false);
         this.setData({ allPlayers });
+
+        // Try to fetch stats (admin-only), but don't fail if not authorized
+        return callFunction('getSeasonStats', { all: true })
+          .then(statsRes => {
+            const statsList = statsRes.result.statsList || [];
+            const playerStats = {};
+            statsList.forEach(s => {
+              playerStats[s.playerId] = s;
+            });
+            this.setData({ playerStats });
+          })
+          .catch(() => {
+            // Non-admin users can't fetch all stats, that's ok
+            this.setData({ playerStats: {} });
+          });
+      })
+      .then(() => {
         this.applyFiltersAndSort();
       })
       .catch(err => {
@@ -63,6 +101,13 @@ Page({
     let players = this.data.allPlayers.slice();
     const genderFilter = this.data.genderFilter;
     const sortBy = this.data.sortBy;
+    const stats = this.data.playerStats;
+
+    // Add stats to each player
+    players = players.map(p => ({
+      ...p,
+      points: stats[p._id] ? stats[p._id].points : 0
+    }));
 
     if (genderFilter === 'M') {
       players = players.filter(p => (p.gender || '').toUpperCase() === 'M');
@@ -82,5 +127,52 @@ Page({
     }
 
     this.setData({ players });
+  },
+
+  // Player detail modal
+  openPlayerModal(e) {
+    const playerId = e.currentTarget.dataset.id;
+    const player = this.data.allPlayers.find(p => p._id === playerId);
+    if (!player) return;
+
+    const stats = this.data.playerStats[playerId] || null;
+    this.setData({
+      'modal.visible': true,
+      'modal.player': player,
+      'modal.stats': stats
+    });
+  },
+
+  closePlayerModal() {
+    this.setData({
+      'modal.visible': false,
+      'modal.player': null,
+      'modal.stats': null
+    });
+  },
+
+  deletePlayer() {
+    const player = this.data.modal.player;
+    if (!player) return;
+
+    const confirmMsg = (this.data.i18n.admin_confirm_delete_player || 'Are you sure you want to delete this player?') + `\n\n${player.name}`;
+    wx.showModal({
+      title: '',
+      content: confirmMsg,
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('deletePlayer', { playerId: player._id })
+            .then(() => {
+              wx.showToast({ title: 'Deleted', icon: 'success' });
+              this.closePlayerModal();
+              this.fetchPlayers();
+            })
+            .catch(err => {
+              console.error(err);
+              wx.showToast({ title: err.message || 'Delete failed', icon: 'none' });
+            });
+        }
+      }
+    });
   }
 });

@@ -176,6 +176,10 @@ const strings = {
     admin_complete_event: 'Complete Event',
     admin_reopen_event: 'Reopen Event',
     admin_need_players: 'Need at least 2 players signed up',
+    admin_test_players: 'Test Players',
+    admin_test_players_desc: 'Manage test players for matchup testing',
+    admin_add_test_player: 'Add Test Player',
+    admin_remove_test_player: 'Remove Test Player',
 
     // Season page
     season_points: 'Points',
@@ -361,6 +365,10 @@ const strings = {
     admin_complete_event: '结束活动',
     admin_reopen_event: '重新开放',
     admin_need_players: '至少需要2名球员报名',
+    admin_test_players: '测试球员',
+    admin_test_players_desc: '管理用于测试对阵的球员',
+    admin_add_test_player: '添加测试球员',
+    admin_remove_test_player: '删除测试球员',
 
     // Season page
     season_points: '积分',

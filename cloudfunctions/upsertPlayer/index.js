@@ -50,12 +50,13 @@ exports.main = async (event, context) => {
 
   const now = new Date().toISOString();
 
-  // Admin creating a new player (no OPENID link)
+  // Admin creating a test player (no OPENID link)
   if (createNew) {
     await assertAdmin(OPENID);
     const res = await db.collection('players').add({
       data: {
         wechatOpenId: null,
+        isTestPlayer: true,
         name,
         gender,
         ntrp,
