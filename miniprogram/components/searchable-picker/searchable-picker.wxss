@@ -1,0 +1,91 @@
+/* ABOUTME: Styles for searchable player picker component. */
+
+.searchable-picker {
+  position: relative;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  background: #4caf50;
+  color: #fff;
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.tag-remove {
+  margin-left: 10rpx;
+  color: #fff;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.search-input {
+  width: 100%;
+  padding: 24rpx 16rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  line-height: 1.4;
+  min-height: 80rpx;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.search-input::placeholder {
+  color: #888;
+}
+
+.item-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 400rpx;
+  background: #fff;
+  border: 1rpx solid #ddd;
+  border-top: none;
+  border-radius: 0 0 8rpx 8rpx;
+  z-index: 100;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 16rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item.selected {
+  background: #f0f8f0;
+}
+
+.item-name {
+  flex: 1;
+  font-size: 28rpx;
+}
+
+.item-ntrp {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 16rpx;
+}
+
+.item-check {
+  color: #4caf50;
+  font-weight: bold;
+}

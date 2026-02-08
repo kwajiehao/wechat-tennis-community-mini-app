@@ -1,0 +1,139 @@
+/* ABOUTME: Styles for season page including leaderboard table and match cards. */
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16rpx 0;
+}
+
+.toggle-link {
+  color: #1565c0;
+  font-size: 28rpx;
+}
+
+.leaderboard-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaderboard-table {
+  width: 100%;
+}
+
+.table-header {
+  display: flex;
+  background: #f5f7fb;
+  padding: 16rpx 20rpx;
+  font-weight: 600;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.table-row {
+  display: flex;
+  padding: 20rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.col-rank {
+  width: 60rpx;
+  text-align: center;
+}
+
+.col-name {
+  flex: 1;
+  padding-left: 16rpx;
+}
+
+.col-wins {
+  width: 80rpx;
+  text-align: center;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.col-losses {
+  width: 80rpx;
+  text-align: center;
+  color: #c62828;
+  font-weight: 500;
+}
+
+.col-points {
+  width: 80rpx;
+  text-align: center;
+  color: #1565c0;
+  font-weight: 600;
+}
+
+.empty-message {
+  text-align: center;
+  color: #666;
+  padding: 40rpx;
+  font-size: 28rpx;
+}
+
+.match-card {
+  border-left: 6rpx solid #ddd;
+}
+
+.match-card.completed {
+  border-left-color: #4caf50;
+}
+
+.match-card.draft {
+  border-left-color: #ff9800;
+}
+
+.match-card.approved {
+  border-left-color: #2196f3;
+}
+
+.match-type {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.team {
+  flex: 1;
+}
+
+.team.winner .team-names {
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.team-names {
+  font-size: 28rpx;
+  word-break: break-word;
+}
+
+.vs {
+  color: #999;
+  font-size: 24rpx;
+}
+
+.match-score {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.match-status {
+  font-size: 22rpx;
+  color: #888;
+}

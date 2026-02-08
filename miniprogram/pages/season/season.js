@@ -1,0 +1,125 @@
+// ABOUTME: Season details page showing leaderboard and match history.
+// ABOUTME: Displays player rankings sorted by wins and recent/all matches.
+
+const { callFunction } = require('../../utils/cloud');
+const i18n = require('../../utils/i18n');
+
+function getMatchTypes() {
+  const strs = i18n.getStrings();
+  return [
+    { value: 'mens_singles', label: strs.match_mens_singles },
+    { value: 'womens_singles', label: strs.match_womens_singles },
+    { value: 'mens_doubles', label: strs.match_mens_doubles },
+    { value: 'womens_doubles', label: strs.match_womens_doubles },
+    { value: 'mixed_doubles', label: strs.match_mixed_doubles }
+  ];
+}
+
+Page({
+  data: {
+    i18n: {},
+    seasonId: '',
+    seasonName: '',
+    leaderboard: [],
+    recentMatches: [],
+    allMatches: [],
+    displayedMatches: [],
+    showAllMatches: false,
+    matchTypes: []
+  },
+
+  onLoad(options) {
+    this.loadI18n();
+    if (options.seasonId) {
+      this.setData({ seasonId: options.seasonId });
+      if (options.seasonName) {
+        this.setData({ seasonName: decodeURIComponent(options.seasonName) });
+        wx.setNavigationBarTitle({ title: decodeURIComponent(options.seasonName) });
+      }
+      this.loadSeasonData();
+    }
+  },
+
+  loadI18n() {
+    this.setData({
+      i18n: i18n.getStrings(),
+      matchTypes: getMatchTypes()
+    });
+  },
+
+  loadSeasonData() {
+    this.loadLeaderboard();
+    this.loadMatches();
+  },
+
+  loadLeaderboard() {
+    const seasonId = this.data.seasonId;
+
+    callFunction('getSeasonStats', { seasonId, all: true })
+      .then(res => {
+        const statsList = res.result.statsList || [];
+
+        return callFunction('listPlayers', {}).then(playersRes => {
+          const players = playersRes.result.players || [];
+          const playerMap = new Map(players.map(p => [p._id, p]));
+
+          const leaderboard = statsList.map(stats => {
+            const player = playerMap.get(stats.playerId);
+            return {
+              playerId: stats.playerId,
+              points: stats.points || 0,
+              name: player ? player.name : 'Unknown',
+              ntrp: player ? player.ntrp : null
+            };
+          });
+
+          this.setData({ leaderboard });
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: 'Failed to load leaderboard', icon: 'none' });
+      });
+  },
+
+  loadMatches() {
+    const seasonId = this.data.seasonId;
+    const matchTypes = this.data.matchTypes;
+
+    callFunction('listMatches', { seasonId })
+      .then(res => {
+        const matches = (res.result.matches || []).map(m => {
+          const typeObj = matchTypes.find(t => t.value === m.matchType);
+          return {
+            ...m,
+            matchTypeLabel: typeObj ? typeObj.label : m.matchType
+          };
+        });
+
+        const sortedMatches = matches.sort((a, b) => {
+          const dateA = a.completedAt || a.generatedAt || '';
+          const dateB = b.completedAt || b.generatedAt || '';
+          return dateB.localeCompare(dateA);
+        });
+
+        const recentMatches = sortedMatches.slice(0, 5);
+        this.setData({
+          allMatches: sortedMatches,
+          recentMatches: recentMatches,
+          displayedMatches: recentMatches
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: 'Failed to load matches', icon: 'none' });
+      });
+  },
+
+  toggleShowAllMatches() {
+    const showAll = !this.data.showAllMatches;
+    this.setData({
+      showAllMatches: showAll,
+      displayedMatches: showAll ? this.data.allMatches : this.data.recentMatches
+    });
+  }
+});

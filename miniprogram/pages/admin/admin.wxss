@@ -1,0 +1,316 @@
+/* ABOUTME: Styles for admin page including result entry, match selection, and set scores. */
+
+.checkbox-item,
+.radio-item {
+  display: block;
+  margin: 10rpx 0;
+  font-size: 28rpx;
+}
+
+.picker-value {
+  padding: 16rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background: #fff;
+  margin-bottom: 10rpx;
+}
+
+.picker-value.disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.match-list {
+  margin: 10rpx 0;
+}
+
+.match-option {
+  padding: 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  margin-bottom: 10rpx;
+  background: #fff;
+}
+
+.match-option.selected {
+  border-color: #4caf50;
+  background: #f0f8f0;
+}
+
+.match-teams {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.match-type {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.sets-container {
+  margin: 10rpx 0;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.set-label {
+  width: 100rpx;
+  font-size: 28rpx;
+}
+
+.set-input {
+  width: 100rpx;
+  padding: 12rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.set-separator {
+  margin: 0 16rpx;
+  font-size: 28rpx;
+}
+
+.set-buttons {
+  display: flex;
+  gap: 20rpx;
+  margin: 10rpx 0;
+}
+
+.button.small {
+  padding: 10rpx 20rpx;
+  font-size: 24rpx;
+}
+
+.winner-buttons {
+  display: flex;
+  gap: 20rpx;
+  margin: 10rpx 0;
+}
+
+.winner-btn {
+  flex: 1;
+  padding: 20rpx;
+  text-align: center;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background: #fff;
+}
+
+.winner-btn.selected {
+  border-color: #4caf50;
+  background: #4caf50;
+  color: #fff;
+}
+
+.winner-label {
+  display: block;
+  font-weight: bold;
+}
+
+.winner-names {
+  display: block;
+  font-size: 24rpx;
+  margin-top: 8rpx;
+  opacity: 0.8;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 16rpx;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  flex: 1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #666;
+  padding: 0 16rpx;
+}
+
+.modal-body {
+  flex: 1;
+  padding: 24rpx;
+  max-height: 60vh;
+}
+
+.empty-message {
+  text-align: center;
+  color: #666;
+  padding: 40rpx;
+  font-size: 28rpx;
+}
+
+.matchup-card {
+  background: #f8f8f8;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  border-left: 6rpx solid #ddd;
+}
+
+.matchup-card.draft {
+  border-left-color: #ff9800;
+}
+
+.matchup-card.approved,
+.matchup-card.published {
+  border-left-color: #4caf50;
+}
+
+.matchup-type {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.matchup-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.team {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-label {
+  font-size: 22rpx;
+  color: #888;
+  display: block;
+}
+
+.team-names {
+  font-size: 28rpx;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.vs {
+  text-align: center;
+  color: #999;
+  font-size: 22rpx;
+  padding: 4rpx 0;
+}
+
+.matchup-status {
+  font-size: 22rpx;
+  color: #888;
+}
+
+.waitlist-section {
+  background: #fff3e0;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-top: 20rpx;
+}
+
+.waitlist-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #e65100;
+  margin-bottom: 8rpx;
+}
+
+.waitlist-names {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.season-card {
+  cursor: pointer;
+}
+
+.hint {
+  font-style: italic;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.matchup-score {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #4caf50;
+  margin-top: 8rpx;
+}
+
+.status-row {
+  display: flex;
+  gap: 12rpx;
+  margin: 8rpx 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.closed {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.status-badge.inactive {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.current {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.clickable {
+  color: #1565c0;
+  text-decoration: underline;
+}

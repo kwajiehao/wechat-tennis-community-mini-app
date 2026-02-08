@@ -1,0 +1,275 @@
+<view class="container">
+  <view class="card">
+    <view class="title">{{i18n.admin_create_season}}</view>
+    <view class="label">{{i18n.admin_season_name}}</view>
+    <input class="input" data-field="name" bindinput="onNewSeasonInput" placeholder="2026 Spring" />
+    <view class="label">{{i18n.admin_start_date}}</view>
+    <input class="input" data-field="startDate" bindinput="onNewSeasonInput" placeholder="2026-02-01" />
+    <view class="label">{{i18n.admin_end_date}}</view>
+    <input class="input" data-field="endDate" bindinput="onNewSeasonInput" placeholder="2026-05-31" />
+    <view class="button" bindtap="createSeason">{{i18n.admin_create_season || 'Create Season'}}</view>
+  </view>
+
+  <view class="section-title">{{i18n.admin_seasons}}</view>
+  <block wx:for="{{seasons}}" wx:key="_id">
+    <view class="card season-card" data-id="{{item._id}}" bindtap="viewSeasonResults">
+      <view class="title">{{item.name}}</view>
+      <view class="status-row">
+        <view class="status-badge {{item.status}}">{{item.status === 'active' ? i18n.admin_season_status_active : (item.status === 'closed' ? i18n.admin_season_status_closed : i18n.admin_season_status_inactive)}}</view>
+        <view class="status-badge current" wx:if="{{item._id === activeSeasonId}}">{{i18n.admin_season_current}}</view>
+      </view>
+      <view class="label hint">{{i18n.admin_tap_to_view}}</view>
+      <view class="button" data-id="{{item._id}}" catchtap="setActiveSeason" wx:if="{{item._id === activeSeasonId}}">
+        {{i18n.admin_deactivate || 'Deactivate'}}
+      </view>
+      <view class="button secondary" data-id="{{item._id}}" catchtap="setActiveSeason" wx:else>
+        {{i18n.admin_set_active || 'Set Active'}}
+      </view>
+    </view>
+  </block>
+
+  <view class="card">
+    <view class="title">{{i18n.admin_adjust_points}}</view>
+    <view class="label">{{i18n.admin_seasons}}</view>
+    <picker mode="selector" range="{{seasons}}" range-key="name" bindchange="onAdjustSeasonPicker">
+      <view class="input picker-value">{{seasonAdjustInput.seasonName || i18n.common_select}}</view>
+    </picker>
+    <view class="label">{{i18n.admin_players}}</view>
+    <picker mode="selector" range="{{players}}" range-key="name" bindchange="onAdjustPlayerPicker">
+      <view class="input picker-value">{{seasonAdjustInput.playerName || i18n.common_select}}</view>
+    </picker>
+    <view class="label">{{i18n.admin_delta_points}}</view>
+    <input class="input" type="number" data-field="deltaPoints" bindinput="onSeasonAdjustInput" placeholder="5 / -3" />
+    <view class="label">{{i18n.admin_reason}}</view>
+    <input class="input" data-field="reason" bindinput="onSeasonAdjustInput" />
+    <view class="button" bindtap="adjustSeasonPoints">{{i18n.admin_apply_adjustment || 'Apply Adjustment'}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">{{i18n.admin_create_event}}</view>
+    <view class="label">{{i18n.admin_event_title}}</view>
+    <input class="input" data-field="title" bindinput="onNewEventInput" />
+    <view class="label">{{i18n.event_date}}</view>
+    <picker mode="date" value="{{newEvent.date}}" bindchange="onEventDateChange">
+      <view class="input picker-value">{{newEvent.date || i18n.common_select}}</view>
+    </picker>
+    <view class="label">{{i18n.event_location}}</view>
+    <input class="input" data-field="location" bindinput="onNewEventInput" />
+    <view class="label">Start Time</view>
+    <picker mode="time" value="{{newEvent.startTime}}" bindchange="onEventStartTimeChange">
+      <view class="input picker-value">{{newEvent.startTime || 'Select...'}}</view>
+    </picker>
+    <view class="label">End Time</view>
+    <picker mode="time" value="{{newEvent.endTime}}" bindchange="onEventEndTimeChange">
+      <view class="input picker-value">{{newEvent.endTime || 'Select...'}}</view>
+    </picker>
+    <view class="button" bindtap="createEvent">{{i18n.admin_create_event || 'Create Event'}}</view>
+  </view>
+
+  <view class="section-title">{{i18n.admin_manage_events}}</view>
+  <block wx:for="{{events}}" wx:key="_id">
+    <view class="card">
+      <view class="title clickable" data-id="{{item._id}}" bindtap="goToEvent">{{item.title}}</view>
+      <view class="label">{{item.date}} - {{item.location}}</view>
+      <view class="label">{{i18n.event_status}}: {{item.status}}</view>
+      <view class="button" data-id="{{item._id}}" bindtap="generateMatchups">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+      <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
+      <view class="button" data-id="{{item._id}}" bindtap="completeEvent" wx:if="{{item.status === 'matchups_approved'}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
+      <view class="button secondary" data-id="{{item._id}}" bindtap="reopenEvent" wx:if="{{item.status === 'completed'}}">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+    </view>
+  </block>
+
+  <view class="card">
+    <view class="title">{{i18n.admin_enter_result}}</view>
+
+    <view class="label">{{i18n.admin_mode}}</view>
+    <radio-group bindchange="onResultModeChange">
+      <label class="radio-item">
+        <radio value="matchmaking" checked="{{resultEntry.mode === 'matchmaking'}}" />
+        {{i18n.admin_from_matchmaking}}
+      </label>
+      <label class="radio-item">
+        <radio value="adhoc" checked="{{resultEntry.mode === 'adhoc'}}" />
+        {{i18n.admin_adhoc_match}}
+      </label>
+    </radio-group>
+
+    <block wx:if="{{resultEntry.mode === 'matchmaking'}}">
+      <view class="label">{{i18n.admin_select_event}}</view>
+      <picker mode="selector" range="{{events}}" range-key="title" bindchange="onResultEventChange" value="">
+        <view class="picker-value">{{resultEntry.selectedEventTitle || i18n.common_select}}</view>
+      </picker>
+
+      <block wx:if="{{resultEntry.availableMatches.length > 0}}">
+        <view class="label">{{i18n.admin_select_match}}</view>
+        <view class="match-list">
+          <view
+            wx:for="{{resultEntry.availableMatches}}"
+            wx:key="_id"
+            class="match-option {{resultEntry.selectedMatchId === item._id ? 'selected' : ''}}"
+            data-id="{{item._id}}"
+            bindtap="onResultMatchSelect"
+          >
+            <view class="match-teams">{{item.teamANames}} vs {{item.teamBNames}}</view>
+            <view class="match-type">{{item.matchType}}</view>
+          </view>
+        </view>
+      </block>
+      <block wx:elif="{{resultEntry.selectedEventId && resultEntry.availableMatches.length === 0}}">
+        <view class="label">{{i18n.admin_no_pending_matches}}</view>
+      </block>
+    </block>
+
+    <block wx:if="{{resultEntry.mode === 'adhoc'}}">
+      <view class="label">{{i18n.admin_match_type}}</view>
+      <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onResultMatchTypePicker">
+        <view class="picker-value">{{resultEntry.matchTypeLabel || i18n.common_select}}</view>
+      </picker>
+
+      <view class="label">{{i18n.admin_team_a}}</view>
+      <searchable-picker
+        items="{{players}}"
+        selectedIds="{{resultEntry.teamA}}"
+        excludeIds="{{resultEntry.teamB}}"
+        placeholder="{{i18n.common_search}}"
+        maxSelect="{{resultEntry.maxSelectPlayers}}"
+        bind:change="onTeamAChange"
+      />
+
+      <view class="label">{{i18n.admin_team_b}}</view>
+      <searchable-picker
+        items="{{players}}"
+        selectedIds="{{resultEntry.teamB}}"
+        excludeIds="{{resultEntry.teamA}}"
+        placeholder="{{i18n.common_search}}"
+        maxSelect="{{resultEntry.maxSelectPlayers}}"
+        bind:change="onTeamBChange"
+      />
+    </block>
+
+    <view class="label">{{i18n.admin_set_scores}}</view>
+    <view class="sets-container">
+      <view wx:for="{{resultEntry.sets}}" wx:key="index" class="set-row">
+        <text class="set-label">Set {{index + 1}}:</text>
+        <input
+          class="set-input"
+          type="number"
+          data-index="{{index}}"
+          data-team="teamAGames"
+          value="{{item.teamAGames}}"
+          bindinput="onSetScoreInput"
+          placeholder="A"
+        />
+        <text class="set-separator">-</text>
+        <input
+          class="set-input"
+          type="number"
+          data-index="{{index}}"
+          data-team="teamBGames"
+          value="{{item.teamBGames}}"
+          bindinput="onSetScoreInput"
+          placeholder="B"
+        />
+      </view>
+    </view>
+    <view class="set-buttons">
+      <view class="button small" bindtap="addSet">{{i18n.admin_add_set || '+ Add Set'}}</view>
+      <view class="button small secondary" bindtap="removeSet" wx:if="{{resultEntry.sets.length > 1}}">{{i18n.admin_remove_set || '- Remove Set'}}</view>
+    </view>
+
+    <view class="label">{{i18n.admin_winner}}</view>
+    <view class="winner-buttons">
+      <view
+        class="winner-btn {{resultEntry.winner === 'A' ? 'selected' : ''}}"
+        data-winner="A"
+        bindtap="selectWinner"
+      >
+        <text class="winner-label">{{i18n.admin_team_a_wins || 'Team A Wins'}}</text>
+        <text class="winner-names" wx:if="{{resultEntry.selectedMatch}}">{{resultEntry.selectedMatch.teamANames}}</text>
+        <text class="winner-names" wx:elif="{{resultEntry.teamA.length > 0}}">{{resultEntry.teamANames}}</text>
+      </view>
+      <view
+        class="winner-btn {{resultEntry.winner === 'B' ? 'selected' : ''}}"
+        data-winner="B"
+        bindtap="selectWinner"
+      >
+        <text class="winner-label">{{i18n.admin_team_b_wins || 'Team B Wins'}}</text>
+        <text class="winner-names" wx:if="{{resultEntry.selectedMatch}}">{{resultEntry.selectedMatch.teamBNames}}</text>
+        <text class="winner-names" wx:elif="{{resultEntry.teamB.length > 0}}">{{resultEntry.teamBNames}}</text>
+      </view>
+    </view>
+
+    <view class="button" bindtap="enterResult">{{i18n.admin_save_result || 'Save Result'}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">{{i18n.admin_upsert_player}}</view>
+    <view class="label">{{i18n.admin_player_id_hint}}</view>
+    <input class="input" data-field="playerId" bindinput="onPlayerInput" />
+    <view class="label">{{i18n.profile_name}}</view>
+    <input class="input" data-field="name" bindinput="onPlayerInput" value="{{playerInput.name}}" />
+    <view class="label">{{i18n.profile_gender}}</view>
+    <picker mode="selector" range="{{genderOptions}}" value="{{playerInput.genderIndex}}" bindchange="onPlayerGenderChange">
+      <view class="input picker-value">{{playerInput.gender === 'M' ? i18n.gender_male : (playerInput.gender === 'F' ? i18n.gender_female : i18n.common_select)}}</view>
+    </picker>
+    <view class="label">{{i18n.profile_ntrp}}</view>
+    <picker mode="selector" range="{{ntrpOptions}}" value="{{playerInput.ntrpIndex}}" bindchange="onPlayerNtrpChange">
+      <view class="input picker-value">{{playerInput.ntrp || i18n.common_select}}</view>
+    </picker>
+    <view class="label">{{i18n.admin_notes}}</view>
+    <input class="input" data-field="notes" bindinput="onPlayerInput" />
+    <view class="button" bindtap="upsertPlayer">{{i18n.admin_save_player || 'Save Player'}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">{{i18n.admin_signup}}</view>
+    <view class="label">{{i18n.admin_signup_desc}}</view>
+    <view class="label">{{i18n.admin_select_event}}</view>
+    <picker mode="selector" range="{{events}}" range-key="title" bindchange="onAdminSignupEventPicker">
+      <view class="input picker-value">{{adminSignup.eventTitle || i18n.common_select}}</view>
+    </picker>
+    <view class="label">{{i18n.admin_players}}</view>
+    <picker mode="selector" range="{{adminSignup.availablePlayers}}" range-key="name" bindchange="onAdminSignupPlayerPicker" disabled="{{!adminSignup.eventId}}" catchtap="refreshAvailablePlayers">
+      <view class="input picker-value {{!adminSignup.eventId ? 'disabled' : ''}}">{{adminSignup.playerName || (adminSignup.eventId ? i18n.admin_select_player : i18n.admin_select_event_first)}}</view>
+    </picker>
+    <view class="button" bindtap="adminSignupPlayer">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
+  </view>
+
+  <view class="modal-overlay" wx:if="{{matchupsModal.visible}}" bindtap="closeMatchupsModal">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">{{matchupsModal.eventTitle}}</text>
+        <text class="modal-close" bindtap="closeMatchupsModal">×</text>
+      </view>
+      <scroll-view class="modal-body" scroll-y>
+        <block wx:if="{{matchupsModal.matches.length === 0}}">
+          <view class="empty-message">{{i18n.admin_no_pending_matches}}</view>
+        </block>
+        <block wx:for="{{matchupsModal.matches}}" wx:key="_id">
+          <view class="matchup-card {{item.status}}">
+            <view class="matchup-type">{{item.matchTypeLabel}}</view>
+            <view class="matchup-teams">
+              <view class="team">
+                <text class="team-label">{{i18n.admin_team_a}}:</text>
+                <text class="team-names">{{item.teamANames}}</text>
+              </view>
+              <text class="vs">vs</text>
+              <view class="team">
+                <text class="team-label">{{i18n.admin_team_b}}:</text>
+                <text class="team-names">{{item.teamBNames}}</text>
+              </view>
+            </view>
+            <view class="matchup-status">{{i18n.event_status}}: {{item.status}}</view>
+          </view>
+        </block>
+        <block wx:if="{{matchupsModal.waitlist.length > 0}}">
+          <view class="waitlist-section">
+            <view class="waitlist-title">Waitlist</view>
+            <view class="waitlist-names">{{matchupsModal.waitlistNames}}</view>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+
+</view>

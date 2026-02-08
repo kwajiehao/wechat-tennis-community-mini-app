@@ -1,0 +1,29 @@
+# Environment variables (contains CloudBase env ID)
+.env
+
+# Mini Program config (contains CloudBase env ID)
+miniprogram/config.js
+
+# WeChat DevTools private config (user-specific settings)
+project.private.config.json
+
+# Node.js dependencies (in cloud functions)
+**/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/

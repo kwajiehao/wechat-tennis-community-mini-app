@@ -1,0 +1,98 @@
+// ABOUTME: Marks an event as completed and calculates player points from wins.
+// ABOUTME: Stores playerPoints map on event for season leaderboard aggregation.
+
+const cloud = require('wx-server-sdk');
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const _ = db.command;
+const SETTINGS_ID = 'core';
+const DEFAULT_SETTINGS = {
+  adminOpenIds: [],
+  pointsConfig: { win: 3, loss: 1 },
+  ntrpScaleConfig: {},
+  activeSeasonId: null
+};
+
+async function getSettings() {
+  const res = await db.collection('settings').doc(SETTINGS_ID).get().catch(() => null);
+  return res && res.data ? res.data : null;
+}
+
+async function ensureSettings(openid) {
+  const existing = await getSettings();
+  if (!existing) {
+    const data = { ...DEFAULT_SETTINGS, adminOpenIds: [openid] };
+    await db.collection('settings').doc(SETTINGS_ID).set({ data });
+    return data;
+  }
+  const { _id, ...existingWithoutId } = existing;
+  const merged = { ...DEFAULT_SETTINGS, ...existingWithoutId };
+  if ((!merged.adminOpenIds || merged.adminOpenIds.length === 0) && openid) {
+    merged.adminOpenIds = [openid];
+  }
+  await db.collection('settings').doc(SETTINGS_ID).set({ data: merged });
+  return merged;
+}
+
+async function assertAdmin(openid) {
+  const settings = await ensureSettings(openid);
+  if (!settings.adminOpenIds.includes(openid)) {
+    throw new Error('PERMISSION_DENIED');
+  }
+  return settings;
+}
+
+exports.main = async (event, context) => {
+  const { OPENID } = cloud.getWXContext();
+  await assertAdmin(OPENID);
+
+  const { eventId } = event;
+  if (!eventId) {
+    throw new Error('MISSING_EVENT_ID');
+  }
+
+  const eventRes = await db.collection('events').doc(eventId).get();
+  const eventData = eventRes.data;
+  if (!eventData) {
+    throw new Error('EVENT_NOT_FOUND');
+  }
+
+  if (eventData.status !== 'matchups_approved') {
+    throw new Error('EVENT_NOT_APPROVED');
+  }
+
+  const matchesRes = await db.collection('matches')
+    .where({ eventId, status: 'completed' })
+    .get();
+  const completedMatches = matchesRes.data || [];
+
+  const matchIds = completedMatches.map(m => m._id);
+  const resultsRes = matchIds.length > 0
+    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
+    : { data: [] };
+  const results = resultsRes.data || [];
+  const resultMap = new Map(results.map(r => [r.matchId, r]));
+
+  const playerPoints = {};
+  for (const match of completedMatches) {
+    const result = resultMap.get(match._id);
+    if (!result) continue;
+
+    const winnerPlayers = result.winnerPlayers || [];
+    for (const playerId of winnerPlayers) {
+      playerPoints[playerId] = (playerPoints[playerId] || 0) + 1;
+    }
+  }
+
+  const now = new Date().toISOString();
+  await db.collection('events').doc(eventId).update({
+    data: {
+      status: 'completed',
+      playerPoints,
+      completedAt: now
+    }
+  });
+
+  return { eventId, playerPoints };
+};

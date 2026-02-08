@@ -1,0 +1,7 @@
+/* ABOUTME: Styles for profile page. */
+
+.hint {
+  font-size: 24rpx;
+  color: #888;
+  margin-bottom: 8rpx;
+}

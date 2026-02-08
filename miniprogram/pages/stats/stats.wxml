@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="section-title">{{i18n.admin_seasons}}</view>
+  <block wx:if="{{seasonStats}}">
+    <view class="card">
+      <view class="title">{{season ? season.name : i18n.stats_title}}</view>
+      <view class="label">{{i18n.stats_matches_played}}: {{seasonStats.matchesPlayed}}</view>
+      <view class="label">{{i18n.stats_wins}}: {{seasonStats.wins}}</view>
+      <view class="label">{{i18n.stats_losses}}: {{seasonStats.losses}}</view>
+      <view class="label">{{i18n.stats_win_rate}}: {{seasonStats.winRate}}</view>
+      <view class="label">{{i18n.stats_points}}: {{seasonStats.points}}</view>
+    </view>
+  </block>
+  <block wx:if="{{!seasonStats}}">
+    <view class="card">{{i18n.matches_no_matches}}</view>
+  </block>
+
+  <view class="section-title">{{i18n.stats_title}}</view>
+  <block wx:if="{{!stats}}">
+    <view class="card">{{i18n.matches_no_matches}}</view>
+  </block>
+  <block wx:if="{{stats}}">
+    <view class="card">
+      <view class="title">{{i18n.stats_title}}</view>
+      <view class="label">{{i18n.stats_matches_played}}: {{stats.matchesPlayed}}</view>
+      <view class="label">{{i18n.stats_wins}}: {{stats.wins}}</view>
+      <view class="label">{{i18n.stats_losses}}: {{stats.losses}}</view>
+      <view class="label">{{i18n.stats_win_rate}}: {{stats.winRate}}</view>
+      <view class="label">{{i18n.stats_points}}: {{stats.points}}</view>
+    </view>
+  </block>
+</view>

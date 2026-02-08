@@ -1,0 +1,30 @@
+<view class="searchable-picker">
+  <view class="selected-tags" wx:if="{{selectedItems.length > 0}}">
+    <view class="tag" wx:for="{{selectedItems}}" wx:key="_id">
+      <text>{{item.name}}</text>
+      <text class="tag-remove" data-id="{{item._id}}" bindtap="onSelect">×</text>
+    </view>
+  </view>
+  <input
+    class="search-input"
+    placeholder="{{placeholder}}"
+    placeholder-style="color: #888;"
+    value="{{searchText}}"
+    bindinput="onSearchInput"
+    bindfocus="onFocus"
+    bindblur="onBlur"
+  />
+  <scroll-view class="item-list" scroll-y wx:if="{{showList && filteredItems.length > 0}}">
+    <view
+      wx:for="{{filteredItems}}"
+      wx:key="_id"
+      class="item {{selectedMap[item._id] ? 'selected' : ''}}"
+      data-id="{{item._id}}"
+      bindtap="onSelect"
+    >
+      <text class="item-name">{{item.name}}</text>
+      <text class="item-ntrp" wx:if="{{item.ntrp}}">{{item.ntrp}}</text>
+      <text class="item-check" wx:if="{{selectedMap[item._id]}}">✓</text>
+    </view>
+  </scroll-view>
+</view>

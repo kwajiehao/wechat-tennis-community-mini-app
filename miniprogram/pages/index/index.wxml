@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="card">
+    <view class="title">{{i18n.index_welcome}}</view>
+    <view class="button" bindtap="goProfile">{{hasProfile ? i18n.nav_profile : i18n.nav_register}}</view>
+    <view class="button secondary" bindtap="goMatches">{{i18n.nav_matches}}</view>
+    <view class="button secondary" bindtap="goStats">{{i18n.nav_stats}}</view>
+    <view class="button secondary" bindtap="goPlayers">{{i18n.nav_players}}</view>
+    <view class="button secondary" bindtap="goSettings">{{i18n.nav_settings}}</view>
+    <view class="button" bindtap="goAdmin">{{i18n.nav_admin}}</view>
+  </view>
+
+  <view class="section-title">{{i18n.index_upcoming_events}}</view>
+  <block wx:if="{{events.length === 0}}">
+    <view class="card">{{i18n.index_no_events}}</view>
+  </block>
+  <block wx:for="{{events}}" wx:key="_id">
+    <view class="card" bindtap="goEvent" data-id="{{item._id}}">
+      <view class="title">{{item.title}}</view>
+      <view class="label">{{item.date}} - {{item.location}}</view>
+      <view class="label">{{i18n.event_status}}: {{item.status}}</view>
+      <view class="label">{{i18n.event_time_slots}}: {{item.timeSlots ? item.timeSlots.length : 0}}</view>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="section-title">{{i18n.matches_title}}</view>
+  <block wx:if="{{matches.length === 0}}">
+    <view class="card">{{i18n.matches_no_matches}}</view>
+  </block>
+  <block wx:for="{{matches}}" wx:key="_id">
+    <view class="card">
+      <view class="title">{{item.matchType}} - {{item.slot}}</view>
+      <view class="label">{{i18n.admin_team_a}}: {{item.teamANames}}</view>
+      <view class="label">{{i18n.admin_team_b}}: {{item.teamBNames}}</view>
+      <view class="label">{{i18n.event_status}}: {{item.status}}</view>
+    </view>
+  </block>
+</view>

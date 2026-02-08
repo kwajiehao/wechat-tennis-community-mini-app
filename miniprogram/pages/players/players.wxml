@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="section-title">{{i18n.players_title}}</view>
+
+  <view class="filter-bar">
+    <view class="filter-group">
+      <text class="filter-label">{{i18n.players_filter_gender}}</text>
+      <radio-group bindchange="onGenderFilterChange" class="filter-options">
+        <label class="filter-option">
+          <radio value="all" checked="{{genderFilter === 'all'}}" />{{i18n.common_all}}
+        </label>
+        <label class="filter-option">
+          <radio value="M" checked="{{genderFilter === 'M'}}" />{{i18n.gender_male}}
+        </label>
+        <label class="filter-option">
+          <radio value="F" checked="{{genderFilter === 'F'}}" />{{i18n.gender_female}}
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="filter-group">
+      <text class="filter-label">{{i18n.players_sort_by}}</text>
+      <radio-group bindchange="onSortChange" class="filter-options">
+        <label class="filter-option">
+          <radio value="ntrp" checked="{{sortBy === 'ntrp'}}" />NTRP
+        </label>
+        <label class="filter-option">
+          <radio value="name" checked="{{sortBy === 'name'}}" />{{i18n.players_sort_name}}
+        </label>
+      </radio-group>
+    </view>
+  </view>
+
+  <block wx:if="{{players.length === 0 && !loading}}">
+    <view class="card">
+      <view class="empty-message">{{i18n.players_no_players}}</view>
+    </view>
+  </block>
+
+  <block wx:for="{{players}}" wx:key="_id">
+    <view class="card player-card">
+      <view class="player-info">
+        <view class="player-name">{{item.name || i18n.common_unnamed}}</view>
+        <view class="player-details">
+          <text class="badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
+          <text class="badge gender">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,61 @@
+<view class="container">
+  <block wx:if="{{!event}}">
+    <view class="card">{{i18n.common_loading}}</view>
+  </block>
+  <block wx:if="{{event}}">
+    <view class="card">
+      <view class="title">{{event.title}}</view>
+      <view class="label">{{event.date}} - {{event.location}}</view>
+      <view class="label">{{i18n.event_status}}: {{event.status}}</view>
+      <view class="label">{{i18n.event_allowed_types}}: {{matchTypesLabel}}</view>
+      <view class="label" wx:if="{{event.startTime}}">Time: {{event.startTime}} - {{event.endTime}}</view>
+    </view>
+
+    <view class="card">
+      <view class="title">{{i18n.event_signed_players}} ({{signedUpPlayers.length}})</view>
+      <block wx:if="{{signedUpPlayers.length === 0}}">
+        <view class="label">{{i18n.event_no_players}}</view>
+      </block>
+      <block wx:else>
+        <view class="player-list">
+          <view wx:for="{{signedUpPlayers}}" wx:key="playerId" class="player-item">
+            <text class="player-name">{{item.name}}</text>
+            <text wx:if="{{item.ntrp}}" class="player-ntrp">NTRP {{item.ntrp}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <block wx:if="{{matches.length > 0}}">
+      <view class="card">
+        <view class="title">Matchups</view>
+        <view wx:for="{{matches}}" wx:key="_id" class="matchup-item">
+          <view class="matchup-type">{{item.matchTypeLabel}}</view>
+          <view class="matchup-versus">
+            <view class="team-block">
+              <text class="team-label">Team A</text>
+              <text class="team-name">{{item.teamANames}}</text>
+            </view>
+            <text class="vs-text">vs</text>
+            <view class="team-block">
+              <text class="team-label">Team B</text>
+              <text class="team-name">{{item.teamBNames}}</text>
+            </view>
+          </view>
+          <view class="matchup-score" wx:if="{{item.score}}">Score: {{item.score}}</view>
+        </view>
+      </view>
+    </block>
+
+    <view class="card">
+      <view class="title">{{i18n.event_signup_title}}</view>
+      <view class="label">{{i18n.event_signup_status}}: {{signupStatus || i18n.event_not_signed}}</view>
+      <block wx:if="{{signupStatus === 'signed'}}">
+        <view class="button secondary" bindtap="withdraw">{{i18n.event_withdraw}}</view>
+      </block>
+      <block wx:else>
+        <view class="button" bindtap="signup">{{i18n.event_submit_signup}}</view>
+      </block>
+    </view>
+  </block>
+</view>

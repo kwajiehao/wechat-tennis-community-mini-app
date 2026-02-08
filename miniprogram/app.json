@@ -1,0 +1,21 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/event/event",
+    "pages/profile/profile",
+    "pages/matches/matches",
+    "pages/stats/stats",
+    "pages/admin/admin",
+    "pages/season/season",
+    "pages/players/players",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1e2a3a",
+    "navigationBarTitleText": "Tennis Community",
+    "navigationBarTextStyle": "white"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="section-title">Leaderboard</view>
+  <view class="card leaderboard-card">
+    <block wx:if="{{leaderboard.length === 0}}">
+      <view class="empty-message">No match results yet</view>
+    </block>
+    <view class="leaderboard-table" wx:if="{{leaderboard.length > 0}}">
+      <view class="table-header">
+        <text class="col-rank">#</text>
+        <text class="col-name">{{i18n.players_title || 'Player'}}</text>
+        <text class="col-points">{{i18n.season_points || 'Pts'}}</text>
+      </view>
+      <view class="table-row" wx:for="{{leaderboard}}" wx:key="playerId">
+        <text class="col-rank">{{index + 1}}</text>
+        <text class="col-name">{{item.name}}</text>
+        <text class="col-points">{{item.points}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-header">
+    <view class="section-title">{{showAllMatches ? 'All Matches' : 'Recent Matches'}}</view>
+    <view class="toggle-link" bindtap="toggleShowAllMatches">
+      {{showAllMatches ? 'Show Recent' : 'View All'}}
+    </view>
+  </view>
+
+  <block wx:if="{{displayedMatches.length === 0}}">
+    <view class="card">
+      <view class="empty-message">No matches recorded for this season yet</view>
+    </view>
+  </block>
+
+  <block wx:for="{{displayedMatches}}" wx:key="_id">
+    <view class="card match-card {{item.status}}">
+      <view class="match-type">{{item.matchTypeLabel}}</view>
+      <view class="match-teams">
+        <view class="team {{item.winner === 'A' ? 'winner' : ''}}">
+          <text class="team-names">{{item.teamANames}}</text>
+        </view>
+        <text class="vs">vs</text>
+        <view class="team {{item.winner === 'B' ? 'winner' : ''}}">
+          <text class="team-names">{{item.teamBNames}}</text>
+        </view>
+      </view>
+      <view class="match-score" wx:if="{{item.score}}">{{item.score}}</view>
+      <view class="match-status">{{item.status}}</view>
+    </view>
+  </block>
+</view>

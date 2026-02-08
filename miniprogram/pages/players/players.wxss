@@ -1,0 +1,77 @@
+/* ABOUTME: Styles for the players list page with filter controls. */
+
+.filter-bar {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 6px 16px rgba(30, 42, 58, 0.08);
+}
+
+.filter-group {
+  margin-bottom: 16rpx;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  font-size: 26rpx;
+  color: #666;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.filter-option {
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+}
+
+.filter-option radio {
+  transform: scale(0.8);
+}
+
+.empty-message {
+  text-align: center;
+  color: #666;
+  padding: 40rpx;
+  font-size: 28rpx;
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  font-size: 32rpx;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.player-details {
+  display: flex;
+  gap: 12rpx;
+}
+
+.badge.ntrp {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.badge.gender {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}

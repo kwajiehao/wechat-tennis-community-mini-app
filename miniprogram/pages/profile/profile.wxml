@@ -1,0 +1,17 @@
+<view class="container">
+  <view class="card">
+    <view class="title">{{isNewUser ? i18n.nav_register : i18n.profile_title}}</view>
+    <view class="label">{{i18n.profile_name}}</view>
+    <view class="hint" wx:if="{{isNewUser}}">{{i18n.profile_nickname_hint}}</view>
+    <input class="input" type="nickname" placeholder="{{i18n.profile_name}}" value="{{name}}" bindinput="onNameInput" />
+    <view class="label">{{i18n.profile_gender}}</view>
+    <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
+      <view class="input picker-value">{{gender || '-- Select --'}}</view>
+    </picker>
+    <view class="label">{{i18n.profile_ntrp}}</view>
+    <picker mode="selector" range="{{ntrpOptions}}" value="{{ntrpIndex}}" bindchange="onNtrpChange">
+      <view class="input picker-value">{{ntrp || '-- Select --'}}</view>
+    </picker>
+    <view class="button" bindtap="saveProfile">{{isNewUser ? i18n.nav_register : i18n.profile_save}}</view>
+  </view>
+</view>
