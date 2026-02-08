@@ -61,7 +61,8 @@ Page({
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
     },
-    genderOptions: ['M', 'F'],
+    genderCodes: ['M', 'F'],
+    genderLabels: [],
     ntrpOptions: ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'],
     matchupsModal: {
       visible: false,
@@ -110,12 +111,14 @@ Page({
     this.refresh();
   },
   loadI18n() {
+    const strs = i18n.getStrings();
     const matchTypes = getMatchTypes();
     const currentType = this.data.resultEntry.matchType;
     const found = matchTypes.find(m => m.value === currentType);
     this.setData({
-      i18n: i18n.getStrings(),
+      i18n: strs,
       matchTypes: matchTypes,
+      genderLabels: [strs.gender_male, strs.gender_female],
       'resultEntry.matchTypeLabel': found ? found.label : matchTypes[0].label
     });
   },
@@ -136,7 +139,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load events', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_events, icon: 'none' });
       });
   },
   fetchPlayers() {
@@ -151,7 +154,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load players', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_players, icon: 'none' });
       });
   },
   fetchSeasons() {
@@ -165,7 +168,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load seasons', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_seasons, icon: 'none' });
       });
   },
   onNewSeasonInput(e) {
@@ -185,7 +188,7 @@ Page({
       setActive: data.setActive === 'true'
     })
       .then(() => {
-        wx.showToast({ title: 'Season created', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_season_created, icon: 'success' });
         this.fetchSeasons();
       })
       .catch(err => {
@@ -201,7 +204,7 @@ Page({
 
     callFunction('setActiveSeason', { seasonId: newSeasonId })
       .then(() => {
-        wx.showToast({ title: isCurrentlyActive ? 'Deactivated' : 'Activated', icon: 'success' });
+        wx.showToast({ title: isCurrentlyActive ? this.data.i18n.toast_deactivated : this.data.i18n.toast_activated, icon: 'success' });
         this.fetchSeasons();
       })
       .catch(err => {
@@ -213,7 +216,7 @@ Page({
     const eventId = e.currentTarget.dataset.id;
     callFunction('completeEvent', { eventId })
       .then(() => {
-        wx.showToast({ title: 'Event completed', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_event_completed, icon: 'success' });
         this.fetchEvents();
       })
       .catch(err => {
@@ -225,7 +228,7 @@ Page({
     const eventId = e.currentTarget.dataset.id;
     callFunction('reopenEvent', { eventId })
       .then(() => {
-        wx.showToast({ title: 'Event reopened', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_event_reopened, icon: 'success' });
         this.fetchEvents();
       })
       .catch(err => {
@@ -267,7 +270,7 @@ Page({
       reason: input.reason
     })
       .then(() => {
-        wx.showToast({ title: 'Adjusted', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_adjusted, icon: 'success' });
       })
       .catch(err => {
         console.error(err);
@@ -298,7 +301,7 @@ Page({
       endTime: data.endTime
     })
       .then(() => {
-        wx.showToast({ title: 'Event created', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_event_created, icon: 'success' });
         this.fetchEvents();
       })
       .catch(err => {
@@ -328,7 +331,7 @@ Page({
           return;
         }
 
-        wx.showToast({ title: 'Generated', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_generated, icon: 'success' });
         this.loadMatchupsForModal(eventId, event ? event.title : 'Event');
       })
       .catch(err => {
@@ -389,7 +392,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load matchups', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_matchups, icon: 'none' });
       });
   },
   closeMatchupsModal() {
@@ -438,7 +441,7 @@ Page({
       teamB: newMatchup.teamB
     })
       .then(() => {
-        wx.showToast({ title: 'Matchup added', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_matchup_added, icon: 'success' });
         this.loadMatchupsForModal(modal.eventId, modal.eventTitle);
       })
       .catch(err => {
@@ -456,7 +459,7 @@ Page({
         if (res.confirm) {
           callFunction('deleteMatchup', { matchId })
             .then(() => {
-              wx.showToast({ title: 'Deleted', icon: 'success' });
+              wx.showToast({ title: this.data.i18n.toast_deleted, icon: 'success' });
               this.loadMatchupsForModal(modal.eventId, modal.eventTitle);
             })
             .catch(err => {
@@ -471,7 +474,7 @@ Page({
     const eventId = e.currentTarget.dataset.id;
     callFunction('approveMatchups', { eventId })
       .then(() => {
-        wx.showToast({ title: 'Approved', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_approved, icon: 'success' });
       })
       .catch(err => {
         console.error(err);
@@ -482,7 +485,7 @@ Page({
     const eventId = e.currentTarget.dataset.id;
     callFunction('regenerateMatchups', { eventId })
       .then(() => {
-        wx.showToast({ title: 'Regenerated', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_regenerated, icon: 'success' });
       })
       .catch(err => {
         console.error(err);
@@ -536,7 +539,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load matches', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_matches, icon: 'none' });
       });
   },
 
@@ -614,7 +617,7 @@ Page({
     const sets = entry.sets.filter(s => s.teamAGames !== '' || s.teamBGames !== '');
 
     if (!entry.winner) {
-      wx.showToast({ title: 'Select a winner', icon: 'none' });
+      wx.showToast({ title: this.data.i18n.toast_select_winner, icon: 'none' });
       return;
     }
 
@@ -625,13 +628,13 @@ Page({
 
     if (entry.mode === 'matchmaking') {
       if (!entry.selectedMatchId) {
-        wx.showToast({ title: 'Select a match', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_select_match, icon: 'none' });
         return;
       }
       payload.matchId = entry.selectedMatchId;
     } else {
       if (entry.teamA.length === 0 || entry.teamB.length === 0) {
-        wx.showToast({ title: 'Select players for both teams', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_select_players, icon: 'none' });
         return;
       }
       payload.teamA = entry.teamA;
@@ -641,7 +644,7 @@ Page({
 
     callFunction('enterResult', payload)
       .then(() => {
-        wx.showToast({ title: 'Result saved', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_result_saved, icon: 'success' });
         this.setData({
           'resultEntry.selectedMatchId': '',
           'resultEntry.selectedMatch': null,
@@ -679,7 +682,7 @@ Page({
     const index = parseInt(e.detail.value);
     this.setData({
       'testPlayerInput.genderIndex': index,
-      'testPlayerInput.gender': this.data.genderOptions[index]
+      'testPlayerInput.gender': this.data.genderCodes[index]
     });
   },
   onTestPlayerNtrpChange(e) {
@@ -707,7 +710,7 @@ Page({
       ntrp: ntrpValue
     })
       .then(() => {
-        wx.showToast({ title: 'Test player added', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_test_player_added, icon: 'success' });
         this.setData({
           'testPlayerInput.name': '',
           'testPlayerInput.ntrp': '',
@@ -744,7 +747,7 @@ Page({
         if (res.confirm) {
           callFunction('deletePlayer', { playerId })
             .then(() => {
-              wx.showToast({ title: 'Deleted', icon: 'success' });
+              wx.showToast({ title: this.data.i18n.toast_deleted, icon: 'success' });
               this.setData({
                 'deleteTestPlayerInput.playerId': '',
                 'deleteTestPlayerInput.playerName': ''
@@ -793,7 +796,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load players', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_players, icon: 'none' });
       });
   },
   onSignupPlayerPicker(e) {

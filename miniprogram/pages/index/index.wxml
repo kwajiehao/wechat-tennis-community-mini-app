@@ -1,32 +1,46 @@
 <view class="container">
-  <view class="card">
-    <view class="title">{{i18n.index_welcome}}</view>
-    <view class="button" bindtap="goProfile">{{hasProfile ? i18n.nav_profile : i18n.nav_register}}</view>
-    <view class="button secondary" bindtap="goMatches">{{i18n.nav_matches}}</view>
-    <view class="button secondary" bindtap="goStats">{{i18n.nav_stats}}</view>
-    <view class="button secondary" bindtap="goPlayers">{{i18n.nav_players}}</view>
-    <view class="button secondary" bindtap="goSettings">{{i18n.nav_settings}}</view>
-    <view class="button" bindtap="goAdmin">{{i18n.nav_admin}}</view>
-  </view>
-
-  <view class="section-title">{{i18n.index_upcoming_events}}</view>
-  <block wx:if="{{events.length === 0}}">
-    <view class="card">{{i18n.index_no_events}}</view>
-  </block>
-  <block wx:for="{{events}}" wx:key="_id">
-    <view class="card" bindtap="goEvent" data-id="{{item._id}}">
-      <view class="title">{{item.title}}</view>
-      <view class="label">{{item.date}} - {{item.location}}</view>
+  <block wx:if="{{!dataLoaded}}">
+    <view class="card loading-card">
+      <view class="loading-text">{{i18n.common_loading}}</view>
     </view>
   </block>
 
-  <block wx:if="{{completedEvents.length > 0}}">
-    <view class="section-title">{{i18n.index_completed_events || 'Completed Events'}}</view>
-    <block wx:for="{{completedEvents}}" wx:key="_id">
-      <view class="card completed-event" bindtap="goEvent" data-id="{{item._id}}">
-        <view class="title">{{item.title}}</view>
+  <block wx:else>
+    <view class="card">
+      <view class="title">{{i18n.index_welcome}}</view>
+      <view class="button" bindtap="goProfile">{{hasProfile ? i18n.nav_profile : i18n.nav_register}}</view>
+      <view class="button secondary" bindtap="goMatches">{{i18n.nav_matches}}</view>
+      <view class="button secondary" bindtap="goStats">{{i18n.nav_stats}}</view>
+      <view class="button secondary" bindtap="goPlayers">{{i18n.nav_players}}</view>
+      <view class="button secondary" bindtap="goSettings">{{i18n.nav_settings}}</view>
+      <view class="button" bindtap="goAdmin">{{i18n.nav_admin}}</view>
+    </view>
+
+    <view class="section-title">{{i18n.index_upcoming_events}}</view>
+    <block wx:if="{{events.length === 0}}">
+      <view class="card">{{i18n.index_no_events}}</view>
+    </block>
+    <block wx:for="{{events}}" wx:key="_id">
+      <view class="card" bindtap="goEvent" data-id="{{item._id}}">
+        <view class="event-header">
+          <view class="title">{{item.title}}</view>
+          <view class="status-badge {{item.status}}">{{item.status}}</view>
+        </view>
         <view class="label">{{item.date}} - {{item.location}}</view>
       </view>
+    </block>
+
+    <block wx:if="{{completedEvents.length > 0}}">
+      <view class="section-title">{{i18n.index_completed_events || 'Completed Events'}}</view>
+      <block wx:for="{{completedEvents}}" wx:key="_id">
+        <view class="card completed-event" bindtap="goEvent" data-id="{{item._id}}">
+          <view class="event-header">
+            <view class="title">{{item.title}}</view>
+            <view class="status-badge {{item.status}}">{{item.status}}</view>
+          </view>
+          <view class="label">{{item.date}} - {{item.location}}</view>
+        </view>
+      </block>
     </block>
   </block>
 </view>

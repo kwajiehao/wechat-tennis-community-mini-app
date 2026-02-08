@@ -68,13 +68,18 @@
 }
 
 .badge.ntrp {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.badge.gender.male {
   background: #e3f2fd;
   color: #1565c0;
 }
 
-.badge.gender {
-  background: #f3e5f5;
-  color: #7b1fa2;
+.badge.gender.female {
+  background: #fce4ec;
+  color: #c2185b;
 }
 
 .badge.points {
@@ -83,8 +88,8 @@
 }
 
 .badge.test {
-  background: #ffebee;
-  color: #c62828;
+  background: #fff3e0;
+  color: #e65100;
 }
 
 .modal-test-badge {

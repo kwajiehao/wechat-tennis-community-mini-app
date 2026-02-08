@@ -11,7 +11,8 @@ Page({
     isNewUser: true,
     name: '',
     gender: 'M',
-    genderOptions: ['M', 'F'],
+    genderCodes: ['M', 'F'],
+    genderLabels: [],
     genderIndex: 0,
     ntrp: '',
     ntrpOptions: ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'],
@@ -26,8 +27,10 @@ Page({
     this.loadI18n();
   },
   loadI18n() {
+    const strs = i18n.getStrings();
     this.setData({
-      i18n: i18n.getStrings()
+      i18n: strs,
+      genderLabels: [strs.gender_male, strs.gender_female]
     });
   },
   fetchProfile() {
@@ -42,8 +45,8 @@ Page({
             player,
             isNewUser: false,
             name: player.name || '',
-            gender: gender,
-            genderIndex: this.data.genderOptions.indexOf(gender),
+            gender: gender.toUpperCase(),
+            genderIndex: this.data.genderCodes.indexOf(gender.toUpperCase()),
             ntrp: ntrpStr,
             ntrpIndex: ntrpIndex
           });
@@ -63,7 +66,7 @@ Page({
     const index = parseInt(e.detail.value);
     this.setData({
       genderIndex: index,
-      gender: this.data.genderOptions[index]
+      gender: this.data.genderCodes[index]
     });
   },
   onNtrpChange(e) {
@@ -82,7 +85,7 @@ Page({
     })
       .then(res => {
         this.setData({ player: res.result.player, isNewUser: false });
-        wx.showToast({ title: 'Saved', icon: 'success' });
+        wx.showToast({ title: this.data.i18n.toast_saved, icon: 'success' });
       })
       .catch(err => {
         console.error(err);

@@ -88,7 +88,9 @@ const handlers = {
 
   async upsertPlayer(event) {
     const { OPENID } = getWXContext();
-    const { playerId, createNew, name, gender, ntrp, isActive, notes } = event;
+    const { playerId, createNew, name, ntrp, isActive, notes } = event;
+    // Normalize gender to uppercase for consistent storage
+    const gender = (event.gender || '').toUpperCase();
     const now = new Date().toISOString();
 
     // Admin creating a test player (no OPENID link)
@@ -288,6 +290,14 @@ const handlers = {
     const { eventId } = event;
     if (!eventId) throw new Error('MISSING_EVENT_ID');
 
+    // Check event status - cannot withdraw once in_progress or completed
+    const eventDoc = await store.collection('events').doc(eventId).get();
+    if (!eventDoc.data) throw new Error('EVENT_NOT_FOUND');
+    const eventStatus = eventDoc.data.status;
+    if (eventStatus === 'in_progress' || eventStatus === 'completed') {
+      throw new Error('EVENT_NOT_OPEN');
+    }
+
     const player = await getPlayerByOpenId(OPENID);
     if (!player) throw new Error('PLAYER_NOT_FOUND');
 
@@ -332,11 +342,16 @@ const handlers = {
         const playersRes = await store.collection('players').get();
         const players = playersRes.data.filter(p => playerIds.includes(p._id));
         const playerMap = new Map(players.map(p => [p._id, p]));
-        signups = signups.map(s => ({
-          ...s,
-          playerName: (playerMap.get(s.playerId) || {}).name || 'Unknown',
-          playerNtrp: (playerMap.get(s.playerId) || {}).ntrp || null
-        }));
+        signups = signups.map(s => {
+          const player = playerMap.get(s.playerId) || {};
+          return {
+            ...s,
+            playerName: player.name || 'Unknown',
+            playerNtrp: player.ntrp || null,
+            playerGender: (player.gender || '').toUpperCase() || null,
+            isTestPlayer: player.isTestPlayer || false
+          };
+        });
       }
       return { signups };
     }
@@ -649,7 +664,12 @@ const handlers = {
     });
 
     await store.collection('matches').doc(match._id).update({
-      data: { status: 'completed', completedAt: now }
+      data: {
+        status: 'completed',
+        completedAt: now,
+        score: finalScore,
+        winner: winnerSide
+      }
     });
 
     return { resultId: resultRes._id };

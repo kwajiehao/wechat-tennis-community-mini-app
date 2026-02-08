@@ -1,8 +1,8 @@
 <view class="container">
-  <view class="section-title">Leaderboard</view>
+  <view class="section-title">{{i18n.season_leaderboard}}</view>
   <view class="card leaderboard-card">
     <block wx:if="{{leaderboard.length === 0}}">
-      <view class="empty-message">No match results yet</view>
+      <view class="empty-message">{{i18n.season_no_results}}</view>
     </block>
     <view class="leaderboard-table" wx:if="{{leaderboard.length > 0}}">
       <view class="table-header">
@@ -19,15 +19,15 @@
   </view>
 
   <view class="section-header">
-    <view class="section-title">{{showAllMatches ? 'All Matches' : 'Recent Matches'}}</view>
+    <view class="section-title">{{showAllMatches ? i18n.season_all_matches : i18n.season_recent_matches}}</view>
     <view class="toggle-link" bindtap="toggleShowAllMatches">
-      {{showAllMatches ? 'Show Recent' : 'View All'}}
+      {{showAllMatches ? i18n.season_show_recent : i18n.season_view_all}}
     </view>
   </view>
 
   <block wx:if="{{displayedMatches.length === 0}}">
     <view class="card">
-      <view class="empty-message">No matches recorded for this season yet</view>
+      <view class="empty-message">{{i18n.season_no_matches}}</view>
     </view>
   </block>
 

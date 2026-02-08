@@ -55,159 +55,28 @@
     </picker>
     <view class="label">{{i18n.event_location}}</view>
     <input class="input" data-field="location" bindinput="onNewEventInput" />
-    <view class="label">Start Time</view>
+    <view class="label">{{i18n.admin_start_time}}</view>
     <picker mode="time" value="{{newEvent.startTime}}" bindchange="onEventStartTimeChange">
-      <view class="input picker-value">{{newEvent.startTime || 'Select...'}}</view>
+      <view class="input picker-value">{{newEvent.startTime || i18n.common_select}}</view>
     </picker>
-    <view class="label">End Time</view>
+    <view class="label">{{i18n.admin_end_time}}</view>
     <picker mode="time" value="{{newEvent.endTime}}" bindchange="onEventEndTimeChange">
-      <view class="input picker-value">{{newEvent.endTime || 'Select...'}}</view>
+      <view class="input picker-value">{{newEvent.endTime || i18n.common_select}}</view>
     </picker>
     <view class="button" bindtap="createEvent">{{i18n.admin_create_event || 'Create Event'}}</view>
   </view>
 
   <view class="section-title">{{i18n.admin_manage_events}}</view>
   <block wx:for="{{events}}" wx:key="_id">
-    <view class="card event-card {{item.status === 'completed' ? 'completed' : ''}}">
+    <view class="card event-card {{item.status === 'completed' ? 'completed' : ''}}" data-id="{{item._id}}" bindtap="goToEvent">
       <view class="event-header">
-        <view class="title clickable" data-id="{{item._id}}" bindtap="goToEvent">{{item.title}}</view>
+        <view class="title clickable">{{item.title}}</view>
         <view class="status-badge {{item.status}}">{{item.status}}</view>
       </view>
       <view class="label">{{item.date}} - {{item.location}}</view>
-      <block wx:if="{{item.status !== 'completed'}}">
-        <view class="button" data-id="{{item._id}}" bindtap="generateMatchups">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
-        <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
-        <view class="button" data-id="{{item._id}}" bindtap="completeEvent">{{i18n.admin_complete_event || 'Complete Event'}}</view>
-      </block>
-      <block wx:else>
-        <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
-        <view class="button secondary" data-id="{{item._id}}" bindtap="reopenEvent">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
-      </block>
+      <view class="label hint">{{i18n.admin_tap_to_manage || 'Tap to manage'}}</view>
     </view>
   </block>
-
-  <view class="card">
-    <view class="title">{{i18n.admin_enter_result}}</view>
-
-    <view class="label">{{i18n.admin_mode}}</view>
-    <radio-group bindchange="onResultModeChange">
-      <label class="radio-item">
-        <radio value="matchmaking" checked="{{resultEntry.mode === 'matchmaking'}}" />
-        {{i18n.admin_from_matchmaking}}
-      </label>
-      <label class="radio-item">
-        <radio value="adhoc" checked="{{resultEntry.mode === 'adhoc'}}" />
-        {{i18n.admin_adhoc_match}}
-      </label>
-    </radio-group>
-
-    <block wx:if="{{resultEntry.mode === 'matchmaking'}}">
-      <view class="label">{{i18n.admin_select_event}}</view>
-      <picker mode="selector" range="{{events}}" range-key="title" bindchange="onResultEventChange" value="">
-        <view class="picker-value">{{resultEntry.selectedEventTitle || i18n.common_select}}</view>
-      </picker>
-
-      <block wx:if="{{resultEntry.availableMatches.length > 0}}">
-        <view class="label">{{i18n.admin_select_match}}</view>
-        <view class="match-list">
-          <view
-            wx:for="{{resultEntry.availableMatches}}"
-            wx:key="_id"
-            class="match-option {{resultEntry.selectedMatchId === item._id ? 'selected' : ''}}"
-            data-id="{{item._id}}"
-            bindtap="onResultMatchSelect"
-          >
-            <view class="match-teams">{{item.teamANames}} vs {{item.teamBNames}}</view>
-            <view class="match-type">{{item.matchType}}</view>
-          </view>
-        </view>
-      </block>
-      <block wx:elif="{{resultEntry.selectedEventId && resultEntry.availableMatches.length === 0}}">
-        <view class="label">{{i18n.admin_no_pending_matches}}</view>
-      </block>
-    </block>
-
-    <block wx:if="{{resultEntry.mode === 'adhoc'}}">
-      <view class="label">{{i18n.admin_match_type}}</view>
-      <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onResultMatchTypePicker">
-        <view class="picker-value">{{resultEntry.matchTypeLabel || i18n.common_select}}</view>
-      </picker>
-
-      <view class="label">{{i18n.admin_team_a}}</view>
-      <searchable-picker
-        items="{{players}}"
-        selectedIds="{{resultEntry.teamA}}"
-        excludeIds="{{resultEntry.teamB}}"
-        placeholder="{{i18n.common_search}}"
-        maxSelect="{{resultEntry.maxSelectPlayers}}"
-        bind:change="onTeamAChange"
-      />
-
-      <view class="label">{{i18n.admin_team_b}}</view>
-      <searchable-picker
-        items="{{players}}"
-        selectedIds="{{resultEntry.teamB}}"
-        excludeIds="{{resultEntry.teamA}}"
-        placeholder="{{i18n.common_search}}"
-        maxSelect="{{resultEntry.maxSelectPlayers}}"
-        bind:change="onTeamBChange"
-      />
-    </block>
-
-    <view class="label">{{i18n.admin_set_scores}}</view>
-    <view class="sets-container">
-      <view wx:for="{{resultEntry.sets}}" wx:key="index" class="set-row">
-        <text class="set-label">Set {{index + 1}}:</text>
-        <input
-          class="set-input"
-          type="number"
-          data-index="{{index}}"
-          data-team="teamAGames"
-          value="{{item.teamAGames}}"
-          bindinput="onSetScoreInput"
-          placeholder="A"
-        />
-        <text class="set-separator">-</text>
-        <input
-          class="set-input"
-          type="number"
-          data-index="{{index}}"
-          data-team="teamBGames"
-          value="{{item.teamBGames}}"
-          bindinput="onSetScoreInput"
-          placeholder="B"
-        />
-      </view>
-    </view>
-    <view class="set-buttons">
-      <view class="button small" bindtap="addSet">{{i18n.admin_add_set || '+ Add Set'}}</view>
-      <view class="button small secondary" bindtap="removeSet" wx:if="{{resultEntry.sets.length > 1}}">{{i18n.admin_remove_set || '- Remove Set'}}</view>
-    </view>
-
-    <view class="label">{{i18n.admin_winner}}</view>
-    <view class="winner-buttons">
-      <view
-        class="winner-btn {{resultEntry.winner === 'A' ? 'selected' : ''}}"
-        data-winner="A"
-        bindtap="selectWinner"
-      >
-        <text class="winner-label">{{i18n.admin_team_a_wins || 'Team A Wins'}}</text>
-        <text class="winner-names" wx:if="{{resultEntry.selectedMatch}}">{{resultEntry.selectedMatch.teamANames}}</text>
-        <text class="winner-names" wx:elif="{{resultEntry.teamA.length > 0}}">{{resultEntry.teamANames}}</text>
-      </view>
-      <view
-        class="winner-btn {{resultEntry.winner === 'B' ? 'selected' : ''}}"
-        data-winner="B"
-        bindtap="selectWinner"
-      >
-        <text class="winner-label">{{i18n.admin_team_b_wins || 'Team B Wins'}}</text>
-        <text class="winner-names" wx:if="{{resultEntry.selectedMatch}}">{{resultEntry.selectedMatch.teamBNames}}</text>
-        <text class="winner-names" wx:elif="{{resultEntry.teamB.length > 0}}">{{resultEntry.teamBNames}}</text>
-      </view>
-    </view>
-
-    <view class="button" bindtap="enterResult">{{i18n.admin_save_result || 'Save Result'}}</view>
-  </view>
 
   <view class="card">
     <view class="title">{{i18n.admin_test_players || 'Test Players'}}</view>
@@ -216,8 +85,8 @@
     <view class="label">{{i18n.profile_name}}</view>
     <input class="input" data-field="name" bindinput="onTestPlayerInput" value="{{testPlayerInput.name}}" />
     <view class="label">{{i18n.profile_gender}}</view>
-    <picker mode="selector" range="{{genderOptions}}" value="{{testPlayerInput.genderIndex}}" bindchange="onTestPlayerGenderChange">
-      <view class="input picker-value">{{testPlayerInput.gender === 'M' ? i18n.gender_male : (testPlayerInput.gender === 'F' ? i18n.gender_female : i18n.common_select)}}</view>
+    <picker mode="selector" range="{{genderLabels}}" value="{{testPlayerInput.genderIndex}}" bindchange="onTestPlayerGenderChange">
+      <view class="input picker-value">{{genderLabels[testPlayerInput.genderIndex] || i18n.common_select}}</view>
     </picker>
     <view class="label">{{i18n.profile_ntrp}}</view>
     <picker mode="selector" range="{{ntrpOptions}}" value="{{testPlayerInput.ntrpIndex}}" bindchange="onTestPlayerNtrpChange">
@@ -247,85 +116,6 @@
     </picker>
 
     <view class="button" bindtap="signupPlayer">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
-  </view>
-
-  <view class="modal-overlay" wx:if="{{matchupsModal.visible}}" bindtap="closeMatchupsModal">
-    <view class="modal-content" catchtap="">
-      <view class="modal-header">
-        <text class="modal-title">{{matchupsModal.eventTitle}}</text>
-        <text class="modal-close" bindtap="closeMatchupsModal">×</text>
-      </view>
-      <scroll-view class="modal-body" scroll-y>
-        <block wx:if="{{matchupsModal.matches.length === 0 && !matchupsModal.showAddForm}}">
-          <view class="empty-message">{{i18n.admin_no_matchups || 'No matchups yet'}}</view>
-        </block>
-        <block wx:for="{{matchupsModal.matches}}" wx:key="_id">
-          <view class="matchup-card">
-            <view class="matchup-row">
-              <view class="matchup-info">
-                <view class="matchup-type">{{item.matchTypeLabel}}</view>
-                <view class="matchup-teams">
-                  <view class="team">
-                    <text class="team-names">{{item.teamANames}}</text>
-                  </view>
-                  <text class="vs">vs</text>
-                  <view class="team">
-                    <text class="team-names">{{item.teamBNames}}</text>
-                  </view>
-                </view>
-                <view class="matchup-score" wx:if="{{item.score}}">{{item.score}}</view>
-              </view>
-              <view class="matchup-delete" data-id="{{item._id}}" catchtap="deleteMatchup" wx:if="{{!matchupsModal.isCompleted}}">×</view>
-            </view>
-          </view>
-        </block>
-
-        <block wx:if="{{!matchupsModal.isCompleted}}">
-          <view class="add-matchup-section">
-            <view class="button small" bindtap="toggleAddMatchupForm" wx:if="{{!matchupsModal.showAddForm}}">{{i18n.admin_add_matchup || '+ Add Matchup'}}</view>
-            <block wx:if="{{matchupsModal.showAddForm}}">
-              <view class="add-matchup-form">
-                <view class="label">{{i18n.admin_match_type}}</view>
-                <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onAddMatchupTypePicker">
-                  <view class="picker-value">{{matchupsModal.newMatchup.matchTypeLabel || i18n.common_select}}</view>
-                </picker>
-
-                <view class="label">{{i18n.admin_team_a}}</view>
-                <searchable-picker
-                  items="{{players}}"
-                  selectedIds="{{matchupsModal.newMatchup.teamA}}"
-                  excludeIds="{{matchupsModal.newMatchup.teamB}}"
-                  placeholder="{{i18n.common_search}}"
-                  maxSelect="{{matchupsModal.newMatchup.maxPlayers}}"
-                  bind:change="onAddMatchupTeamAChange"
-                />
-
-                <view class="label">{{i18n.admin_team_b}}</view>
-                <searchable-picker
-                  items="{{players}}"
-                  selectedIds="{{matchupsModal.newMatchup.teamB}}"
-                  excludeIds="{{matchupsModal.newMatchup.teamA}}"
-                  placeholder="{{i18n.common_search}}"
-                  maxSelect="{{matchupsModal.newMatchup.maxPlayers}}"
-                  bind:change="onAddMatchupTeamBChange"
-                />
-
-                <view class="button-row">
-                  <view class="button" bindtap="addMatchup">{{i18n.common_save}}</view>
-                  <view class="button secondary" bindtap="toggleAddMatchupForm">{{i18n.common_cancel}}</view>
-                </view>
-              </view>
-            </block>
-          </view>
-        </block>
-        <block wx:if="{{matchupsModal.waitlist.length > 0}}">
-          <view class="waitlist-section">
-            <view class="waitlist-title">Waitlist</view>
-            <view class="waitlist-names">{{matchupsModal.waitlistNames}}</view>
-          </view>
-        </block>
-      </scroll-view>
-    </view>
   </view>
 
 </view>

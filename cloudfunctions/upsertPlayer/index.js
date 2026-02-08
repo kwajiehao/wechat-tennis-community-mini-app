@@ -42,12 +42,13 @@ exports.main = async (event, context) => {
     playerId,
     createNew,
     name,
-    gender,
     ntrp,
     isActive = true,
     notes = ''
   } = event;
 
+  // Normalize gender to uppercase for consistent storage
+  const gender = (event.gender || '').toUpperCase();
   const now = new Date().toISOString();
 
   // Admin creating a test player (no OPENID link)

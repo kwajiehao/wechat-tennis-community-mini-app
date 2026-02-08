@@ -27,7 +27,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load matches', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_matches, icon: 'none' });
       });
   }
 });

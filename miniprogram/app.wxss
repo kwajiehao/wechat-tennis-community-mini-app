@@ -40,6 +40,11 @@ page {
   background: #2f5d62;
 }
 
+.button.disabled {
+  background: #ccc;
+  color: #888;
+}
+
 .input {
   background: #f0f3f8;
   border-radius: 8px;

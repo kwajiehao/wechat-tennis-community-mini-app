@@ -11,22 +11,33 @@ Page({
     completedEvents: [],
     loading: false,
     hasProfile: false,
-    playerId: null
+    playerId: null,
+    dataLoaded: false
   },
   onLoad() {
     initCloud();
     i18n.init();
     this.loadI18n();
-    this.fetchEvents();
-    this.checkProfile();
+    this.loadInitialData();
   },
   onShow() {
     this.loadI18n();
-    this.checkProfile();
-    this.fetchEvents();
+    // Only reload if we've already loaded once (returning to page)
+    if (this.data.dataLoaded) {
+      this.loadInitialData();
+    }
   },
-  checkProfile() {
-    callFunction('getPlayer', {})
+  loadInitialData() {
+    this.setData({ loading: true });
+    Promise.all([
+      this.fetchProfile(),
+      this.fetchEventsData()
+    ]).finally(() => {
+      this.setData({ loading: false, dataLoaded: true });
+    });
+  },
+  fetchProfile() {
+    return callFunction('getPlayer', {})
       .then(res => {
         const player = res.result.player || null;
         this.setData({ hasProfile: !!player });
@@ -39,10 +50,14 @@ Page({
     this.setData({ i18n: i18n.getStrings() });
   },
   onPullDownRefresh() {
-    this.fetchEvents().finally(() => wx.stopPullDownRefresh());
+    Promise.all([
+      this.fetchProfile(),
+      this.fetchEventsData()
+    ]).finally(() => {
+      wx.stopPullDownRefresh();
+    });
   },
-  fetchEvents() {
-    this.setData({ loading: true });
+  fetchEventsData() {
     return Promise.all([
       callFunction('listEvents', {}),
       callFunction('listMatches', { mine: true })
@@ -69,10 +84,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load events', icon: 'none' });
-      })
-      .finally(() => {
-        this.setData({ loading: false });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_events, icon: 'none' });
       });
   },
   goEvent(e) {

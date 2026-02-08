@@ -44,6 +44,14 @@ This is a starter implementation of the WeChat Mini Program and CloudBase backen
 - [ ] Create recommended indexes
 - [ ] Run the app, save your profile, and create a test event
 
+## Test flow
+1. Create a new season and activate it
+2. Create a new event
+3. Sign up for the new event
+4. Sign up test players for the new event
+5. Generate matchups
+6. Add manual matchups
+
 ## Admin bootstrap
 The first user to call any admin function becomes admin and is saved in `settings/core.adminOpenIds`.
 You can add more admins by editing the `settings` collection.

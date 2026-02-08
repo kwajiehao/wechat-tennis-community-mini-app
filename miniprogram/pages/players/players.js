@@ -57,7 +57,8 @@ Page({
     return callFunction('listPlayers', {})
       .then(playersRes => {
         const allPlayers = (playersRes.result.players || [])
-          .filter(p => p.isActive !== false);
+          .filter(p => p.isActive !== false)
+          .map(p => ({ ...p, gender: (p.gender || '').toUpperCase() }));
         this.setData({ allPlayers });
 
         // Try to fetch stats (admin-only), but don't fail if not authorized
@@ -80,7 +81,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load players', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_players, icon: 'none' });
       })
       .finally(() => {
         this.setData({ loading: false });
@@ -163,7 +164,7 @@ Page({
         if (res.confirm) {
           callFunction('deletePlayer', { playerId: player._id })
             .then(() => {
-              wx.showToast({ title: 'Deleted', icon: 'success' });
+              wx.showToast({ title: this.data.i18n.toast_deleted, icon: 'success' });
               this.closePlayerModal();
               this.fetchPlayers();
             })

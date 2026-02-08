@@ -332,14 +332,9 @@
   color: #1565c0;
 }
 
-.status-badge.matchups_draft {
+.status-badge.in_progress {
   background: #fff3e0;
   color: #e65100;
-}
-
-.status-badge.matchups_approved {
-  background: #e8f5e9;
-  color: #2e7d32;
 }
 
 .status-badge.completed {

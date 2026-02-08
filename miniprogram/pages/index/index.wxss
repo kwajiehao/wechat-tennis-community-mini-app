@@ -1,6 +1,45 @@
 /* ABOUTME: Styles for home page including completed events display. */
 
+.loading-card {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.loading-text {
+  color: #888;
+}
+
 .completed-event {
   opacity: 0.8;
   border-left: 6rpx solid #9e9e9e;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-badge.open {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-badge.in_progress {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.completed {
+  background: #f5f5f5;
+  color: #757575;
 }

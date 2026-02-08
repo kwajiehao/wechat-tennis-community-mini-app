@@ -42,7 +42,7 @@
         <view class="player-name">{{item.name || i18n.common_unnamed}}</view>
         <view class="player-details">
           <text class="badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
-          <text class="badge gender">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+          <text class="badge gender {{item.gender === 'F' ? 'female' : 'male'}}">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
           <text class="badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player || 'Test'}}</text>
           <text class="badge points" wx:if="{{item.points > 0}}">{{item.points}} {{i18n.season_points || 'pts'}}</text>
         </view>

@@ -72,11 +72,16 @@ exports.main = async (event, context) => {
           .where({ _id: _.in(playerIds) })
           .get();
         const playerMap = new Map((playersRes.data || []).map(p => [p._id, p]));
-        signups = signups.map(s => ({
-          ...s,
-          playerName: (playerMap.get(s.playerId) || {}).name || 'Unknown',
-          playerNtrp: (playerMap.get(s.playerId) || {}).ntrp || null
-        }));
+        signups = signups.map(s => {
+          const player = playerMap.get(s.playerId) || {};
+          return {
+            ...s,
+            playerName: player.name || 'Unknown',
+            playerNtrp: player.ntrp || null,
+            playerGender: (player.gender || '').toUpperCase() || null,
+            isTestPlayer: player.isTestPlayer || false
+          };
+        });
       }
     }
     return { signups };

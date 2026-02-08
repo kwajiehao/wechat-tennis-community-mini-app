@@ -45,12 +45,14 @@ async function getPlayerByOpenId(openid) {
 async function buildNames(matches) {
   const playerIds = new Set();
   const eventIds = new Set();
+  const matchIds = [];
   matches.forEach(match => {
     (match.teamA || []).forEach(id => playerIds.add(id));
     (match.teamB || []).forEach(id => playerIds.add(id));
     if (match.eventId) {
       eventIds.add(match.eventId);
     }
+    matchIds.push(match._id);
   });
 
   const playersRes = playerIds.size > 0
@@ -59,19 +61,26 @@ async function buildNames(matches) {
   const eventsRes = eventIds.size > 0
     ? await db.collection('events').where({ _id: _.in(Array.from(eventIds)) }).get()
     : { data: [] };
+  const resultsRes = matchIds.length > 0
+    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
+    : { data: [] };
 
   const playerMap = new Map(playersRes.data.map(p => [p._id, p]));
   const eventMap = new Map(eventsRes.data.map(e => [e._id, e]));
+  const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
 
   return matches.map(match => {
     const teamANames = (match.teamA || []).map(id => (playerMap.get(id) || {}).name || 'Unknown').join(', ');
     const teamBNames = (match.teamB || []).map(id => (playerMap.get(id) || {}).name || 'Unknown').join(', ');
     const eventTitle = eventMap.get(match.eventId) ? eventMap.get(match.eventId).title : '';
+    const result = resultMap.get(match._id);
     return {
       ...match,
       teamANames,
       teamBNames,
-      eventTitle
+      eventTitle,
+      score: match.score || (result ? result.score : ''),
+      winner: match.winner || (result ? result.winner : '')
     };
   });
 }

@@ -30,7 +30,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load stats', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_stats, icon: 'none' });
       });
   },
   fetchSeasonStats() {
@@ -43,7 +43,7 @@ Page({
       })
       .catch(err => {
         console.error(err);
-        wx.showToast({ title: 'Failed to load season stats', icon: 'none' });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_season_stats, icon: 'none' });
       });
   }
 });

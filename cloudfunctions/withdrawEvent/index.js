@@ -19,6 +19,16 @@ exports.main = async (event, context) => {
     throw new Error('MISSING_EVENT_ID');
   }
 
+  // Check event status - cannot withdraw once in_progress or completed
+  const eventDoc = await db.collection('events').doc(eventId).get();
+  if (!eventDoc.data) {
+    throw new Error('EVENT_NOT_FOUND');
+  }
+  const eventStatus = eventDoc.data.status;
+  if (eventStatus === 'in_progress' || eventStatus === 'completed') {
+    throw new Error('EVENT_NOT_OPEN');
+  }
+
   const player = await getPlayerByOpenId(OPENID);
   if (!player) {
     throw new Error('PLAYER_NOT_FOUND');

@@ -4,8 +4,8 @@
     <view class="label">{{i18n.profile_name}}</view>
     <input class="input" type="nickname" placeholder="{{i18n.profile_name}}" value="{{name}}" bindinput="onNameInput" focus="{{isNewUser}}" />
     <view class="label">{{i18n.profile_gender}}</view>
-    <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
-      <view class="input picker-value">{{gender || '-- Select --'}}</view>
+    <picker mode="selector" range="{{genderLabels}}" value="{{genderIndex}}" bindchange="onGenderChange">
+      <view class="input picker-value">{{genderLabels[genderIndex] || '-- Select --'}}</view>
     </picker>
     <view class="label">{{i18n.profile_ntrp}}</view>
     <picker mode="selector" range="{{ntrpOptions}}" value="{{ntrpIndex}}" bindchange="onNtrpChange">

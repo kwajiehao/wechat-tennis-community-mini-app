@@ -168,7 +168,9 @@ exports.main = async (event, context) => {
   await db.collection('matches').doc(actualMatchId).update({
     data: {
       status: 'completed',
-      completedAt: now
+      completedAt: now,
+      score: finalScore,
+      winner: winnerSide
     }
   });
 
