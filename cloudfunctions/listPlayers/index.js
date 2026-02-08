@@ -1,3 +1,6 @@
+// ABOUTME: Lists all players in the system.
+// ABOUTME: All authenticated users can view; non-admins get filtered fields (no wechatOpenId).
+
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -45,7 +48,26 @@ exports.main = async (event, context) => {
     return { players: res.data || [] };
   }
 
-  await assertAdmin(OPENID);
+  const settings = await ensureSettings(OPENID);
+  const isAdmin = settings.adminOpenIds.includes(OPENID);
+
   const res = await db.collection('players').orderBy('name', 'asc').get();
-  return { players: res.data || [] };
+  const players = res.data || [];
+
+  if (isAdmin) {
+    return { players };
+  }
+
+  // Non-admins get player list without sensitive fields
+  return {
+    players: players.map(p => ({
+      _id: p._id,
+      playerId: p.playerId,
+      name: p.name,
+      ntrp: p.ntrp,
+      gender: p.gender,
+      isTestPlayer: p.isTestPlayer,
+      isActive: p.isActive
+    }))
+  };
 };

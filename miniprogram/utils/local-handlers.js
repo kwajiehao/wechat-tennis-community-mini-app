@@ -60,6 +60,69 @@ async function getPlayerByOpenId(openid) {
   return res.data[0] || null;
 }
 
+function getStrength(player) {
+  if (player.strength != null) return player.strength;
+  return 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+}
+
+function calculateELODelta(winnerStrength, loserStrength) {
+  const K = 32;
+  const D = 400;
+  const expectedWin = 1 / (1 + Math.pow(10, (loserStrength - winnerStrength) / D));
+  return K * (1 - expectedWin);
+}
+
+async function updatePlayerStrength(match, winnerSide) {
+  const winnerIds = winnerSide === 'A' ? match.teamA : match.teamB;
+  const loserIds = winnerSide === 'A' ? match.teamB : match.teamA;
+  const allIds = [...winnerIds, ...loserIds];
+
+  const playersRes = await store.collection('players').get();
+  const players = playersRes.data.filter(p => allIds.includes(p._id));
+  const playerMap = new Map(players.map(p => [p._id, p]));
+
+  // Initialize strength for players without it
+  for (const player of players) {
+    if (player.strength == null) {
+      const initialStrength = 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+      await store.collection('players').doc(player._id).update({
+        data: { strength: initialStrength, strengthUpdatedAt: new Date().toISOString() }
+      });
+      player.strength = initialStrength;
+    }
+  }
+
+  // Calculate average team strengths
+  const isDoubles = winnerIds.length === 2;
+  const winnerStrength = isDoubles
+    ? (getStrength(playerMap.get(winnerIds[0])) + getStrength(playerMap.get(winnerIds[1]))) / 2
+    : getStrength(playerMap.get(winnerIds[0]));
+  const loserStrength = isDoubles
+    ? (getStrength(playerMap.get(loserIds[0])) + getStrength(playerMap.get(loserIds[1]))) / 2
+    : getStrength(playerMap.get(loserIds[0]));
+
+  const delta = calculateELODelta(winnerStrength, loserStrength);
+  const now = new Date().toISOString();
+
+  // Update winners (+delta)
+  for (const id of winnerIds) {
+    const player = playerMap.get(id);
+    const newStrength = getStrength(player) + delta;
+    await store.collection('players').doc(id).update({
+      data: { strength: newStrength, strengthUpdatedAt: now }
+    });
+  }
+
+  // Update losers (-delta)
+  for (const id of loserIds) {
+    const player = playerMap.get(id);
+    const newStrength = Math.max(100, getStrength(player) - delta);
+    await store.collection('players').doc(id).update({
+      data: { strength: newStrength, strengthUpdatedAt: now }
+    });
+  }
+}
+
 const handlers = {
   async checkAdmin(event) {
     const { OPENID } = getWXContext();
@@ -82,8 +145,36 @@ const handlers = {
   },
 
   async listPlayers(event) {
+    const { OPENID } = getWXContext();
+    const { mine } = event;
+
+    if (mine) {
+      const res = await store.collection('players').where({ wechatOpenId: OPENID }).get();
+      return { players: res.data || [] };
+    }
+
+    const settings = await ensureSettings(OPENID);
+    const isAdmin = settings.adminOpenIds.includes(OPENID);
+
     const res = await store.collection('players').get();
-    return { players: res.data || [] };
+    const players = res.data || [];
+
+    if (isAdmin) {
+      return { players };
+    }
+
+    // Non-admins get player list without sensitive fields
+    return {
+      players: players.map(p => ({
+        _id: p._id,
+        playerId: p.playerId,
+        name: p.name,
+        ntrp: p.ntrp,
+        gender: p.gender,
+        isTestPlayer: p.isTestPlayer,
+        isActive: p.isActive
+      }))
+    };
   },
 
   async upsertPlayer(event) {
@@ -257,6 +348,17 @@ const handlers = {
       .where({ playerId: player._id, eventId })
       .get();
 
+    // Check signup limit (only for new signups, not updates)
+    if (existing.data.length === 0) {
+      const signupCount = await store.collection('signups')
+        .where({ eventId, status: 'signed' })
+        .get();
+      const maxPlayers = eventData.maxPlayers || 9;
+      if ((signupCount.data || []).length >= maxPlayers) {
+        throw new Error('EVENT_FULL');
+      }
+    }
+
     const now = new Date().toISOString();
     if (existing.data.length > 0) {
       await store.collection('signups').doc(existing.data[0]._id).update({
@@ -394,125 +496,220 @@ const handlers = {
       .map(s => ({ player: playerMap.get(s.playerId), signup: s }))
       .filter(r => r.player && r.player.isActive !== false);
 
-    const matchTypes = eventData.matchTypesAllowed || VALID_MATCH_TYPES;
-    const used = new Set();
-    const matchesToCreate = [];
+    const activePlayers = roster.map(r => r.player);
     const seasonId = eventData.seasonId;
 
-    function sortByNtrp(list) {
-      return list.slice().sort((a, b) => (a.ntrp || 0) - (b.ntrp || 0));
+    function classifyPlayers(playerList) {
+      const males = playerList.filter(p => (p.gender || '').toUpperCase() === 'M')
+        .sort((a, b) => getStrength(b) - getStrength(a));
+      const females = playerList.filter(p => (p.gender || '').toUpperCase() === 'F')
+        .sort((a, b) => getStrength(b) - getStrength(a));
+      return { males, females };
     }
 
-    function makeSingles(candidates) {
-      const sorted = sortByNtrp(candidates.map(c => c.player));
+    function planMatchDistribution(maleCount, femaleCount) {
+      const totalPlayers = maleCount + femaleCount;
+      const targetMatchesPerPlayer = totalPlayers <= 6 ? 3 : 4;
+      const totalPlayerSlots = totalPlayers * targetMatchesPerPlayer;
+      const totalMatches = Math.floor(totalPlayerSlots / 4);
+
+      let mensDoubles = 0, womensDoubles = 0, mixedDoubles = 0;
+
+      if (femaleCount >= 4) {
+        womensDoubles = Math.min(Math.floor(femaleCount / 2), Math.floor(totalMatches / 3));
+      }
+      if (maleCount >= 4) {
+        mensDoubles = Math.min(Math.floor(maleCount / 2), Math.floor(totalMatches / 3));
+      }
+
+      const pairCount = Math.min(maleCount, femaleCount);
+      if (pairCount >= 2) {
+        mixedDoubles = Math.max(1, totalMatches - mensDoubles - womensDoubles);
+      }
+
+      return { mensDoubles, womensDoubles, mixedDoubles, targetMatchesPerPlayer };
+    }
+
+    function formBalancedTeam(pool, usedPartners, playerId) {
+      const sorted = pool.slice().sort((a, b) => getStrength(b) - getStrength(a));
+      const midpoint = Math.floor(sorted.length / 2);
+
+      const playerPartners = usedPartners.get(playerId) || new Set();
+      const isStrong = sorted.findIndex(p => p._id === playerId) < midpoint;
+
+      const searchPool = isStrong ? sorted.slice(midpoint) : sorted.slice(0, midpoint);
+
+      for (const candidate of searchPool) {
+        if (candidate._id !== playerId && !playerPartners.has(candidate._id)) {
+          return candidate._id;
+        }
+      }
+
+      for (const candidate of sorted) {
+        if (candidate._id !== playerId && !playerPartners.has(candidate._id)) {
+          return candidate._id;
+        }
+      }
+
+      return null;
+    }
+
+    function generateConstrainedMatchups(playerList, matchPlan, allowedTypes) {
+      const { males, females } = classifyPlayers(playerList);
+      const { mensDoubles, womensDoubles, mixedDoubles } = matchPlan;
+
+      const usedPartners = new Map();
+      const matchCounts = new Map();
       const matches = [];
-      for (let i = 0; i < sorted.length; i += 2) {
-        if (i + 1 >= sorted.length) break;
-        matches.push({ teamA: [sorted[i]._id], teamB: [sorted[i + 1]._id] });
+
+      playerList.forEach(p => {
+        usedPartners.set(p._id, new Set());
+        matchCounts.set(p._id, 0);
+      });
+
+      function recordPartnership(id1, id2) {
+        usedPartners.get(id1).add(id2);
+        usedPartners.get(id2).add(id1);
       }
-      return { matches };
+
+      function incrementMatchCount(ids) {
+        ids.forEach(id => matchCounts.set(id, matchCounts.get(id) + 1));
+      }
+
+      function getLowestMatchCountPlayers(pool, count) {
+        return pool.slice()
+          .sort((a, b) => matchCounts.get(a._id) - matchCounts.get(b._id))
+          .slice(0, count);
+      }
+
+      if (allowedTypes.includes('mens_doubles') && males.length >= 4) {
+        for (let i = 0; i < mensDoubles; i++) {
+          const available = males.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
+          if (available.length < 4) break;
+
+          const candidates = getLowestMatchCountPlayers(available, 4);
+          const p1 = candidates[0];
+          const p2Id = formBalancedTeam(candidates, usedPartners, p1._id);
+          if (!p2Id) continue;
+
+          const remaining = candidates.filter(p => p._id !== p1._id && p._id !== p2Id);
+          if (remaining.length < 2) continue;
+
+          const p3 = remaining[0];
+          const p4Id = formBalancedTeam(remaining, usedPartners, p3._id);
+          if (!p4Id) continue;
+
+          matches.push({
+            matchType: 'mens_doubles',
+            teamA: [p1._id, p2Id],
+            teamB: [p3._id, p4Id]
+          });
+          recordPartnership(p1._id, p2Id);
+          recordPartnership(p3._id, p4Id);
+          incrementMatchCount([p1._id, p2Id, p3._id, p4Id]);
+        }
+      }
+
+      if (allowedTypes.includes('womens_doubles') && females.length >= 4) {
+        for (let i = 0; i < womensDoubles; i++) {
+          const available = females.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
+          if (available.length < 4) break;
+
+          const candidates = getLowestMatchCountPlayers(available, 4);
+          const p1 = candidates[0];
+          const p2Id = formBalancedTeam(candidates, usedPartners, p1._id);
+          if (!p2Id) continue;
+
+          const remaining = candidates.filter(p => p._id !== p1._id && p._id !== p2Id);
+          if (remaining.length < 2) continue;
+
+          const p3 = remaining[0];
+          const p4Id = formBalancedTeam(remaining, usedPartners, p3._id);
+          if (!p4Id) continue;
+
+          matches.push({
+            matchType: 'womens_doubles',
+            teamA: [p1._id, p2Id],
+            teamB: [p3._id, p4Id]
+          });
+          recordPartnership(p1._id, p2Id);
+          recordPartnership(p3._id, p4Id);
+          incrementMatchCount([p1._id, p2Id, p3._id, p4Id]);
+        }
+      }
+
+      if (allowedTypes.includes('mixed_doubles') && males.length >= 2 && females.length >= 2) {
+        for (let i = 0; i < mixedDoubles; i++) {
+          const availMales = males.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
+          const availFemales = females.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
+          if (availMales.length < 2 || availFemales.length < 2) break;
+
+          const maleCandidates = getLowestMatchCountPlayers(availMales, 2);
+          const femaleCandidates = getLowestMatchCountPlayers(availFemales, 2);
+
+          const m1 = maleCandidates[0];
+          const m2 = maleCandidates[1];
+          const f1 = femaleCandidates[0];
+          const f2 = femaleCandidates[1];
+
+          const m1Partners = usedPartners.get(m1._id);
+          const m2Partners = usedPartners.get(m2._id);
+
+          let teamA, teamB;
+          if (!m1Partners.has(f1._id) && !m2Partners.has(f2._id)) {
+            teamA = [m1._id, f1._id];
+            teamB = [m2._id, f2._id];
+          } else if (!m1Partners.has(f2._id) && !m2Partners.has(f1._id)) {
+            teamA = [m1._id, f2._id];
+            teamB = [m2._id, f1._id];
+          } else {
+            continue;
+          }
+
+          matches.push({
+            matchType: 'mixed_doubles',
+            teamA,
+            teamB
+          });
+          recordPartnership(teamA[0], teamA[1]);
+          recordPartnership(teamB[0], teamB[1]);
+          incrementMatchCount([...teamA, ...teamB]);
+        }
+      }
+
+      return { matches, matchCounts };
     }
 
-    function makeDoubles(candidates) {
-      const sorted = sortByNtrp(candidates.map(c => c.player));
-      const teams = [];
-      for (let i = 0; i < sorted.length; i += 2) {
-        if (i + 1 >= sorted.length) break;
-        teams.push({
-          players: [sorted[i], sorted[i + 1]],
-          total: (sorted[i].ntrp || 0) + (sorted[i + 1].ntrp || 0)
-        });
-      }
-      teams.sort((a, b) => a.total - b.total);
-      const matches = [];
-      for (let i = 0; i < teams.length; i += 2) {
-        if (i + 1 >= teams.length) break;
-        matches.push({
-          teamA: teams[i].players.map(p => p._id),
-          teamB: teams[i + 1].players.map(p => p._id)
-        });
-      }
-      return { matches };
-    }
+    const { males, females } = classifyPlayers(activePlayers);
+    const allMatchTypes = eventData.matchTypesAllowed || VALID_MATCH_TYPES;
+    const doublesTypes = allMatchTypes.filter(t => t.includes('doubles'));
+    const matchPlan = planMatchDistribution(males.length, females.length);
 
-    function makeMixed(candidates) {
-      const males = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'M').map(c => c.player);
-      const females = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'F').map(c => c.player);
-      const sortedM = sortByNtrp(males);
-      const sortedF = sortByNtrp(females);
-      const teams = [];
-      const pairCount = Math.min(sortedM.length, sortedF.length);
-      for (let i = 0; i < pairCount; i++) {
-        teams.push({
-          players: [sortedM[i], sortedF[i]],
-          total: (sortedM[i].ntrp || 0) + (sortedF[i].ntrp || 0)
-        });
-      }
-      teams.sort((a, b) => a.total - b.total);
-      const matches = [];
-      for (let i = 0; i < teams.length; i += 2) {
-        if (i + 1 >= teams.length) break;
-        matches.push({
-          teamA: teams[i].players.map(p => p._id),
-          teamB: teams[i + 1].players.map(p => p._id)
-        });
-      }
-      return { matches };
-    }
+    const { matches, matchCounts } = generateConstrainedMatchups(activePlayers, matchPlan, doublesTypes);
 
-    for (const matchType of matchTypes) {
-      let candidates = roster.filter(r => !used.has(r.player._id));
+    const now = new Date().toISOString();
+    const matchesToCreate = matches.map(match => ({
+      eventId,
+      seasonId,
+      matchType: match.matchType,
+      teamA: match.teamA,
+      teamB: match.teamB,
+      participants: match.teamA.concat(match.teamB),
+      status: 'approved',
+      generatedAt: now,
+      approvedBy: null
+    }));
 
-      let result;
-      switch (matchType) {
-        case 'mens_singles':
-          candidates = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'M');
-          result = makeSingles(candidates);
-          break;
-        case 'womens_singles':
-          candidates = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'F');
-          result = makeSingles(candidates);
-          break;
-        case 'mens_doubles':
-          candidates = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'M');
-          result = makeDoubles(candidates);
-          break;
-        case 'womens_doubles':
-          candidates = candidates.filter(c => (c.player.gender || '').toUpperCase() === 'F');
-          result = makeDoubles(candidates);
-          break;
-        case 'mixed_doubles':
-          result = makeMixed(candidates);
-          break;
-        default:
-          continue;
-      }
-
-      for (const match of result.matches) {
-        match.teamA.forEach(id => used.add(id));
-        match.teamB.forEach(id => used.add(id));
-        matchesToCreate.push({
-          eventId,
-          seasonId,
-          matchType,
-          teamA: match.teamA,
-          teamB: match.teamB,
-          participants: match.teamA.concat(match.teamB),
-          status: 'approved',
-          generatedAt: new Date().toISOString(),
-          approvedBy: null
-        });
-      }
-    }
-
-    const waitlist = roster.map(r => r.player._id).filter(id => !used.has(id));
+    const waitlist = activePlayers
+      .filter(p => matchCounts.get(p._id) === 0)
+      .map(p => p._id);
 
     for (const match of matchesToCreate) {
       await store.collection('matches').add({ data: match });
     }
 
     await store.collection('events').doc(eventId).update({
-      data: { waitlist, status: 'in_progress', updatedAt: new Date().toISOString() }
+      data: { waitlist, status: 'in_progress', updatedAt: now }
     });
 
     return { matchCount: matchesToCreate.length, waitlist };
@@ -671,6 +868,9 @@ const handlers = {
         winner: winnerSide
       }
     });
+
+    // Update player strength ratings
+    await updatePlayerStrength(match, winnerSide);
 
     return { resultId: resultRes._id };
   },

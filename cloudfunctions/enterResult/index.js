@@ -43,6 +43,71 @@ async function assertAdmin(openid) {
   return settings;
 }
 
+function getStrength(player) {
+  if (player.strength != null) return player.strength;
+  return 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+}
+
+function calculateELODelta(winnerStrength, loserStrength) {
+  const K = 32;
+  const D = 400;
+  const expectedWin = 1 / (1 + Math.pow(10, (loserStrength - winnerStrength) / D));
+  return K * (1 - expectedWin);
+}
+
+async function updatePlayerStrength(match, winnerSide) {
+  const winnerIds = winnerSide === 'A' ? match.teamA : match.teamB;
+  const loserIds = winnerSide === 'A' ? match.teamB : match.teamA;
+  const allIds = [...winnerIds, ...loserIds];
+
+  const playersRes = await db.collection('players')
+    .where({ _id: _.in(allIds) })
+    .get();
+  const players = playersRes.data || [];
+  const playerMap = new Map(players.map(p => [p._id, p]));
+
+  // Initialize strength for players without it
+  for (const player of players) {
+    if (player.strength == null) {
+      const initialStrength = 800 + ((player.ntrp || 3.0) - 1.0) * 200;
+      await db.collection('players').doc(player._id).update({
+        data: { strength: initialStrength, strengthUpdatedAt: new Date().toISOString() }
+      });
+      player.strength = initialStrength;
+    }
+  }
+
+  // Calculate average team strengths
+  const isDoubles = winnerIds.length === 2;
+  const winnerStrength = isDoubles
+    ? (getStrength(playerMap.get(winnerIds[0])) + getStrength(playerMap.get(winnerIds[1]))) / 2
+    : getStrength(playerMap.get(winnerIds[0]));
+  const loserStrength = isDoubles
+    ? (getStrength(playerMap.get(loserIds[0])) + getStrength(playerMap.get(loserIds[1]))) / 2
+    : getStrength(playerMap.get(loserIds[0]));
+
+  const delta = calculateELODelta(winnerStrength, loserStrength);
+  const now = new Date().toISOString();
+
+  // Update winners (+delta)
+  for (const id of winnerIds) {
+    const player = playerMap.get(id);
+    const newStrength = getStrength(player) + delta;
+    await db.collection('players').doc(id).update({
+      data: { strength: newStrength, strengthUpdatedAt: now }
+    });
+  }
+
+  // Update losers (-delta)
+  for (const id of loserIds) {
+    const player = playerMap.get(id);
+    const newStrength = Math.max(100, getStrength(player) - delta);
+    await db.collection('players').doc(id).update({
+      data: { strength: newStrength, strengthUpdatedAt: now }
+    });
+  }
+}
+
 async function recalcStatsForPlayers(playerIds, pointsConfig) {
   if (!playerIds || playerIds.length === 0) {
     return;
@@ -176,6 +241,9 @@ exports.main = async (event, context) => {
 
   const participants = match.participants || [].concat(match.teamA || [], match.teamB || []);
   await recalcStatsForPlayers(participants, settings ? settings.pointsConfig : { win: 3, loss: 1 });
+
+  // Update player strength ratings
+  await updatePlayerStrength(match, winnerSide);
 
   return { resultId: resultRes._id };
 };

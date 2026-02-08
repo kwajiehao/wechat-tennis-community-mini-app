@@ -77,6 +77,20 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_FOUND');
   }
 
+  // Check signup limit (only for new signups, not updates)
+  const existingCheck = await db.collection('signups')
+    .where({ eventId, playerId: player._id })
+    .get();
+  if (existingCheck.data.length === 0) {
+    const signupCount = await db.collection('signups')
+      .where({ eventId, status: 'signed' })
+      .count();
+    const maxPlayers = eventData.maxPlayers || 9;
+    if (signupCount.total >= maxPlayers) {
+      throw new Error('EVENT_FULL');
+    }
+  }
+
   const settings = await getSettings();
   const seasonId = eventData.seasonId || (settings ? settings.activeSeasonId : null);
 

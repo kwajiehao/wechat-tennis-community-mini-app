@@ -39,6 +39,7 @@ const strings = {
     error_cannot_regenerate: 'Cannot regenerate matchups once event is in progress',
     error_event_not_in_progress: 'Event must be in progress to complete',
     error_event_not_open: 'Cannot withdraw once event is in progress',
+    error_event_full: 'Event is full (max 9 players)',
 
     // Gender
     gender_male: 'Male',
@@ -290,6 +291,7 @@ const strings = {
     error_cannot_regenerate: '活动进行中无法重新生成对阵',
     error_event_not_in_progress: '活动必须处于进行中状态才能完成',
     error_event_not_open: '活动进行中无法取消报名',
+    error_event_full: '活动已满（最多9人）',
 
     // Gender
     gender_male: '男',
@@ -553,7 +555,8 @@ const errorCodeMap = {
   'EVENT_NOT_FOUND': 'error_event_not_found',
   'CANNOT_REGENERATE': 'error_cannot_regenerate',
   'EVENT_NOT_IN_PROGRESS': 'error_event_not_in_progress',
-  'EVENT_NOT_OPEN': 'error_event_not_open'
+  'EVENT_NOT_OPEN': 'error_event_not_open',
+  'EVENT_FULL': 'error_event_full'
 };
 
 function translateError(errorMessage, context) {
