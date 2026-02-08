@@ -77,6 +77,73 @@ You can add more admins by editing the `settings` collection.
 8. Check **My Stats** to confirm wins/losses/points update.
 9. (Optional) Use **CSV Export** to pull data and **CSV Import** to rehydrate.
 
+## Local Development Mode
+
+You can run the app without CloudBase for local testing:
+
+1. Copy `miniprogram/config.example.js` to `miniprogram/config.js`
+2. Set `devMode: true` in `config.js`
+3. Run the app in WeChat DevTools
+
+In dev mode:
+- All data is stored in-memory (resets on refresh)
+- Mock user `DEV_USER_001` is auto-granted admin access
+- Pre-seeded with test players and one event
+- No CloudBase deployment needed
+
+## Deployment
+
+### Deploy Cloud Functions
+
+1. In WeChat DevTools, right-click each folder in `cloudfunctions/`
+2. Select **Upload and Deploy: Cloud Install Dependencies**
+3. Wait for each function to deploy successfully
+4. Verify in the CloudBase console that all functions are listed
+
+### Set Up Experience Version (for Testers)
+
+The experience version lets non-technical testers use the app without publishing it publicly.
+
+1. **Upload your code**:
+   - In WeChat DevTools, click the **Upload** button (上传) in the toolbar
+   - Enter a version number (e.g., `0.1.0`) and description
+   - Click **Upload**
+
+2. **Set as experience version**:
+   - Log in to [WeChat MP Admin Console](https://mp.weixin.qq.com)
+   - Go to **管理 → 版本管理 → 开发版本**
+   - Find your uploaded version and click **设为体验版**
+
+3. **Add experience members**:
+   - Go to **管理 → 成员管理 → 体验成员**
+   - Click **添加成员**
+   - Enter the tester's WeChat ID (微信号, not nickname)
+   - They will receive a notification to accept the invitation
+
+4. **Share the QR code**:
+   - In 版本管理, click on the experience version to see its QR code
+   - Send this QR code to your testers
+   - They scan it with WeChat to open the app
+
+**Notes:**
+- Testers must be added as experience members before they can access the app
+- Experience version persists until you upload a new one
+- You can have up to 100 experience members
+- Cloud functions must be deployed for the app to work
+
+### Publish to Production
+
+1. **Submit for review**:
+   - In [WeChat MP Admin Console](https://mp.weixin.qq.com), go to **版本管理**
+   - Find your development version and click **提交审核**
+   - Fill in the required information (category, description, screenshots)
+   - Submit and wait for review (typically 1-3 business days)
+
+2. **Release after approval**:
+   - Once approved, the version appears in **审核版本**
+   - Click **发布** to make it publicly available
+   - Users can find the app by searching its name in WeChat
+
 ## Next steps you might want
 - Player-submitted results with admin approval.
 - Admin UI for editing matchups directly.

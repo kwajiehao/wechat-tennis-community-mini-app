@@ -7,7 +7,6 @@
       <view class="title">{{event.title}}</view>
       <view class="label">{{event.date}} - {{event.location}}</view>
       <view class="label">{{i18n.event_status}}: {{event.status}}</view>
-      <view class="label">{{i18n.event_allowed_types}}: {{matchTypesLabel}}</view>
       <view class="label" wx:if="{{event.startTime}}">Time: {{event.startTime}} - {{event.endTime}}</view>
     </view>
 

@@ -616,6 +616,41 @@ Page({
         wx.showToast({ title: msg, icon: 'none' });
       });
   },
+  deletePlayer() {
+    const playerId = this.data.playerInput.playerId;
+    if (!playerId || playerId.trim() === '') {
+      return;
+    }
+
+    const confirmMsg = this.data.i18n.admin_confirm_delete_player || 'Are you sure you want to delete this player?';
+    wx.showModal({
+      title: '',
+      content: confirmMsg,
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('deletePlayer', { playerId })
+            .then(() => {
+              wx.showToast({ title: 'Deleted', icon: 'success' });
+              this.setData({
+                'playerInput.playerId': '',
+                'playerInput.name': '',
+                'playerInput.gender': 'M',
+                'playerInput.genderIndex': 0,
+                'playerInput.ntrp': '',
+                'playerInput.ntrpIndex': -1,
+                'playerInput.notes': ''
+              });
+              this.fetchPlayers();
+            })
+            .catch(err => {
+              console.error(err);
+              const msg = i18n.translateError(err.message) || 'Delete failed';
+              wx.showToast({ title: msg, icon: 'none' });
+            });
+        }
+      }
+    });
+  },
   viewSeasonResults(e) {
     const seasonId = e.currentTarget.dataset.id;
     const season = this.data.seasons.find(s => s._id === seasonId);

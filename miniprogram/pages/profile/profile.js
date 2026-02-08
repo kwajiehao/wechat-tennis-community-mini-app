@@ -81,7 +81,7 @@ Page({
       ntrp: Number.isNaN(ntrpValue) ? null : ntrpValue
     })
       .then(res => {
-        this.setData({ player: res.result.player });
+        this.setData({ player: res.result.player, isNewUser: false });
         wx.showToast({ title: 'Saved', icon: 'success' });
       })
       .catch(err => {

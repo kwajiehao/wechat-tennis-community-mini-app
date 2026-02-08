@@ -930,6 +930,26 @@ const handlers = {
     const { OPENID } = getWXContext();
     await assertAdmin(OPENID);
     return { count: 0 };
+  },
+
+  async deletePlayer(event) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+    const { playerId } = event;
+
+    if (!playerId) {
+      throw new Error('MISSING_PLAYER_ID');
+    }
+
+    try {
+      await store.collection('players').doc(playerId).get();
+    } catch (e) {
+      throw new Error('PLAYER_NOT_FOUND');
+    }
+
+    await store.collection('players').doc(playerId).remove();
+
+    return { deleted: true, playerId };
   }
 };
 

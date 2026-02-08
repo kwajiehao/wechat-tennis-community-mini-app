@@ -59,7 +59,6 @@ const strings = {
     event_date: 'Date',
     event_location: 'Location',
     event_status: 'Status',
-    event_allowed_types: 'Allowed Types',
     event_time_slots: 'Time Slots',
     event_signed_players: 'Signed Up Players',
     event_no_players: 'No players signed up yet',
@@ -72,6 +71,7 @@ const strings = {
     event_signup_success: 'Signed up',
     event_signup_failed: 'Signup failed',
     event_profile_incomplete: 'Please complete your profile (name, gender, NTRP) before signing up',
+    event_no_profile: 'Please create your profile before signing up',
     event_withdraw: 'Withdraw',
 
     // Profile page
@@ -82,7 +82,6 @@ const strings = {
     profile_save: 'Save Profile',
     profile_language: 'Language',
     profile_switch_lang: 'Switch Language',
-    profile_nickname_hint: 'Tap to use your WeChat nickname',
 
     // Settings page
     settings_title: 'Settings',
@@ -172,6 +171,8 @@ const strings = {
     admin_active_toggle: 'Active (true/false)',
     admin_notes: 'Notes',
     admin_save_player: 'Save Player',
+    admin_delete_player: 'Delete Player',
+    admin_confirm_delete_player: 'Are you sure you want to delete this player?',
     admin_complete_event: 'Complete Event',
     admin_reopen_event: 'Reopen Event',
     admin_need_players: 'Need at least 2 players signed up',
@@ -243,7 +244,6 @@ const strings = {
     event_date: '日期',
     event_location: '地点',
     event_status: '状态',
-    event_allowed_types: '允许的比赛类型',
     event_time_slots: '时间段',
     event_signed_players: '已报名球员',
     event_no_players: '暂无球员报名',
@@ -256,6 +256,7 @@ const strings = {
     event_signup_success: '报名成功',
     event_signup_failed: '报名失败',
     event_profile_incomplete: '报名前请先完善个人资料（姓名、性别、NTRP等级）',
+    event_no_profile: '报名前请先创建个人资料',
     event_withdraw: '取消报名',
 
     // Profile page
@@ -266,7 +267,6 @@ const strings = {
     profile_save: '保存资料',
     profile_language: '语言',
     profile_switch_lang: '切换语言',
-    profile_nickname_hint: '点击使用微信昵称',
 
     // Settings page
     settings_title: '设置',
@@ -356,6 +356,8 @@ const strings = {
     admin_active_toggle: '是否激活',
     admin_notes: '备注',
     admin_save_player: '保存球员',
+    admin_delete_player: '删除球员',
+    admin_confirm_delete_player: '确定要删除这个球员吗？',
     admin_complete_event: '结束活动',
     admin_reopen_event: '重新开放',
     admin_need_players: '至少需要2名球员报名',
@@ -395,7 +397,7 @@ function getLang() {
 
 function setLang(lang) {
   if (lang !== 'en' && lang !== 'zh') {
-    lang = 'en';
+    lang = 'zh';
   }
   currentLang = lang;
   wx.setStorageSync('app_language', lang);
@@ -404,7 +406,7 @@ function setLang(lang) {
 
 function getStrings() {
   const lang = getLang();
-  return strings[lang] || strings.en;
+  return strings[lang] || strings.zh;
 }
 
 function t(key) {

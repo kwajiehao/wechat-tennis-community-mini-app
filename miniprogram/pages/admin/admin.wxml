@@ -219,6 +219,7 @@
     <view class="label">{{i18n.admin_notes}}</view>
     <input class="input" data-field="notes" bindinput="onPlayerInput" />
     <view class="button" bindtap="upsertPlayer">{{i18n.admin_save_player || 'Save Player'}}</view>
+    <view class="button secondary" bindtap="deletePlayer" wx:if="{{playerInput.playerId}}">{{i18n.admin_delete_player || 'Delete Player'}}</view>
   </view>
 
   <view class="card">

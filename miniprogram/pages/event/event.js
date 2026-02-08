@@ -20,7 +20,6 @@ Page({
     i18n: {},
     eventId: '',
     event: null,
-    matchTypesLabel: '',
     signupStatus: '',
     signedUpPlayers: [],
     matches: []
@@ -41,19 +40,10 @@ Page({
     });
   },
   fetchEvent() {
-    const matchTypes = getMatchTypes();
     callFunction('listEvents', { eventId: this.data.eventId })
       .then(res => {
         const event = (res.result.events || [])[0] || null;
-        const allowed = event ? (event.matchTypesAllowed || []) : [];
-        const matchTypesLabel = allowed.map(t => {
-          const found = matchTypes.find(m => m.value === t);
-          return found ? found.label : t;
-        }).join(', ');
-        this.setData({
-          event,
-          matchTypesLabel
-        });
+        this.setData({ event });
         return Promise.all([
           callFunction('listSignups', { eventId: this.data.eventId, mine: true }),
           callFunction('listSignups', { eventId: this.data.eventId, includeNames: true }),
@@ -113,7 +103,9 @@ Page({
       .catch(err => {
         console.error(err);
         let message = err.message || 'Signup failed';
-        if (err.message === 'PROFILE_INCOMPLETE') {
+        if (err.message === 'MISSING_PROFILE') {
+          message = this.data.i18n.event_no_profile;
+        } else if (err.message === 'PROFILE_INCOMPLETE') {
           message = this.data.i18n.event_profile_incomplete;
         }
         wx.showToast({ title: message, icon: 'none', duration: 3000 });
