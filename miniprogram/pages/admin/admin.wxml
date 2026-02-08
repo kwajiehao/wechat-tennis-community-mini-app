@@ -106,8 +106,8 @@
     <view class="label">{{i18n.admin_signup_players_desc || 'Sign up players for events'}}</view>
 
     <view class="label">{{i18n.admin_select_event}}</view>
-    <picker mode="selector" range="{{events}}" range-key="title" bindchange="onSignupEventPicker">
-      <view class="input picker-value">{{playerSignup.eventTitle || i18n.common_select}}</view>
+    <picker mode="selector" range="{{events}}" range-key="displayName" bindchange="onSignupEventPicker">
+      <view class="input picker-value">{{playerSignup.eventDisplayName || i18n.common_select}}</view>
     </picker>
 
     <view class="label">{{i18n.admin_select_player}}</view>

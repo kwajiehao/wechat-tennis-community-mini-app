@@ -96,6 +96,7 @@ Page({
     playerSignup: {
       eventId: '',
       eventTitle: '',
+      eventDisplayName: '',
       playerId: '',
       playerName: '',
       availablePlayers: []
@@ -134,7 +135,10 @@ Page({
           const dateA = a.createdAt || a.date || '';
           const dateB = b.createdAt || b.date || '';
           return dateB.localeCompare(dateA);
-        });
+        }).map(e => ({
+          ...e,
+          displayName: e.date ? `${e.title} (${e.date})` : e.title
+        }));
         this.setData({ events });
       })
       .catch(err => {
@@ -771,6 +775,7 @@ Page({
     this.setData({
       'playerSignup.eventId': event._id,
       'playerSignup.eventTitle': event.title,
+      'playerSignup.eventDisplayName': event.displayName,
       'playerSignup.playerId': '',
       'playerSignup.playerName': '',
       'playerSignup.availablePlayers': []
