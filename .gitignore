@@ -4,7 +4,8 @@
 # Mini Program config (contains CloudBase env ID)
 miniprogram/config.js
 
-# WeChat DevTools private config (user-specific settings)
+# WeChat DevTools config (user-specific settings)
+project.config.json
 project.private.config.json
 
 # Node.js dependencies (in cloud functions)
