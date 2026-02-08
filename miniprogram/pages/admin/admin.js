@@ -82,6 +82,13 @@ Page({
     deleteTestPlayerInput: {
       playerId: '',
       playerName: ''
+    },
+    playerSignup: {
+      eventId: '',
+      eventTitle: '',
+      playerId: '',
+      playerName: '',
+      availablePlayers: []
     }
   },
   onLoad() {
@@ -592,18 +599,20 @@ Page({
       return;
     }
     const ntrpValue = parseFloat(input.ntrp);
+    if (Number.isNaN(ntrpValue)) {
+      wx.showToast({ title: this.data.i18n.error_ntrp_required || 'NTRP is required', icon: 'none' });
+      return;
+    }
     callFunction('upsertPlayer', {
       createNew: true,
       name: input.name,
       gender: input.gender,
-      ntrp: Number.isNaN(ntrpValue) ? null : ntrpValue
+      ntrp: ntrpValue
     })
       .then(() => {
         wx.showToast({ title: 'Test player added', icon: 'success' });
         this.setData({
           'testPlayerInput.name': '',
-          'testPlayerInput.gender': 'M',
-          'testPlayerInput.genderIndex': 0,
           'testPlayerInput.ntrp': '',
           'testPlayerInput.ntrpIndex': -1
         });
@@ -653,5 +662,78 @@ Page({
         }
       }
     });
+  },
+  onSignupEventPicker(e) {
+    const index = e.detail.value;
+    const event = this.data.events[index];
+    if (!event) return;
+
+    this.setData({
+      'playerSignup.eventId': event._id,
+      'playerSignup.eventTitle': event.title,
+      'playerSignup.playerId': '',
+      'playerSignup.playerName': '',
+      'playerSignup.availablePlayers': []
+    });
+
+    Promise.all([
+      callFunction('listPlayers', {}),
+      callFunction('listSignups', { eventId: event._id })
+    ])
+      .then(([playersRes, signupsRes]) => {
+        const allPlayers = (playersRes.result.players || []).filter(p => p.isActive !== false);
+        const signups = signupsRes.result.signups || [];
+        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
+        const availablePlayers = allPlayers
+          .filter(p => !signedUpPlayerIds.has(p._id))
+          .map(p => ({
+            ...p,
+            displayName: p.isTestPlayer ? `${p.name} (Test)` : p.name
+          }));
+        this.setData({
+          'playerSignup.availablePlayers': availablePlayers
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: 'Failed to load players', icon: 'none' });
+      });
+  },
+  onSignupPlayerPicker(e) {
+    const index = e.detail.value;
+    const player = this.data.playerSignup.availablePlayers[index];
+    if (player) {
+      this.setData({
+        'playerSignup.playerId': player._id,
+        'playerSignup.playerName': player.displayName || player.name
+      });
+    }
+  },
+  signupPlayer() {
+    const input = this.data.playerSignup;
+    if (!input.playerId || !input.eventId) {
+      wx.showToast({ title: this.data.i18n.admin_select_player_event || 'Select player and event', icon: 'none' });
+      return;
+    }
+    callFunction('signupEvent', {
+      eventId: input.eventId,
+      playerId: input.playerId
+    })
+      .then(() => {
+        wx.showToast({ title: this.data.i18n.admin_player_signed_up || 'Player signed up', icon: 'success' });
+        const availablePlayers = this.data.playerSignup.availablePlayers.filter(
+          p => p._id !== input.playerId
+        );
+        this.setData({
+          'playerSignup.playerId': '',
+          'playerSignup.playerName': '',
+          'playerSignup.availablePlayers': availablePlayers
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        const msg = i18n.translateError(err.message) || 'Signup failed';
+        wx.showToast({ title: msg, icon: 'none' });
+      });
   }
 });

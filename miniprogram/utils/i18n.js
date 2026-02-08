@@ -35,6 +35,7 @@ const strings = {
     error_permission_denied: 'Permission denied',
     error_player_not_found: 'Player not found',
     error_event_not_found: 'Event not found',
+    error_ntrp_required: 'NTRP rating is required',
 
     // Gender
     gender_male: 'Male',
@@ -46,6 +47,7 @@ const strings = {
     players_filter_gender: 'Gender',
     players_sort_by: 'Sort by',
     players_sort_name: 'Name',
+    players_test_player: 'Test',
 
     // Match types
     match_mens_singles: "Men's Singles",
@@ -180,6 +182,10 @@ const strings = {
     admin_test_players_desc: 'Manage test players for matchup testing',
     admin_add_test_player: 'Add Test Player',
     admin_remove_test_player: 'Remove Test Player',
+    admin_signup_players: 'Sign Up Players',
+    admin_signup_players_desc: 'Sign up players for events',
+    admin_select_player_event: 'Select player and event',
+    admin_player_signed_up: 'Player signed up',
 
     // Season page
     season_points: 'Points',
@@ -224,6 +230,7 @@ const strings = {
     error_permission_denied: '权限不足',
     error_player_not_found: '未找到球员',
     error_event_not_found: '未找到活动',
+    error_ntrp_required: 'NTRP等级为必填项',
 
     // Gender
     gender_male: '男',
@@ -235,6 +242,7 @@ const strings = {
     players_filter_gender: '性别',
     players_sort_by: '排序',
     players_sort_name: '姓名',
+    players_test_player: '测试',
 
     // Match types
     match_mens_singles: '男子单打',
@@ -369,6 +377,10 @@ const strings = {
     admin_test_players_desc: '管理用于测试对阵的球员',
     admin_add_test_player: '添加测试球员',
     admin_remove_test_player: '删除测试球员',
+    admin_signup_players: '球员报名',
+    admin_signup_players_desc: '为球员报名活动',
+    admin_select_player_event: '请选择球员和活动',
+    admin_player_signed_up: '球员已报名',
 
     // Season page
     season_points: '积分',

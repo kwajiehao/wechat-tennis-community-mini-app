@@ -82,6 +82,15 @@
   color: #e65100;
 }
 
+.badge.test {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.modal-test-badge {
+  margin-left: 12rpx;
+}
+
 .arrow {
   font-size: 40rpx;
   color: #999;

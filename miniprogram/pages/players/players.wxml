@@ -43,6 +43,7 @@
         <view class="player-details">
           <text class="badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
           <text class="badge gender">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+          <text class="badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player || 'Test'}}</text>
           <text class="badge points" wx:if="{{item.points > 0}}">{{item.points}} {{i18n.season_points || 'pts'}}</text>
         </view>
       </view>
@@ -55,6 +56,7 @@
     <view class="modal-content" catchtap="">
       <view class="modal-header">
         <text class="modal-title">{{modal.player.name}}</text>
+        <text class="badge test modal-test-badge" wx:if="{{modal.player.isTestPlayer}}">{{i18n.players_test_player || 'Test'}}</text>
         <text class="modal-close" bindtap="closePlayerModal">×</text>
       </view>
       <view class="modal-body">
