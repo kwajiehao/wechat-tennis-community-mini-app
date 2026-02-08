@@ -235,7 +235,7 @@
     </picker>
 
     <view class="label">{{i18n.admin_select_player}}</view>
-    <picker mode="selector" range="{{playerSignup.availablePlayers}}" range-key="displayName" bindchange="onSignupPlayerPicker" disabled="{{!playerSignup.eventId}}">
+    <picker mode="selector" range="{{playerSignup.availablePlayers}}" range-key="displayName" bindchange="onSignupPlayerPicker" disabled="{{!playerSignup.eventId}}" catchtap="refreshSignupPlayers">
       <view class="input picker-value {{!playerSignup.eventId ? 'disabled' : ''}}">{{playerSignup.playerName || (playerSignup.eventId ? i18n.admin_select_player : i18n.admin_select_event_first)}}</view>
     </picker>
 
@@ -253,7 +253,7 @@
           <view class="empty-message">{{i18n.admin_no_pending_matches}}</view>
         </block>
         <block wx:for="{{matchupsModal.matches}}" wx:key="_id">
-          <view class="matchup-card {{item.status}}">
+          <view class="matchup-card">
             <view class="matchup-type">{{item.matchTypeLabel}}</view>
             <view class="matchup-teams">
               <view class="team">
@@ -266,7 +266,6 @@
                 <text class="team-names">{{item.teamBNames}}</text>
               </view>
             </view>
-            <view class="matchup-status">{{i18n.event_status}}: {{item.status}}</view>
           </view>
         </block>
         <block wx:if="{{matchupsModal.waitlist.length > 0}}">

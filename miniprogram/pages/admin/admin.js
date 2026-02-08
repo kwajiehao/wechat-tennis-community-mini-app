@@ -709,6 +709,32 @@ Page({
       });
     }
   },
+  refreshSignupPlayers() {
+    const eventId = this.data.playerSignup.eventId;
+    if (!eventId) return;
+
+    Promise.all([
+      callFunction('listPlayers', {}),
+      callFunction('listSignups', { eventId })
+    ])
+      .then(([playersRes, signupsRes]) => {
+        const allPlayers = (playersRes.result.players || []).filter(p => p.isActive !== false);
+        const signups = signupsRes.result.signups || [];
+        const signedUpPlayerIds = new Set(signups.map(s => s.playerId));
+        const availablePlayers = allPlayers
+          .filter(p => !signedUpPlayerIds.has(p._id))
+          .map(p => ({
+            ...p,
+            displayName: p.isTestPlayer ? `${p.name} (Test)` : p.name
+          }));
+        this.setData({
+          'playerSignup.availablePlayers': availablePlayers
+        });
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  },
   signupPlayer() {
     const input = this.data.playerSignup;
     if (!input.playerId || !input.eventId) {
