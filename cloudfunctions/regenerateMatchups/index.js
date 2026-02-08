@@ -202,6 +202,10 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_FOUND');
   }
 
+  if (eventData.status === 'in_progress' || eventData.status === 'completed') {
+    throw new Error('CANNOT_REGENERATE');
+  }
+
   let seasonId = eventData.seasonId;
   if (!seasonId) {
     seasonId = await ensureActiveSeason(OPENID, eventData.date);
@@ -282,7 +286,7 @@ exports.main = async (event, context) => {
         teamA: match.teamA,
         teamB: match.teamB,
         participants: match.teamA.concat(match.teamB),
-        status: 'draft',
+        status: 'approved',
         generatedAt: new Date().toISOString(),
         approvedBy: null
       });
@@ -299,7 +303,7 @@ exports.main = async (event, context) => {
   await db.collection('events').doc(eventId).update({
     data: {
       waitlist,
-      status: 'matchups_draft',
+      status: 'in_progress',
       updatedAt: new Date().toISOString()
     }
   });

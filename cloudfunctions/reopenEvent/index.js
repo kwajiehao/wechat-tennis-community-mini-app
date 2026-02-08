@@ -63,7 +63,7 @@ exports.main = async (event, context) => {
 
   await db.collection('events').doc(eventId).update({
     data: {
-      status: 'matchups_approved',
+      status: 'in_progress',
       playerPoints: db.command.remove,
       completedAt: db.command.remove
     }

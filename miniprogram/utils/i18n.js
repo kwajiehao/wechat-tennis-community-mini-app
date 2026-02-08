@@ -36,6 +36,8 @@ const strings = {
     error_player_not_found: 'Player not found',
     error_event_not_found: 'Event not found',
     error_ntrp_required: 'NTRP rating is required',
+    error_cannot_regenerate: 'Cannot regenerate matchups once event is in progress',
+    error_event_not_in_progress: 'Event must be in progress to complete',
 
     // Gender
     gender_male: 'Male',
@@ -75,6 +77,10 @@ const strings = {
     event_profile_incomplete: 'Please complete your profile (name, gender, NTRP) before signing up',
     event_no_profile: 'Please create your profile before signing up',
     event_withdraw: 'Withdraw',
+    event_matches: 'Matches',
+    event_winner: 'Winner',
+    event_pending: 'Pending',
+    event_completed_notice: 'This event has been completed',
 
     // Profile page
     profile_title: 'My Profile',
@@ -186,6 +192,9 @@ const strings = {
     admin_signup_players_desc: 'Sign up players for events',
     admin_select_player_event: 'Select player and event',
     admin_player_signed_up: 'Player signed up',
+    admin_add_matchup: '+ Add Matchup',
+    admin_no_matchups: 'No matchups yet',
+    admin_confirm_delete_matchup: 'Delete this matchup?',
 
     // Season page
     season_points: 'Points',
@@ -194,7 +203,8 @@ const strings = {
     index_welcome: 'Welcome to Tennis League',
     index_upcoming_events: 'Upcoming Events',
     index_no_events: 'No upcoming events',
-    index_view_event: 'View Event'
+    index_view_event: 'View Event',
+    index_completed_events: 'My Completed Events'
   },
 
   zh: {
@@ -231,6 +241,8 @@ const strings = {
     error_player_not_found: '未找到球员',
     error_event_not_found: '未找到活动',
     error_ntrp_required: 'NTRP等级为必填项',
+    error_cannot_regenerate: '活动进行中无法重新生成对阵',
+    error_event_not_in_progress: '活动必须处于进行中状态才能完成',
 
     // Gender
     gender_male: '男',
@@ -270,6 +282,10 @@ const strings = {
     event_profile_incomplete: '报名前请先完善个人资料（姓名、性别、NTRP等级）',
     event_no_profile: '报名前请先创建个人资料',
     event_withdraw: '取消报名',
+    event_matches: '比赛',
+    event_winner: '胜',
+    event_pending: '待定',
+    event_completed_notice: '此活动已结束',
 
     // Profile page
     profile_title: '我的资料',
@@ -381,6 +397,9 @@ const strings = {
     admin_signup_players_desc: '为球员报名活动',
     admin_select_player_event: '请选择球员和活动',
     admin_player_signed_up: '球员已报名',
+    admin_add_matchup: '+ 添加对阵',
+    admin_no_matchups: '暂无对阵',
+    admin_confirm_delete_matchup: '删除此对阵？',
 
     // Season page
     season_points: '积分',
@@ -389,7 +408,8 @@ const strings = {
     index_welcome: '欢迎来到网球联赛',
     index_upcoming_events: '即将举行的活动',
     index_no_events: '暂无即将举行的活动',
-    index_view_event: '查看活动'
+    index_view_event: '查看活动',
+    index_completed_events: '我参与的已结束活动'
   }
 };
 
@@ -438,7 +458,9 @@ const errorCodeMap = {
   'MISSING_FIELDS': 'error_missing_fields',
   'PERMISSION_DENIED': 'error_permission_denied',
   'PLAYER_NOT_FOUND': 'error_player_not_found',
-  'EVENT_NOT_FOUND': 'error_event_not_found'
+  'EVENT_NOT_FOUND': 'error_event_not_found',
+  'CANNOT_REGENERATE': 'error_cannot_regenerate',
+  'EVENT_NOT_IN_PROGRESS': 'error_event_not_in_progress'
 };
 
 function translateError(errorMessage, context) {

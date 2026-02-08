@@ -6,8 +6,7 @@
     <view class="card">
       <view class="title">{{event.title}}</view>
       <view class="label">{{event.date}} - {{event.location}}</view>
-      <view class="label">{{i18n.event_status}}: {{event.status}}</view>
-      <view class="label" wx:if="{{event.startTime}}">Time: {{event.startTime}} - {{event.endTime}}</view>
+      <view class="label" wx:if="{{event.startTime}}">{{event.startTime}} - {{event.endTime}}</view>
     </view>
 
     <view class="card">
@@ -27,34 +26,42 @@
 
     <block wx:if="{{matches.length > 0}}">
       <view class="card">
-        <view class="title">Matchups</view>
-        <view wx:for="{{matches}}" wx:key="_id" class="matchup-item">
+        <view class="title">{{i18n.event_matches || 'Matches'}}</view>
+        <view wx:for="{{matches}}" wx:key="_id" class="matchup-item {{item.status === 'completed' ? 'completed' : ''}}">
           <view class="matchup-type">{{item.matchTypeLabel}}</view>
           <view class="matchup-versus">
-            <view class="team-block">
-              <text class="team-label">Team A</text>
+            <view class="team-block {{item.winner === 'A' ? 'winner' : ''}}">
               <text class="team-name">{{item.teamANames}}</text>
+              <text class="winner-badge" wx:if="{{item.winner === 'A'}}">{{i18n.event_winner || 'Winner'}}</text>
             </view>
             <text class="vs-text">vs</text>
-            <view class="team-block">
-              <text class="team-label">Team B</text>
+            <view class="team-block {{item.winner === 'B' ? 'winner' : ''}}">
               <text class="team-name">{{item.teamBNames}}</text>
+              <text class="winner-badge" wx:if="{{item.winner === 'B'}}">{{i18n.event_winner || 'Winner'}}</text>
             </view>
           </view>
-          <view class="matchup-score" wx:if="{{item.score}}">Score: {{item.score}}</view>
+          <view class="matchup-score" wx:if="{{item.score}}">{{item.score}}</view>
+          <view class="matchup-pending" wx:if="{{!item.score && item.status !== 'completed'}}">{{i18n.event_pending || 'Pending'}}</view>
         </view>
       </view>
     </block>
 
-    <view class="card">
-      <view class="title">{{i18n.event_signup_title}}</view>
-      <view class="label">{{i18n.event_signup_status}}: {{signupStatus || i18n.event_not_signed}}</view>
-      <block wx:if="{{signupStatus === 'signed'}}">
-        <view class="button secondary" bindtap="withdraw">{{i18n.event_withdraw}}</view>
-      </block>
-      <block wx:else>
-        <view class="button" bindtap="signup">{{i18n.event_submit_signup}}</view>
-      </block>
-    </view>
+    <block wx:if="{{event.status !== 'completed'}}">
+      <view class="card">
+        <view class="title">{{i18n.event_signup_title}}</view>
+        <view class="label">{{i18n.event_signup_status}}: {{signupStatus || i18n.event_not_signed}}</view>
+        <block wx:if="{{signupStatus === 'signed'}}">
+          <view class="button secondary" bindtap="withdraw">{{i18n.event_withdraw}}</view>
+        </block>
+        <block wx:else>
+          <view class="button" bindtap="signup">{{i18n.event_submit_signup}}</view>
+        </block>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="card">
+        <view class="label completed-notice">{{i18n.event_completed_notice || 'This event has been completed'}}</view>
+      </view>
+    </block>
   </block>
 </view>

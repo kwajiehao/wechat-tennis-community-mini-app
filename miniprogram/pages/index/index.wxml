@@ -17,8 +17,16 @@
     <view class="card" bindtap="goEvent" data-id="{{item._id}}">
       <view class="title">{{item.title}}</view>
       <view class="label">{{item.date}} - {{item.location}}</view>
-      <view class="label">{{i18n.event_status}}: {{item.status}}</view>
-      <view class="label">{{i18n.event_time_slots}}: {{item.timeSlots ? item.timeSlots.length : 0}}</view>
     </view>
+  </block>
+
+  <block wx:if="{{completedEvents.length > 0}}">
+    <view class="section-title">{{i18n.index_completed_events || 'Completed Events'}}</view>
+    <block wx:for="{{completedEvents}}" wx:key="_id">
+      <view class="card completed-event" bindtap="goEvent" data-id="{{item._id}}">
+        <view class="title">{{item.title}}</view>
+        <view class="label">{{item.date}} - {{item.location}}</view>
+      </view>
+    </block>
   </block>
 </view>

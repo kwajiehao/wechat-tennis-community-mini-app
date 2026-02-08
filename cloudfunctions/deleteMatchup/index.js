@@ -1,8 +1,10 @@
+// ABOUTME: Cloud function to delete a matchup from an event.
+// ABOUTME: Admin-only operation that removes a match record.
+
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
-const _ = db.command;
 const SETTINGS_ID = 'core';
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
@@ -39,14 +41,28 @@ async function assertAdmin(openid) {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
-  await assertAdmin(OPENID);
+  const { matchId } = event;
 
-  const { eventId } = event;
-  if (!eventId) {
-    throw new Error('MISSING_EVENT_ID');
+  if (!matchId) {
+    throw new Error('MISSING_FIELDS');
   }
 
-  // This function is deprecated - matches are now auto-approved when generated.
-  // Kept for backwards compatibility but does nothing.
-  return { eventId, deprecated: true };
+  await assertAdmin(OPENID);
+
+  const matchRes = await db.collection('matches').doc(matchId).get().catch(() => null);
+  if (!matchRes || !matchRes.data) {
+    throw new Error('MATCH_NOT_FOUND');
+  }
+
+  const eventId = matchRes.data.eventId;
+  if (eventId) {
+    const eventRes = await db.collection('events').doc(eventId).get().catch(() => null);
+    if (eventRes && eventRes.data && eventRes.data.status === 'completed') {
+      throw new Error('EVENT_COMPLETED');
+    }
+  }
+
+  await db.collection('matches').doc(matchId).remove();
+
+  return { deleted: true };
 };

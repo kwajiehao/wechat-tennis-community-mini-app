@@ -28,12 +28,13 @@ miniprogram/           # Client-side WeChat Mini Program
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
 
-cloudfunctions/        # 26 serverless functions (Node.js)
+cloudfunctions/        # 28 serverless functions (Node.js)
   # Player: upsertPlayer, getPlayer, listPlayers, deletePlayer
+  # Matchups: addMatchup, deleteMatchup
   # Auth: checkAdmin
   # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent
   # Signups: signupEvent, listSignups
-  # Matchmaking: generateMatchups, regenerateMatchups, approveMatchups
+  # Matchmaking: generateMatchups, regenerateMatchups (open status only), approveMatchups (deprecated)
   # Results: enterResult, listMatches
   # Stats: getStats, recalculateStats, getSeasonStats
   # Seasons: createSeason, listSeasons, setActiveSeason, adminAdjustSeasonPoints
@@ -65,8 +66,7 @@ Fixed enum of 5 match types (stored as strings):
 
 Events progress through these statuses:
 - `open` - Initial state, players can sign up
-- `matchups_draft` - Matchups generated, awaiting admin review
-- `matchups_approved` - Matchups approved, results can be entered
+- `in_progress` - Matchups generated, results can be entered. Players can still sign up but matchups cannot be regenerated. Admin uses addMatchup/deleteMatchup to modify matchups manually.
 - `completed` - Event finalized, `playerPoints` calculated and stored
 
 Admin can reopen a completed event to make corrections, then complete it again.

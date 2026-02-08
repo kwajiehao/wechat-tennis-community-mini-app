@@ -69,7 +69,16 @@ Page({
       eventTitle: '',
       matches: [],
       waitlist: [],
-      waitlistNames: ''
+      waitlistNames: '',
+      isCompleted: false,
+      showAddForm: false,
+      newMatchup: {
+        matchType: 'mens_singles',
+        matchTypeLabel: '',
+        maxPlayers: 1,
+        teamA: [],
+        teamB: []
+      }
     },
     testPlayerInput: {
       name: '',
@@ -118,7 +127,12 @@ Page({
   fetchEvents() {
     callFunction('listEvents', {})
       .then(res => {
-        this.setData({ events: res.result.events || [] });
+        const events = (res.result.events || []).sort((a, b) => {
+          const dateA = a.createdAt || a.date || '';
+          const dateB = b.createdAt || b.date || '';
+          return dateB.localeCompare(dateA);
+        });
+        this.setData({ events });
       })
       .catch(err => {
         console.error(err);
@@ -347,11 +361,13 @@ Page({
         });
 
         const eventData = this.data.events.find(ev => ev._id === eventId);
+        const isCompleted = eventData && eventData.status === 'completed';
         let waitlist = eventData && eventData.waitlist ? eventData.waitlist : [];
         if (!Array.isArray(waitlist)) {
           waitlist = Object.values(waitlist).flat();
         }
         const waitlistNames = waitlist.map(id => playerMap.get(id) || id).join(', ');
+        const defaultType = this.data.matchTypes[0];
 
         this.setData({
           'matchupsModal.visible': true,
@@ -359,7 +375,16 @@ Page({
           'matchupsModal.eventTitle': eventTitle,
           'matchupsModal.matches': matches,
           'matchupsModal.waitlist': waitlist,
-          'matchupsModal.waitlistNames': waitlistNames
+          'matchupsModal.waitlistNames': waitlistNames,
+          'matchupsModal.isCompleted': isCompleted,
+          'matchupsModal.showAddForm': false,
+          'matchupsModal.newMatchup': {
+            matchType: defaultType ? defaultType.value : 'mens_singles',
+            matchTypeLabel: defaultType ? defaultType.label : '',
+            maxPlayers: 1,
+            teamA: [],
+            teamB: []
+          }
         });
       })
       .catch(err => {
@@ -369,6 +394,78 @@ Page({
   },
   closeMatchupsModal() {
     this.setData({ 'matchupsModal.visible': false });
+  },
+  toggleAddMatchupForm() {
+    this.setData({
+      'matchupsModal.showAddForm': !this.data.matchupsModal.showAddForm
+    });
+  },
+  onAddMatchupTypePicker(e) {
+    const index = e.detail.value;
+    const matchType = this.data.matchTypes[index];
+    const value = matchType ? matchType.value : 'mens_singles';
+    const label = matchType ? matchType.label : '';
+    const isDoubles = value.indexOf('doubles') >= 0;
+    this.setData({
+      'matchupsModal.newMatchup.matchType': value,
+      'matchupsModal.newMatchup.matchTypeLabel': label,
+      'matchupsModal.newMatchup.maxPlayers': isDoubles ? 2 : 1,
+      'matchupsModal.newMatchup.teamA': [],
+      'matchupsModal.newMatchup.teamB': []
+    });
+  },
+  onAddMatchupTeamAChange(e) {
+    this.setData({
+      'matchupsModal.newMatchup.teamA': e.detail.selectedIds
+    });
+  },
+  onAddMatchupTeamBChange(e) {
+    this.setData({
+      'matchupsModal.newMatchup.teamB': e.detail.selectedIds
+    });
+  },
+  addMatchup() {
+    const modal = this.data.matchupsModal;
+    const newMatchup = modal.newMatchup;
+    if (newMatchup.teamA.length === 0 || newMatchup.teamB.length === 0) {
+      wx.showToast({ title: this.data.i18n.admin_select_players || 'Select players', icon: 'none' });
+      return;
+    }
+    callFunction('addMatchup', {
+      eventId: modal.eventId,
+      matchType: newMatchup.matchType,
+      teamA: newMatchup.teamA,
+      teamB: newMatchup.teamB
+    })
+      .then(() => {
+        wx.showToast({ title: 'Matchup added', icon: 'success' });
+        this.loadMatchupsForModal(modal.eventId, modal.eventTitle);
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: err.message || 'Failed to add matchup', icon: 'none' });
+      });
+  },
+  deleteMatchup(e) {
+    const matchId = e.currentTarget.dataset.id;
+    const modal = this.data.matchupsModal;
+    wx.showModal({
+      title: '',
+      content: this.data.i18n.admin_confirm_delete_matchup || 'Delete this matchup?',
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('deleteMatchup', { matchId })
+            .then(() => {
+              wx.showToast({ title: 'Deleted', icon: 'success' });
+              this.loadMatchupsForModal(modal.eventId, modal.eventTitle);
+            })
+            .catch(err => {
+              console.error(err);
+              wx.showToast({ title: err.message || 'Delete failed', icon: 'none' });
+            });
+        }
+      }
+    });
   },
   approveMatchups(e) {
     const eventId = e.currentTarget.dataset.id;

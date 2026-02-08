@@ -70,7 +70,7 @@ Page({
 
         const playerMap = new Map(allPlayers.map(p => [p._id, p.name || 'Unknown']));
         const matches = allMatches
-          .filter(m => m.status === 'approved' || m.status === 'published')
+          .filter(m => m.status === 'approved' || m.status === 'published' || m.status === 'completed')
           .map(m => {
             const typeObj = getMatchTypes().find(t => t.value === m.matchType);
             return {

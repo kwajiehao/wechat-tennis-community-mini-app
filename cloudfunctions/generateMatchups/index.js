@@ -283,7 +283,7 @@ exports.main = async (event, context) => {
         teamA: match.teamA,
         teamB: match.teamB,
         participants: match.teamA.concat(match.teamB),
-        status: 'draft',
+        status: 'approved',
         generatedAt: new Date().toISOString(),
         approvedBy: null
       });
@@ -300,7 +300,7 @@ exports.main = async (event, context) => {
   await db.collection('events').doc(eventId).update({
     data: {
       waitlist,
-      status: 'matchups_draft',
+      status: 'in_progress',
       updatedAt: new Date().toISOString()
     }
   });

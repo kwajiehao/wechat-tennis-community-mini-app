@@ -68,14 +68,21 @@
 
   <view class="section-title">{{i18n.admin_manage_events}}</view>
   <block wx:for="{{events}}" wx:key="_id">
-    <view class="card">
-      <view class="title clickable" data-id="{{item._id}}" bindtap="goToEvent">{{item.title}}</view>
+    <view class="card event-card {{item.status === 'completed' ? 'completed' : ''}}">
+      <view class="event-header">
+        <view class="title clickable" data-id="{{item._id}}" bindtap="goToEvent">{{item.title}}</view>
+        <view class="status-badge {{item.status}}">{{item.status}}</view>
+      </view>
       <view class="label">{{item.date}} - {{item.location}}</view>
-      <view class="label">{{i18n.event_status}}: {{item.status}}</view>
-      <view class="button" data-id="{{item._id}}" bindtap="generateMatchups">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
-      <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
-      <view class="button" data-id="{{item._id}}" bindtap="completeEvent" wx:if="{{item.status === 'matchups_approved'}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
-      <view class="button secondary" data-id="{{item._id}}" bindtap="reopenEvent" wx:if="{{item.status === 'completed'}}">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+      <block wx:if="{{item.status !== 'completed'}}">
+        <view class="button" data-id="{{item._id}}" bindtap="generateMatchups">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
+        <view class="button" data-id="{{item._id}}" bindtap="completeEvent">{{i18n.admin_complete_event || 'Complete Event'}}</view>
+      </block>
+      <block wx:else>
+        <view class="button secondary" data-id="{{item._id}}" bindtap="viewMatchups">{{i18n.admin_view_matchups || 'View Matchups'}}</view>
+        <view class="button secondary" data-id="{{item._id}}" bindtap="reopenEvent">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+      </block>
     </view>
   </block>
 
@@ -249,23 +256,66 @@
         <text class="modal-close" bindtap="closeMatchupsModal">×</text>
       </view>
       <scroll-view class="modal-body" scroll-y>
-        <block wx:if="{{matchupsModal.matches.length === 0}}">
-          <view class="empty-message">{{i18n.admin_no_pending_matches}}</view>
+        <block wx:if="{{matchupsModal.matches.length === 0 && !matchupsModal.showAddForm}}">
+          <view class="empty-message">{{i18n.admin_no_matchups || 'No matchups yet'}}</view>
         </block>
         <block wx:for="{{matchupsModal.matches}}" wx:key="_id">
           <view class="matchup-card">
-            <view class="matchup-type">{{item.matchTypeLabel}}</view>
-            <view class="matchup-teams">
-              <view class="team">
-                <text class="team-label">{{i18n.admin_team_a}}:</text>
-                <text class="team-names">{{item.teamANames}}</text>
+            <view class="matchup-row">
+              <view class="matchup-info">
+                <view class="matchup-type">{{item.matchTypeLabel}}</view>
+                <view class="matchup-teams">
+                  <view class="team">
+                    <text class="team-names">{{item.teamANames}}</text>
+                  </view>
+                  <text class="vs">vs</text>
+                  <view class="team">
+                    <text class="team-names">{{item.teamBNames}}</text>
+                  </view>
+                </view>
+                <view class="matchup-score" wx:if="{{item.score}}">{{item.score}}</view>
               </view>
-              <text class="vs">vs</text>
-              <view class="team">
-                <text class="team-label">{{i18n.admin_team_b}}:</text>
-                <text class="team-names">{{item.teamBNames}}</text>
-              </view>
+              <view class="matchup-delete" data-id="{{item._id}}" catchtap="deleteMatchup" wx:if="{{!matchupsModal.isCompleted}}">×</view>
             </view>
+          </view>
+        </block>
+
+        <block wx:if="{{!matchupsModal.isCompleted}}">
+          <view class="add-matchup-section">
+            <view class="button small" bindtap="toggleAddMatchupForm" wx:if="{{!matchupsModal.showAddForm}}">{{i18n.admin_add_matchup || '+ Add Matchup'}}</view>
+            <block wx:if="{{matchupsModal.showAddForm}}">
+              <view class="add-matchup-form">
+                <view class="label">{{i18n.admin_match_type}}</view>
+                <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onAddMatchupTypePicker">
+                  <view class="picker-value">{{matchupsModal.newMatchup.matchTypeLabel || i18n.common_select}}</view>
+                </picker>
+
+                <view class="label">{{i18n.admin_team_a}}</view>
+                <searchable-picker
+                  items="{{players}}"
+                  selectedIds="{{matchupsModal.newMatchup.teamA}}"
+                  excludeIds="{{matchupsModal.newMatchup.teamB}}"
+                  placeholder="{{i18n.common_search}}"
+                  maxSelect="{{matchupsModal.newMatchup.maxPlayers}}"
+                  bind:change="onAddMatchupTeamAChange"
+                />
+
+                <view class="label">{{i18n.admin_team_b}}</view>
+                <searchable-picker
+                  items="{{players}}"
+                  selectedIds="{{matchupsModal.newMatchup.teamB}}"
+                  excludeIds="{{matchupsModal.newMatchup.teamA}}"
+                  placeholder="{{i18n.common_search}}"
+                  maxSelect="{{matchupsModal.newMatchup.maxPlayers}}"
+                  bind:change="onAddMatchupTeamBChange"
+                />
+
+                <view class="button-row">
+                  <view class="button" bindtap="addMatchup">{{i18n.common_save}}</view>
+                  <view class="button secondary" bindtap="toggleAddMatchupForm">{{i18n.common_cancel}}</view>
+                </view>
+              </view>
+            </block>
           </view>
         </block>
         <block wx:if="{{matchupsModal.waitlist.length > 0}}">

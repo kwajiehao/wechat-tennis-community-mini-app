@@ -86,3 +86,33 @@
   color: #4caf50;
   font-weight: 500;
 }
+
+.matchup-item.completed {
+  border-left: 6rpx solid #4caf50;
+}
+
+.team-block.winner {
+  background: #e8f5e9;
+  padding: 8rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.winner-badge {
+  font-size: 22rpx;
+  color: #4caf50;
+  font-weight: 600;
+  margin-top: 4rpx;
+}
+
+.matchup-pending {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #999;
+  font-style: italic;
+}
+
+.completed-notice {
+  text-align: center;
+  color: #757575;
+  font-style: italic;
+}

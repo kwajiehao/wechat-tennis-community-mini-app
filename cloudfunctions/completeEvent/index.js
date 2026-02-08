@@ -58,8 +58,8 @@ exports.main = async (event, context) => {
     throw new Error('EVENT_NOT_FOUND');
   }
 
-  if (eventData.status !== 'matchups_approved') {
-    throw new Error('EVENT_NOT_APPROVED');
+  if (eventData.status !== 'in_progress') {
+    throw new Error('EVENT_NOT_IN_PROGRESS');
   }
 
   const matchesRes = await db.collection('matches')

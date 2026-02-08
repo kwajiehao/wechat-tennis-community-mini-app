@@ -1,1 +1,6 @@
-/* page-specific styles */
+/* ABOUTME: Styles for home page including completed events display. */
+
+.completed-event {
+  opacity: 0.8;
+  border-left: 6rpx solid #9e9e9e;
+}

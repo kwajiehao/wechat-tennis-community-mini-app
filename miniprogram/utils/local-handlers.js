@@ -483,7 +483,7 @@ const handlers = {
           teamA: match.teamA,
           teamB: match.teamB,
           participants: match.teamA.concat(match.teamB),
-          status: 'draft',
+          status: 'approved',
           generatedAt: new Date().toISOString(),
           approvedBy: null
         });
@@ -497,13 +497,26 @@ const handlers = {
     }
 
     await store.collection('events').doc(eventId).update({
-      data: { waitlist, status: 'matchups_draft', updatedAt: new Date().toISOString() }
+      data: { waitlist, status: 'in_progress', updatedAt: new Date().toISOString() }
     });
 
     return { matchCount: matchesToCreate.length, waitlist };
   },
 
   async regenerateMatchups(event) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+    const { eventId } = event;
+    if (!eventId) throw new Error('MISSING_EVENT_ID');
+
+    const eventRes = await store.collection('events').doc(eventId).get();
+    const eventData = eventRes.data;
+    if (!eventData) throw new Error('EVENT_NOT_FOUND');
+
+    if (eventData.status === 'in_progress' || eventData.status === 'completed') {
+      throw new Error('CANNOT_REGENERATE');
+    }
+
     return handlers.generateMatchups(event);
   },
 
@@ -513,18 +526,9 @@ const handlers = {
     const { eventId } = event;
     if (!eventId) throw new Error('MISSING_EVENT_ID');
 
-    const matchesRes = await store.collection('matches').where({ eventId, status: 'draft' }).get();
-    for (const m of matchesRes.data || []) {
-      await store.collection('matches').doc(m._id).update({
-        data: { status: 'approved', approvedBy: OPENID, approvedAt: new Date().toISOString() }
-      });
-    }
-
-    await store.collection('events').doc(eventId).update({
-      data: { status: 'matchups_approved', updatedAt: new Date().toISOString() }
-    });
-
-    return { approved: matchesRes.data.length };
+    // This function is deprecated - matches are now auto-approved when generated.
+    // Kept for backwards compatibility but does nothing.
+    return { eventId, deprecated: true };
   },
 
   async completeEvent(event) {
@@ -536,7 +540,7 @@ const handlers = {
     const eventRes = await store.collection('events').doc(eventId).get();
     const eventData = eventRes.data;
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
-    if (eventData.status !== 'matchups_approved') throw new Error('EVENT_NOT_APPROVED');
+    if (eventData.status !== 'in_progress') throw new Error('EVENT_NOT_IN_PROGRESS');
 
     const matchesRes = await store.collection('matches').where({ eventId, status: 'completed' }).get();
     const completedMatches = matchesRes.data || [];
@@ -581,7 +585,7 @@ const handlers = {
 
     await store.collection('events').doc(eventId).update({
       data: {
-        status: 'matchups_approved',
+        status: 'in_progress',
         playerPoints: null,
         completedAt: null
       }
@@ -960,6 +964,73 @@ const handlers = {
     await store.collection('players').doc(playerId).remove();
 
     return { deleted: true, playerId };
+  },
+
+  async addMatchup(data) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+
+    const { eventId, matchType, teamA, teamB } = data;
+    if (!eventId || !matchType || !teamA || !teamB) {
+      throw new Error('MISSING_FIELDS');
+    }
+    if (!VALID_MATCH_TYPES.includes(matchType)) {
+      throw new Error('INVALID_MATCH_TYPE');
+    }
+
+    const eventRes = await store.collection('events').doc(eventId).get().catch(() => null);
+    if (!eventRes || !eventRes.data) {
+      throw new Error('EVENT_NOT_FOUND');
+    }
+    if (eventRes.data.status === 'completed') {
+      throw new Error('EVENT_COMPLETED');
+    }
+
+    const settings = await getSettings();
+    const now = new Date().toISOString();
+    const res = await store.collection('matches').add({
+      data: {
+        eventId,
+        matchType,
+        teamA,
+        teamB,
+        status: 'approved',
+        seasonId: eventRes.data.seasonId || settings.activeSeasonId,
+        createdAt: now,
+        updatedAt: now
+      }
+    });
+    await store.collection('matches').doc(res._id).update({
+      data: { matchId: res._id }
+    });
+
+    return { matchId: res._id };
+  },
+
+  async deleteMatchup(data) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+
+    const { matchId } = data;
+    if (!matchId) {
+      throw new Error('MISSING_FIELDS');
+    }
+
+    const matchRes = await store.collection('matches').doc(matchId).get().catch(() => null);
+    if (!matchRes || !matchRes.data) {
+      throw new Error('MATCH_NOT_FOUND');
+    }
+
+    const eventId = matchRes.data.eventId;
+    if (eventId) {
+      const eventRes = await store.collection('events').doc(eventId).get().catch(() => null);
+      if (eventRes && eventRes.data && eventRes.data.status === 'completed') {
+        throw new Error('EVENT_COMPLETED');
+      }
+    }
+
+    await store.collection('matches').doc(matchId).remove();
+    return { deleted: true };
   }
 };
 
