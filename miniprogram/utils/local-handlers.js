@@ -1120,9 +1120,11 @@ const handlers = {
       ? sets.map(s => {
           const a = s.teamAGames || 0;
           const b = s.teamBGames || 0;
-          const isTiebreak = (a == 4 && b == 3) || (a == 3 && b == 4);
-          if (isTiebreak && s.tiebreak !== undefined && s.tiebreak !== '') {
+          if (a == 4 && b == 3 && s.tiebreak !== undefined && s.tiebreak !== '') {
             return `${a}-${b}(${s.tiebreak})`;
+          }
+          if (a == 3 && b == 4 && s.tiebreak !== undefined && s.tiebreak !== '') {
+            return `(${s.tiebreak})${a}-${b}`;
           }
           return `${a}-${b}`;
         }).join(' ')
