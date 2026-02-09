@@ -1,6 +1,6 @@
 # WeChat Tennis Community Mini App (CloudBase)
 
-This is a starter implementation of the WeChat Mini Program and CloudBase backend described in your plan.
+This is a vibe coded WeChat Mini Program and CloudBase backend for administering a tennis community. It allows users to signup for events and admins to create and manage events and seasons.
 
 ## Whats included
 - Mini Program pages: events list, event signup, profile, matches, stats, admin dashboard.

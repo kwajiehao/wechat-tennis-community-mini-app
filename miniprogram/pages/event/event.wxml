@@ -67,7 +67,77 @@
     <block wx:if="{{isAdmin && event.status === 'completed'}}">
       <view class="card">
         <view class="title">{{i18n.nav_admin}}</view>
-        <view class="button secondary" bindtap="reopenEvent">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+        <block wx:if="{{!event.leaderboard || !event.leaderboard.computed}}">
+          <view class="button" bindtap="computeScore">{{i18n.admin_compute_score || 'Compute Score'}}</view>
+          <view class="button secondary" bindtap="reopenEvent">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+        </block>
+        <block wx:else>
+          <view class="locked-notice">
+            <text class="lock-icon">🔒</text>
+            <text>{{i18n.event_score_locked || 'Score finalized'}}</text>
+          </view>
+        </block>
+      </view>
+    </block>
+
+    <!-- Leaderboard display for completed events with computed scores -->
+    <block wx:if="{{event.status === 'completed' && event.leaderboard && event.leaderboard.rankings}}">
+      <view class="card">
+        <view class="title">{{i18n.event_leaderboard || 'Leaderboard'}}</view>
+
+        <view class="leaderboard-table">
+          <view class="leaderboard-header">
+            <text class="col-player">{{i18n.players_title || 'Player'}}</text>
+            <text class="col-wins">{{i18n.stats_wins || 'Wins'}}</text>
+            <text class="col-points">{{i18n.stats_points || 'Points'}}</text>
+            <text class="col-remarks">{{i18n.common_remarks || 'Remarks'}}</text>
+          </view>
+
+          <view
+            wx:for="{{event.leaderboard.rankings}}"
+            wx:key="playerId"
+            class="leaderboard-row {{item.rank <= 2 ? 'top-' + item.rank : ''}}"
+          >
+            <text class="col-player">{{item.playerName}}</text>
+            <text class="col-wins">
+              {{item.wins}}<text wx:if="{{showGameDiff}}" class="game-diff"> ({{item.gameDifference >= 0 ? '+' : ''}}{{item.gameDifference}})</text>
+            </text>
+            <text class="col-points">{{item.totalPoints}}</text>
+            <view class="col-remarks">
+              <text wx:if="{{item.rank === 1}}" class="trophy">🥇</text>
+              <text wx:if="{{item.rank === 2}}" class="trophy">🥈</text>
+              <text wx:if="{{item.bonus > 0}}" class="bonus">+{{item.bonus}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- Tie-breaker modal -->
+    <block wx:if="{{showTieBreaker}}">
+      <view class="modal-overlay" bindtap="closeTieBreaker">
+        <view class="modal-content" catchtap="">
+          <view class="modal-title">{{i18n.admin_tie_breaker_title || 'Tie Detected'}}</view>
+          <view class="modal-body">
+            <text class="modal-desc">{{i18n.admin_tie_breaker_desc || 'These players are tied on wins and game difference. Select the champion:'}}</text>
+            <view class="tie-player-list">
+              <view
+                wx:for="{{tiedPlayers}}"
+                wx:key="playerId"
+                class="tie-player-option {{selectedChampion === item.playerId ? 'selected' : ''}}"
+                data-player-id="{{item.playerId}}"
+                bindtap="selectChampion"
+              >
+                <text class="tie-player-name">{{item.playerName}}</text>
+                <text class="tie-player-stats">{{item.wins}} {{i18n.stats_wins}} ({{item.gameDifference >= 0 ? '+' : ''}}{{item.gameDifference}})</text>
+              </view>
+            </view>
+          </view>
+          <view class="modal-actions">
+            <view class="button secondary" bindtap="closeTieBreaker">{{i18n.common_cancel}}</view>
+            <view class="button {{!selectedChampion ? 'disabled' : ''}}" bindtap="confirmChampion">{{i18n.common_confirm || 'Confirm'}}</view>
+          </view>
+        </view>
       </view>
     </block>
 
@@ -165,34 +235,42 @@
         <block wx:if="{{resultEntry.selectedMatchId}}">
           <view class="label">{{i18n.admin_set_scores}}</view>
           <view class="sets-container">
-            <view wx:for="{{resultEntry.sets}}" wx:key="index" class="set-row">
-              <text class="set-label">{{i18n.admin_set_label}} {{index + 1}}:</text>
-              <input
-                class="set-input"
-                type="number"
-                data-index="{{index}}"
-                data-team="teamAGames"
-                value="{{item.teamAGames}}"
-                bindinput="onSetScoreInput"
-                placeholder="A"
-              />
-              <text class="set-separator">-</text>
-              <input
-                class="set-input"
-                type="number"
-                data-index="{{index}}"
-                data-team="teamBGames"
-                value="{{item.teamBGames}}"
-                bindinput="onSetScoreInput"
-                placeholder="B"
-              />
+            <view wx:for="{{resultEntry.sets}}" wx:key="index" class="set-row-container">
+              <view class="set-row">
+                <text class="set-label">{{i18n.admin_set_label}} {{index + 1}}:</text>
+                <input
+                  class="set-input"
+                  type="number"
+                  data-index="{{index}}"
+                  data-team="teamAGames"
+                  value="{{item.teamAGames}}"
+                  bindinput="onSetScoreInput"
+                  placeholder="A"
+                />
+                <text class="set-separator">-</text>
+                <input
+                  class="set-input"
+                  type="number"
+                  data-index="{{index}}"
+                  data-team="teamBGames"
+                  value="{{item.teamBGames}}"
+                  bindinput="onSetScoreInput"
+                  placeholder="B"
+                />
+                <block wx:if="{{(item.teamAGames === '4' && item.teamBGames === '3') || (item.teamAGames === '3' && item.teamBGames === '4')}}">
+                  <text class="tiebreak-label">{{i18n.admin_tiebreak || 'TB'}}:</text>
+                  <input
+                    class="tiebreak-input"
+                    type="number"
+                    data-index="{{index}}"
+                    value="{{item.tiebreak}}"
+                    bindinput="onTiebreakInput"
+                    placeholder="{{item.teamAGames === '3' ? 'A' : 'B'}}"
+                  />
+                </block>
+              </view>
             </view>
           </view>
-          <view class="set-buttons">
-            <view class="button small" bindtap="addSet">{{i18n.admin_add_set || '+ Add Set'}}</view>
-            <view class="button small secondary" bindtap="removeSet" wx:if="{{resultEntry.sets.length > 1}}">{{i18n.admin_remove_set || '- Remove Set'}}</view>
-          </view>
-
           <view class="label">{{i18n.admin_winner}}</view>
           <view class="winner-buttons">
             <view

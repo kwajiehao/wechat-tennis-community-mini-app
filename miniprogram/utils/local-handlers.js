@@ -845,35 +845,16 @@ const handlers = {
     }
     const previousStatus = eventData.status;
 
-    const matchesRes = await store.collection('matches').where({ eventId, status: 'completed' }).get();
-    const completedMatches = matchesRes.data || [];
-
-    const resultsRes = await store.collection('results').get();
-    const results = resultsRes.data || [];
-    const resultMap = new Map(results.map(r => [r.matchId, r]));
-
-    const playerPoints = {};
-    for (const match of completedMatches) {
-      const result = resultMap.get(match._id);
-      if (!result) continue;
-
-      const winnerPlayers = result.winnerPlayers || [];
-      for (const playerId of winnerPlayers) {
-        playerPoints[playerId] = (playerPoints[playerId] || 0) + 1;
-      }
-    }
-
     const now = new Date().toISOString();
     await store.collection('events').doc(eventId).update({
       data: {
         status: 'completed',
         previousStatus,
-        playerPoints,
         completedAt: now
       }
     });
 
-    return { eventId, playerPoints };
+    return { eventId };
   },
 
   async reopenEvent(event) {
@@ -886,6 +867,11 @@ const handlers = {
     const eventData = eventRes.data;
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
     if (eventData.status !== 'completed') throw new Error('EVENT_NOT_COMPLETED');
+
+    // Block reopening if score has been computed (event is locked)
+    if (eventData.leaderboard && eventData.leaderboard.computed) {
+      throw new Error('EVENT_LOCKED');
+    }
 
     // Restore to previous status (in_progress or match_started)
     const restoreStatus = eventData.previousStatus || 'in_progress';
@@ -900,6 +886,197 @@ const handlers = {
     });
 
     return { eventId };
+  },
+
+  // Leaderboard calculation rules:
+  // 1. Count wins per player (doubles matches count as 1 win for each player on winning team)
+  // 2. Calculate game difference: sum of (gamesWon - gamesLost) across all matches
+  // 3. Sort by: wins DESC, then game difference DESC
+  // 4. If tied on both wins AND game difference, admin must pick champion
+  // 5. Bonuses: 1st place gets +4 points, 2nd place gets +2 points
+  // 6. Total points = wins + bonus
+  async computeEventScore(event) {
+    const { OPENID } = getWXContext();
+    await assertAdmin(OPENID);
+
+    const { eventId, championId } = event;
+    if (!eventId) throw new Error('MISSING_EVENT_ID');
+
+    const eventRes = await store.collection('events').doc(eventId).get();
+    const eventData = eventRes.data;
+    if (!eventData) throw new Error('EVENT_NOT_FOUND');
+
+    if (eventData.status !== 'completed') {
+      throw new Error('EVENT_NOT_COMPLETED');
+    }
+
+    if (eventData.leaderboard && eventData.leaderboard.computed) {
+      throw new Error('SCORE_ALREADY_COMPUTED');
+    }
+
+    // Fetch all completed matches for this event
+    const matchesRes = await store.collection('matches').where({ eventId, status: 'completed' }).get();
+    const matches = matchesRes.data || [];
+
+    // Fetch results for those matches
+    const resultsRes = await store.collection('results').get();
+    const results = resultsRes.data || [];
+    const resultMap = new Map(results.map(r => [r.matchId, r]));
+
+    // Calculate player stats: wins and game difference
+    const playerStats = {};
+    for (const match of matches) {
+      const result = resultMap.get(match._id);
+      if (!result) continue;
+
+      const allPlayers = [...(match.teamA || []), ...(match.teamB || [])];
+
+      // Initialize players if not seen
+      for (const pid of allPlayers) {
+        if (!playerStats[pid]) {
+          playerStats[pid] = { wins: 0, gamesWon: 0, gamesLost: 0 };
+        }
+      }
+
+      // Count wins (1 per winning player per match)
+      const winnerPlayers = result.winnerPlayers || [];
+      for (const pid of winnerPlayers) {
+        playerStats[pid].wins += 1;
+      }
+
+      // Calculate games from sets for game difference
+      const sets = result.sets || [];
+      for (const set of sets) {
+        const teamAGames = parseInt(set.teamAGames) || 0;
+        const teamBGames = parseInt(set.teamBGames) || 0;
+
+        for (const pid of (match.teamA || [])) {
+          playerStats[pid].gamesWon += teamAGames;
+          playerStats[pid].gamesLost += teamBGames;
+        }
+        for (const pid of (match.teamB || [])) {
+          playerStats[pid].gamesWon += teamBGames;
+          playerStats[pid].gamesLost += teamAGames;
+        }
+      }
+    }
+
+    // Build rankings array
+    const rankings = Object.entries(playerStats).map(([playerId, stats]) => ({
+      playerId,
+      wins: stats.wins,
+      gameDifference: stats.gamesWon - stats.gamesLost,
+      bonus: 0,
+      totalPoints: stats.wins,
+      rank: 0,
+      remarks: null
+    }));
+
+    // Sort by wins DESC, then game difference DESC
+    rankings.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return b.gameDifference - a.gameDifference;
+    });
+
+    // Check for ties at top positions
+    const hasTieForFirst = rankings.length >= 2 &&
+      rankings[0].wins === rankings[1].wins &&
+      rankings[0].gameDifference === rankings[1].gameDifference;
+
+    // If tie exists and no champion selected, return tie info for admin to resolve
+    if (hasTieForFirst && !championId) {
+      const tiedPlayers = rankings.filter(r =>
+        r.wins === rankings[0].wins &&
+        r.gameDifference === rankings[0].gameDifference
+      );
+
+      // Fetch player names for tied players
+      const tiedIds = tiedPlayers.map(p => p.playerId);
+      const playersRes = await store.collection('players').get();
+      const playerNameMap = new Map((playersRes.data || []).map(p => [p._id, p.name]));
+
+      for (const r of tiedPlayers) {
+        r.playerName = playerNameMap.get(r.playerId) || 'Unknown';
+      }
+
+      return {
+        requiresTieBreak: true,
+        tiedPlayerIds: tiedIds,
+        rankings: tiedPlayers
+      };
+    }
+
+    // Apply tie-break if champion was selected
+    let tieResolution = null;
+    if (hasTieForFirst && championId) {
+      const tiedIds = rankings.filter(r =>
+        r.wins === rankings[0].wins &&
+        r.gameDifference === rankings[0].gameDifference
+      ).map(p => p.playerId);
+
+      if (!tiedIds.includes(championId)) {
+        throw new Error('INVALID_CHAMPION');
+      }
+
+      // Move champion to index 0
+      const championIndex = rankings.findIndex(r => r.playerId === championId);
+      const [champion] = rankings.splice(championIndex, 1);
+      rankings.unshift(champion);
+
+      tieResolution = {
+        tiedPlayerIds: tiedIds,
+        championId
+      };
+    }
+
+    // Assign ranks and bonuses
+    for (let i = 0; i < rankings.length; i++) {
+      rankings[i].rank = i + 1;
+      if (i === 0) {
+        rankings[i].bonus = 4;
+        rankings[i].remarks = '1st';
+      } else if (i === 1) {
+        rankings[i].bonus = 2;
+        rankings[i].remarks = '2nd';
+      }
+      rankings[i].totalPoints = rankings[i].wins + rankings[i].bonus;
+    }
+
+    // Fetch player names for all rankings
+    const playersRes = await store.collection('players').get();
+    const playerNameMap = new Map((playersRes.data || []).map(p => [p._id, p.name]));
+
+    for (const r of rankings) {
+      r.playerName = playerNameMap.get(r.playerId) || 'Unknown';
+    }
+
+    // Compute playerPoints for season aggregation (totalPoints per player)
+    const playerPoints = {};
+    for (const r of rankings) {
+      playerPoints[r.playerId] = r.totalPoints;
+    }
+
+    // Build leaderboard object
+    const leaderboard = {
+      computed: true,
+      computedAt: new Date().toISOString(),
+      computedBy: OPENID,
+      rankings,
+      hasTiesAtTop: hasTieForFirst
+    };
+    if (tieResolution) {
+      leaderboard.tieResolution = tieResolution;
+    }
+
+    // Update event with leaderboard and playerPoints
+    await store.collection('events').doc(eventId).update({
+      data: {
+        leaderboard,
+        playerPoints
+      }
+    });
+
+    return { eventId, leaderboard };
   },
 
   async enterResult(event) {
@@ -940,7 +1117,15 @@ const handlers = {
 
     const now = new Date().toISOString();
     const finalScore = sets
-      ? sets.map(s => `${s.teamAGames}-${s.teamBGames}`).join(' ')
+      ? sets.map(s => {
+          const a = s.teamAGames || 0;
+          const b = s.teamBGames || 0;
+          const isTiebreak = (a == 4 && b == 3) || (a == 3 && b == 4);
+          if (isTiebreak && s.tiebreak !== undefined && s.tiebreak !== '') {
+            return `${a}-${b}(${s.tiebreak})`;
+          }
+          return `${a}-${b}`;
+        }).join(' ')
       : (score || '');
 
     const resultRes = await store.collection('results').add({

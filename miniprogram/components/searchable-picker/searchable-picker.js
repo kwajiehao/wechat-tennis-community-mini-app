@@ -65,14 +65,8 @@ Component({
       });
     },
 
-    onFocus() {
-      this.setData({ showList: true });
-    },
-
-    onBlur() {
-      setTimeout(() => {
-        this.setData({ showList: false });
-      }, 200);
+    toggleList() {
+      this.setData({ showList: !this.data.showList });
     },
 
     onSelect(e) {
@@ -88,6 +82,11 @@ Component({
         newSelected = [id];
       } else {
         return;
+      }
+
+      // Close dropdown when max selection reached
+      if (newSelected.length >= this.data.maxSelect) {
+        this.setData({ showList: false });
       }
 
       this.triggerEvent('change', { selectedIds: newSelected });

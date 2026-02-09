@@ -212,6 +212,8 @@ const strings = {
     admin_start_time: 'Start Time',
     admin_end_time: 'End Time',
     admin_set_label: 'Set',
+    admin_tiebreak: 'TB',
+    admin_tiebreak_score: 'Tiebreak score (loser)',
     admin_waitlist: 'Waitlist',
 
     // Toast messages
@@ -263,7 +265,25 @@ const strings = {
     index_upcoming_events: 'Upcoming Events',
     index_no_events: 'No upcoming events',
     index_view_event: 'View Event',
-    index_completed_events: 'My Completed Events'
+    index_completed_events: 'My Completed Events',
+
+    // Event scoring
+    admin_compute_score: 'Compute Score',
+    admin_compute_score_title: 'Compute Final Score',
+    admin_compute_score_warning: 'This will calculate the final leaderboard and lock the event. You will not be able to reopen it. Continue?',
+    admin_tie_breaker_title: 'Tie Detected',
+    admin_tie_breaker_desc: 'These players are tied on wins and game difference. Select the champion:',
+    admin_select_champion: 'Select a champion',
+    event_leaderboard: 'Leaderboard',
+    event_score_locked: 'Score finalized',
+    common_confirm: 'Confirm',
+    common_remarks: 'Remarks',
+    toast_score_computed: 'Score computed',
+
+    // Error messages for scoring
+    error_event_locked: 'Event is locked and cannot be reopened',
+    error_score_already_computed: 'Score has already been computed',
+    error_invalid_champion: 'Invalid champion selection'
   },
 
   zh: {
@@ -476,6 +496,8 @@ const strings = {
     admin_start_time: '开始时间',
     admin_end_time: '结束时间',
     admin_set_label: '第',
+    admin_tiebreak: '抢七',
+    admin_tiebreak_score: '抢七对方得分',
     admin_waitlist: '候补名单',
 
     // Toast messages
@@ -527,7 +549,25 @@ const strings = {
     index_upcoming_events: '即将举行的活动',
     index_no_events: '暂无即将举行的活动',
     index_view_event: '查看活动',
-    index_completed_events: '我参与的已结束活动'
+    index_completed_events: '我参与的已结束活动',
+
+    // Event scoring
+    admin_compute_score: '计算积分',
+    admin_compute_score_title: '计算最终积分',
+    admin_compute_score_warning: '这将计算最终排行榜并锁定活动。锁定后将无法重新开放。继续？',
+    admin_tie_breaker_title: '检测到平局',
+    admin_tie_breaker_desc: '以下球员的胜场和净胜局数相同。请选择冠军：',
+    admin_select_champion: '请选择冠军',
+    event_leaderboard: '排行榜',
+    event_score_locked: '积分已锁定',
+    common_confirm: '确认',
+    common_remarks: '备注',
+    toast_score_computed: '积分已计算',
+
+    // Error messages for scoring
+    error_event_locked: '活动已锁定，无法重新开放',
+    error_score_already_computed: '积分已经计算过了',
+    error_invalid_champion: '冠军选择无效'
   }
 };
 
@@ -583,7 +623,10 @@ const errorCodeMap = {
   'EVENT_FULL': 'error_event_full',
   'MALE_LIMIT_REACHED': 'error_male_limit_reached',
   'MISSING_PROFILE': 'event_no_profile',
-  'PROFILE_INCOMPLETE': 'event_profile_incomplete'
+  'PROFILE_INCOMPLETE': 'event_profile_incomplete',
+  'EVENT_LOCKED': 'error_event_locked',
+  'SCORE_ALREADY_COMPUTED': 'error_score_already_computed',
+  'INVALID_CHAMPION': 'error_invalid_champion'
 };
 
 function extractErrorCode(errorMessage) {

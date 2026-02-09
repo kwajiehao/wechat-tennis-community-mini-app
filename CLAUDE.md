@@ -28,11 +28,11 @@ miniprogram/           # Client-side WeChat Mini Program
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
 
-cloudfunctions/        # 28 serverless functions (Node.js)
+cloudfunctions/        # 29 serverless functions (Node.js)
   # Player: upsertPlayer, getPlayer, listPlayers, deletePlayer
   # Matchups: addMatchup, deleteMatchup
   # Auth: checkAdmin
-  # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent
+  # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent, computeEventScore
   # Signups: signupEvent, listSignups
   # Matchmaking: generateMatchups, regenerateMatchups (open status only), approveMatchups (deprecated)
   # Results: enterResult, listMatches
@@ -44,7 +44,7 @@ cloudfunctions/        # 28 serverless functions (Node.js)
 ## Database Collections
 
 - `players` - Player profiles (name, gender, NTRP, wechatOpenId, isTestPlayer)
-- `events` - Tennis events (date, location, startTime, endTime, matchTypesAllowed, seasonId, status, playerPoints, completedAt)
+- `events` - Tennis events (date, location, startTime, endTime, matchTypesAllowed, seasonId, status, playerPoints, completedAt, leaderboard)
 - `signups` - Event signups (playerId, eventId, preferredMatchTypes, seasonId)
 - `matches` - Generated matches (teamsA/B, matchType, status, seasonId)
 - `results` - Match results (matchId, score, sets, winner, winnerPlayers)
@@ -67,9 +67,20 @@ Fixed enum of 5 match types (stored as strings):
 Events progress through these statuses:
 - `open` - Initial state, players can sign up
 - `in_progress` - Matchups generated, results can be entered. Players can still sign up but matchups cannot be regenerated. Admin uses addMatchup/deleteMatchup to modify matchups manually.
-- `completed` - Event finalized, `playerPoints` calculated and stored
+- `completed` - Event finalized. Admin can reopen to make corrections.
 
-Admin can reopen a completed event to make corrections, then complete it again.
+### Two-Step Event Completion
+
+1. **Complete Event** - Marks event as `completed`. No scores calculated yet. Admin can still reopen.
+2. **Compute Score** - Calculates final leaderboard and permanently locks the event. Reopen is disabled.
+
+### Leaderboard Calculation Rules (in computeEventScore)
+- Count wins per player (doubles count as 1 win per player on winning team)
+- Calculate game difference: sum of (gamesWon - gamesLost) across all matches
+- Sort by: wins DESC, then game difference DESC
+- If tied on both wins AND game difference, admin must pick champion
+- Bonuses: 1st place +4 points, 2nd place +2 points
+- Total points = wins + bonus
 
 ## Season Status
 
@@ -103,7 +114,8 @@ Filters players by gender per match type, then pairs by NTRP:
 
 ### Stats Calculation
 - Overall: `points = wins * winPoints + losses * lossPoints` (recalculated on every result entry)
-- Season: Points are event-based (1 point per win). When admin completes an event, `playerPoints` map is stored on the event. Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments.
+- Event: When admin runs `computeEventScore`, leaderboard is calculated with wins + bonuses (1st: +4, 2nd: +2). `playerPoints` map is stored on the event with total points per player.
+- Season: Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments.
 
 ## Important Gotchas
 
@@ -165,7 +177,8 @@ Core features complete including:
 - i18n support (English + Mandarin)
 - Season management with tap-to-view match results
 - listMatches supports filtering by seasonId
-- Event-based points system (1 point per win, calculated when event is completed)
+- Event leaderboard with wins, game difference, and placement bonuses (1st: +4, 2nd: +2)
+- Two-step event completion: Complete Event → Compute Score (locks event permanently)
 - Season leaderboard shows aggregated points from completed events
 - Test player management in admin panel for matchup testing
 

@@ -1,11 +1,10 @@
-// ABOUTME: Marks an event as completed and calculates player points from wins.
-// ABOUTME: Stores playerPoints map on event for season leaderboard aggregation.
+// ABOUTME: Marks an event as completed by changing its status.
+// ABOUTME: Admin must then use computeEventScore to calculate final leaderboard.
 
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
-const _ = db.command;
 const SETTINGS_ID = 'core';
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
@@ -64,38 +63,14 @@ exports.main = async (event, context) => {
 
   const previousStatus = eventData.status;
 
-  const matchesRes = await db.collection('matches')
-    .where({ eventId, status: 'completed' })
-    .get();
-  const completedMatches = matchesRes.data || [];
-
-  const matchIds = completedMatches.map(m => m._id);
-  const resultsRes = matchIds.length > 0
-    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-    : { data: [] };
-  const results = resultsRes.data || [];
-  const resultMap = new Map(results.map(r => [r.matchId, r]));
-
-  const playerPoints = {};
-  for (const match of completedMatches) {
-    const result = resultMap.get(match._id);
-    if (!result) continue;
-
-    const winnerPlayers = result.winnerPlayers || [];
-    for (const playerId of winnerPlayers) {
-      playerPoints[playerId] = (playerPoints[playerId] || 0) + 1;
-    }
-  }
-
   const now = new Date().toISOString();
   await db.collection('events').doc(eventId).update({
     data: {
       status: 'completed',
       previousStatus,
-      playerPoints,
       completedAt: now
     }
   });
 
-  return { eventId, playerPoints };
+  return { eventId };
 };

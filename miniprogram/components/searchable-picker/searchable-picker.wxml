@@ -5,15 +5,15 @@
       <text class="tag-remove" data-id="{{item._id}}" bindtap="onSelect">×</text>
     </view>
   </view>
-  <input
-    class="search-input"
-    placeholder="{{placeholder}}"
-    placeholder-style="color: #888;"
-    value="{{searchText}}"
-    bindinput="onSearchInput"
-    bindfocus="onFocus"
-    bindblur="onBlur"
-  />
+  <view class="input-wrapper" bindtap="toggleList">
+    <input
+      class="search-input"
+      placeholder="{{placeholder}}"
+      placeholder-style="color: #888;"
+      value="{{searchText}}"
+      bindinput="onSearchInput"
+    />
+  </view>
   <scroll-view class="item-list" scroll-y wx:if="{{showList && filteredItems.length > 0}}">
     <view
       wx:for="{{filteredItems}}"

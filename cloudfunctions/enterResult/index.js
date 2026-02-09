@@ -319,7 +319,15 @@ exports.main = async (event, context) => {
   const winnerPlayers = winnerSide === 'A' ? match.teamA : match.teamB;
 
   const finalScore = sets && sets.length > 0
-    ? sets.map(s => `${s.teamAGames || 0}-${s.teamBGames || 0}`).join(' ')
+    ? sets.map(s => {
+        const a = s.teamAGames || 0;
+        const b = s.teamBGames || 0;
+        const isTiebreak = (a == 4 && b == 3) || (a == 3 && b == 4);
+        if (isTiebreak && s.tiebreak !== undefined && s.tiebreak !== '') {
+          return `${a}-${b}(${s.tiebreak})`;
+        }
+        return `${a}-${b}`;
+      }).join(' ')
     : (score || '');
 
   const now = new Date().toISOString();

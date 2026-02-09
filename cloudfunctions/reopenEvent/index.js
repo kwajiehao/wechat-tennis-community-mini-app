@@ -1,5 +1,5 @@
 // ABOUTME: Reopens a completed event by reverting status and clearing points.
-// ABOUTME: Allows admins to make corrections to match results before re-completing.
+// ABOUTME: Blocked if leaderboard has been computed (event is permanently locked).
 
 const cloud = require('wx-server-sdk');
 
@@ -59,6 +59,11 @@ exports.main = async (event, context) => {
 
   if (eventData.status !== 'completed') {
     throw new Error('EVENT_NOT_COMPLETED');
+  }
+
+  // Block reopening if score has been computed (event is locked)
+  if (eventData.leaderboard && eventData.leaderboard.computed) {
+    throw new Error('EVENT_LOCKED');
   }
 
   // Restore to previous status (in_progress or match_started)

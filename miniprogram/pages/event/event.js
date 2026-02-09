@@ -66,7 +66,11 @@ Page({
       selectedMatch: null,
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
-    }
+    },
+    showTieBreaker: false,
+    tiedPlayers: [],
+    selectedChampion: '',
+    showGameDiff: false
   },
   onLoad(query) {
     initCloud();
@@ -111,7 +115,20 @@ Page({
     return callFunction('listEvents', { eventId: this.data.eventId })
       .then(res => {
         const event = (res.result.events || [])[0] || null;
-        this.setData({ event });
+
+        // Compute showGameDiff: show game difference if any adjacent rankings have same wins
+        let showGameDiff = false;
+        if (event && event.leaderboard && event.leaderboard.rankings) {
+          const rankings = event.leaderboard.rankings;
+          for (let i = 0; i < rankings.length - 1; i++) {
+            if (rankings[i].wins === rankings[i + 1].wins) {
+              showGameDiff = true;
+              break;
+            }
+          }
+        }
+
+        this.setData({ event, showGameDiff });
         return Promise.all([
           callFunction('listSignups', { eventId: this.data.eventId, mine: true }),
           callFunction('listSignups', { eventId: this.data.eventId, includeNames: true }),
@@ -448,6 +465,18 @@ Page({
     const { index, team } = e.currentTarget.dataset;
     const sets = this.data.resultEntry.sets.slice();
     sets[index] = { ...sets[index], [team]: e.detail.value };
+    // Clear tiebreak if no longer a 4-3 or 3-4 set
+    const a = sets[index].teamAGames;
+    const b = sets[index].teamBGames;
+    if (!((a === '4' && b === '3') || (a === '3' && b === '4'))) {
+      delete sets[index].tiebreak;
+    }
+    this.setData({ 'resultEntry.sets': sets });
+  },
+  onTiebreakInput(e) {
+    const { index } = e.currentTarget.dataset;
+    const sets = this.data.resultEntry.sets.slice();
+    sets[index] = { ...sets[index], tiebreak: e.detail.value };
     this.setData({ 'resultEntry.sets': sets });
   },
   addSet() {
@@ -500,5 +529,70 @@ Page({
         const msg = i18n.translateError(err.message) || 'Save failed';
         wx.showToast({ title: msg, icon: 'none' });
       });
+  },
+  computeScore() {
+    wx.showModal({
+      title: this.data.i18n.admin_compute_score_title || 'Compute Final Score',
+      content: this.data.i18n.admin_compute_score_warning ||
+        'This will calculate the final leaderboard and lock the event. You will not be able to reopen it. Continue?',
+      confirmText: this.data.i18n.common_confirm || 'Confirm',
+      cancelText: this.data.i18n.common_cancel || 'Cancel',
+      success: (res) => {
+        if (res.confirm) {
+          this.executeComputeScore(null);
+        }
+      }
+    });
+  },
+  executeComputeScore(championId) {
+    const eventId = this.data.eventId;
+    callFunction('computeEventScore', { eventId, championId })
+      .then(res => {
+        const result = res.result || {};
+
+        if (result.requiresTieBreak) {
+          this.setData({
+            showTieBreaker: true,
+            tiedPlayers: result.rankings || [],
+            selectedChampion: ''
+          });
+          return;
+        }
+
+        wx.showToast({
+          title: this.data.i18n.toast_score_computed || 'Score computed',
+          icon: 'success'
+        });
+        this.fetchEventData();
+      })
+      .catch(err => {
+        console.error(err);
+        const msg = i18n.translateError(err.message) || 'Compute failed';
+        wx.showToast({ title: msg, icon: 'none' });
+      });
+  },
+  selectChampion(e) {
+    const playerId = e.currentTarget.dataset.playerId;
+    this.setData({ selectedChampion: playerId });
+  },
+  closeTieBreaker() {
+    this.setData({
+      showTieBreaker: false,
+      tiedPlayers: [],
+      selectedChampion: ''
+    });
+  },
+  confirmChampion() {
+    const championId = this.data.selectedChampion;
+    if (!championId) {
+      wx.showToast({
+        title: this.data.i18n.admin_select_champion || 'Select a champion',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({ showTieBreaker: false });
+    this.executeComputeScore(championId);
   }
 });
