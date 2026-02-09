@@ -105,8 +105,8 @@ Page({
   goProfile() {
     wx.navigateTo({ url: '/pages/profile/profile' });
   },
-  goMatches() {
-    wx.navigateTo({ url: '/pages/matches/matches' });
+  goLeaderboard() {
+    wx.navigateTo({ url: '/pages/leaderboard/leaderboard' });
   },
   goStats() {
     wx.navigateTo({ url: '/pages/stats/stats' });

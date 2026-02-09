@@ -104,7 +104,7 @@
             </text>
             <text class="col-points">{{item.totalPoints}}</text>
             <view class="col-remarks">
-              <text wx:if="{{item.rank === 1}}" class="trophy">🥇</text>
+              <text wx:if="{{item.rank === 1}}" class="trophy">🏆</text>
               <text wx:if="{{item.rank === 2}}" class="trophy">🥈</text>
               <text wx:if="{{item.bonus > 0}}" class="bonus">+{{item.bonus}}</text>
             </view>
@@ -237,26 +237,30 @@
           <view class="sets-container">
             <view wx:for="{{resultEntry.sets}}" wx:key="index" class="set-row-container">
               <view class="set-row">
-                <text class="set-label">{{i18n.admin_set_label}} {{index + 1}}:</text>
-                <input
-                  class="set-input"
-                  type="number"
+                <text class="set-label">{{i18n.admin_set_label}}:</text>
+                <picker
+                  class="set-picker"
+                  mode="selector"
+                  range="{{scoreOptions}}"
+                  value="{{item.teamAGamesIndex}}"
                   data-index="{{index}}"
                   data-team="teamAGames"
-                  value="{{item.teamAGames}}"
-                  bindinput="onSetScoreInput"
-                  placeholder="A"
-                />
+                  bindchange="onSetScorePick"
+                >
+                  <view class="set-input">{{item.teamAGames !== '' ? item.teamAGames : 'A'}}</view>
+                </picker>
                 <text class="set-separator">-</text>
-                <input
-                  class="set-input"
-                  type="number"
+                <picker
+                  class="set-picker"
+                  mode="selector"
+                  range="{{scoreOptions}}"
+                  value="{{item.teamBGamesIndex}}"
                   data-index="{{index}}"
                   data-team="teamBGames"
-                  value="{{item.teamBGames}}"
-                  bindinput="onSetScoreInput"
-                  placeholder="B"
-                />
+                  bindchange="onSetScorePick"
+                >
+                  <view class="set-input">{{item.teamBGames !== '' ? item.teamBGames : 'B'}}</view>
+                </picker>
                 <block wx:if="{{(item.teamAGames === '4' && item.teamBGames === '3') || (item.teamAGames === '3' && item.teamBGames === '4')}}">
                   <text class="tiebreak-label">{{i18n.admin_tiebreak || 'TB'}}:</text>
                   <input

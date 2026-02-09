@@ -1,0 +1,42 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="card loading-card">
+      <view class="loading-text">{{i18n.common_loading}}</view>
+    </view>
+  </block>
+
+  <block wx:elif="{{!season}}">
+    <view class="card">
+      <view class="empty-text">{{i18n.leaderboard_no_season}}</view>
+    </view>
+  </block>
+
+  <block wx:elif="{{leaderboard.length === 0}}">
+    <view class="card">
+      <view class="empty-text">{{i18n.leaderboard_no_data}}</view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="table-container">
+      <view class="table-header">
+        <view class="col-rank">#</view>
+        <view class="col-name">{{i18n.leaderboard_player}}</view>
+        <view class="col-stat">{{i18n.leaderboard_played}}</view>
+        <view class="col-stat">{{i18n.leaderboard_wins}}</view>
+        <view class="col-stat">{{i18n.leaderboard_losses}}</view>
+        <view class="col-stat">{{i18n.leaderboard_points}}</view>
+      </view>
+      <view class="table-body">
+        <view class="table-row {{index < 3 ? 'top-three' : ''}}" wx:for="{{leaderboard}}" wx:key="rank">
+          <view class="col-rank">{{item.rank}}</view>
+          <view class="col-name">{{item.name}}</view>
+          <view class="col-stat">{{item.matchesPlayed}}</view>
+          <view class="col-stat">{{item.wins}}</view>
+          <view class="col-stat">{{item.losses}}</view>
+          <view class="col-stat points">{{item.points}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

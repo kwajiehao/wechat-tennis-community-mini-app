@@ -17,7 +17,7 @@ miniprogram/           # Client-side WeChat Mini Program
   app.js               # Entry point, CloudBase init
   config.js            # Environment config (gitignored, copy from config.example.js)
   config.example.js    # Template for config.js
-  pages/               # 9 pages: index, event, profile, matches, stats, admin, season, players, settings
+  pages/               # 9 pages: index, event, profile, leaderboard, stats, admin, season, players, settings
   components/          # Reusable components (searchable-picker)
   utils/
     cloud.js           # Cloud function wrapper (routes to local in devMode)

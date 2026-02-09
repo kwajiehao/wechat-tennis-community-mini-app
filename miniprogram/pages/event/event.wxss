@@ -328,6 +328,10 @@
   font-size: 28rpx;
 }
 
+.set-picker {
+  display: inline-block;
+}
+
 .set-input {
   width: 100rpx;
   padding: 12rpx;
@@ -335,6 +339,7 @@
   border-radius: 8rpx;
   text-align: center;
   font-size: 28rpx;
+  background: #fff;
 }
 
 .set-separator {

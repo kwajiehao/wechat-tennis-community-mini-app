@@ -1227,12 +1227,48 @@ const handlers = {
     const { playerId } = event;
     const targetId = playerId || (await getPlayerByOpenId(OPENID))?._id;
     if (!targetId) return { stats: null };
+
+    let stats = null;
     try {
       const res = await store.collection('stats').doc(targetId).get();
-      return { stats: res.data };
+      stats = res.data;
     } catch (e) {
-      return { stats: null };
+      // Stats doc doesn't exist yet
     }
+
+    // Get event breakdown across all completed events
+    const eventsRes = await store.collection('events').get();
+    const completedEvents = (eventsRes.data || []).filter(e => e.status === 'completed');
+
+    const eventBreakdown = [];
+    for (const evt of completedEvents) {
+      const evtPoints = evt.playerPoints || {};
+      const pts = evtPoints[targetId] || 0;
+      if (pts > 0) {
+        // Find player's placement in the leaderboard
+        let placement = null;
+        if (evt.leaderboard && evt.leaderboard.rankings) {
+          const playerRanking = evt.leaderboard.rankings.find(r => r.playerId === targetId);
+          if (playerRanking && playerRanking.rank <= 2) {
+            placement = playerRanking.rank;
+          }
+        }
+        eventBreakdown.push({
+          eventId: evt._id,
+          eventTitle: evt.title,
+          eventDate: evt.date,
+          points: pts,
+          placement
+        });
+      }
+    }
+
+    // Sort events by date descending
+    eventBreakdown.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+
+    return {
+      stats: stats ? { ...stats, eventBreakdown } : { eventBreakdown }
+    };
   },
 
   async recalculateStats(event) {
@@ -1261,15 +1297,17 @@ const handlers = {
     }
 
     if (event.all) {
-      await assertAdmin(OPENID);
+      // Fetch all active players to include everyone in leaderboard (even with 0 points)
+      const allPlayersRes = await store.collection('players').get();
+      const allPlayers = (allPlayersRes.data || []).filter(p => p.isActive !== false);
 
       const eventsRes = await store.collection('events').where({ seasonId, status: 'completed' }).get();
       const completedEvents = eventsRes.data || [];
 
       const playerPoints = {};
       for (const evt of completedEvents) {
-        const eventPoints = evt.playerPoints || {};
-        for (const [pid, points] of Object.entries(eventPoints)) {
+        const eventPts = evt.playerPoints || {};
+        for (const [pid, points] of Object.entries(eventPts)) {
           playerPoints[pid] = (playerPoints[pid] || 0) + points;
         }
       }
@@ -1283,24 +1321,55 @@ const handlers = {
         adjustmentsByPlayer[pid] = (adjustmentsByPlayer[pid] || 0) + (Number(adj.deltaPoints) || 0);
       }
 
-      const allPlayerIds = new Set([
-        ...Object.keys(playerPoints),
-        ...Object.keys(adjustmentsByPlayer)
-      ]);
+      // Compute wins/losses from completed matches in this season
+      const matchesRes = await store.collection('matches').where({ seasonId, status: 'completed' }).get();
+      const completedMatches = matchesRes.data || [];
+      const matchIds = completedMatches.map(m => m._id);
 
-      const statsList = [];
-      for (const pid of allPlayerIds) {
-        const eventPoints = playerPoints[pid] || 0;
-        const adjustmentPoints = adjustmentsByPlayer[pid] || 0;
-        statsList.push({
-          playerId: pid,
-          points: eventPoints + adjustmentPoints,
-          eventPoints,
-          adjustmentPoints
-        });
+      const resultsRes = await store.collection('results').get();
+      const results = (resultsRes.data || []).filter(r => matchIds.includes(r.matchId));
+
+      // Build wins/losses/matchesPlayed per player
+      const playerWins = {};
+      const playerMatchesPlayed = {};
+      for (const match of completedMatches) {
+        const participants = match.participants || [];
+        for (const pid of participants) {
+          playerMatchesPlayed[pid] = (playerMatchesPlayed[pid] || 0) + 1;
+        }
+      }
+      for (const result of results) {
+        const winners = result.winnerPlayers || [];
+        for (const pid of winners) {
+          playerWins[pid] = (playerWins[pid] || 0) + 1;
+        }
       }
 
-      statsList.sort((a, b) => b.points - a.points);
+      // Include all active players, not just those with points
+      const statsList = allPlayers.map(player => {
+        const pid = player._id;
+        const eventPts = playerPoints[pid] || 0;
+        const adjustmentPts = adjustmentsByPlayer[pid] || 0;
+        const wins = playerWins[pid] || 0;
+        const matchesPlayed = playerMatchesPlayed[pid] || 0;
+        const losses = matchesPlayed - wins;
+        return {
+          playerId: pid,
+          playerName: player.name,
+          points: eventPts + adjustmentPts,
+          eventPoints: eventPts,
+          adjustmentPoints: adjustmentPts,
+          wins,
+          losses,
+          matchesPlayed
+        };
+      });
+
+      // Sort by points descending, then by name ascending for ties
+      statsList.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        return (a.playerName || '').localeCompare(b.playerName || '');
+      });
 
       return { season, statsList };
     }
@@ -1316,11 +1385,58 @@ const handlers = {
     const eventsRes = await store.collection('events').where({ seasonId, status: 'completed' }).get();
     const completedEvents = eventsRes.data || [];
 
-    let eventPoints = 0;
+    // Build event breakdown: list of events with points earned from each
+    const eventBreakdown = [];
+    let totalEventPoints = 0;
     for (const evt of completedEvents) {
       const evtPoints = evt.playerPoints || {};
-      eventPoints += (evtPoints[playerId] || 0);
+      const pts = evtPoints[playerId] || 0;
+      if (pts > 0) {
+        // Find player's placement in the leaderboard
+        let placement = null;
+        if (evt.leaderboard && evt.leaderboard.rankings) {
+          const playerRanking = evt.leaderboard.rankings.find(r => r.playerId === playerId);
+          if (playerRanking && playerRanking.rank <= 2) {
+            placement = playerRanking.rank;
+          }
+        }
+        eventBreakdown.push({
+          eventId: evt._id,
+          eventTitle: evt.title,
+          eventDate: evt.date,
+          points: pts,
+          placement
+        });
+      }
+      totalEventPoints += pts;
     }
+
+    // Sort events by date descending
+    eventBreakdown.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+
+    // Get wins/losses/matchesPlayed for this player in this season
+    const matchesRes = await store.collection('matches').where({ seasonId, status: 'completed' }).get();
+    const completedMatches = matchesRes.data || [];
+    const matchIds = completedMatches.map(m => m._id);
+
+    const resultsRes = await store.collection('results').get();
+    const results = (resultsRes.data || []).filter(r => matchIds.includes(r.matchId));
+
+    let wins = 0;
+    let matchesPlayed = 0;
+    for (const match of completedMatches) {
+      const participants = match.participants || [];
+      if (participants.includes(playerId)) {
+        matchesPlayed++;
+      }
+    }
+    for (const result of results) {
+      const winners = result.winnerPlayers || [];
+      if (winners.includes(playerId)) {
+        wins++;
+      }
+    }
+    const losses = matchesPlayed - wins;
 
     const adjustmentsRes = await store.collection('season_point_adjustments').where({ seasonId, playerId }).get();
     const adjustmentPoints = (adjustmentsRes.data || []).reduce(
@@ -1328,7 +1444,7 @@ const handlers = {
       0
     );
 
-    const points = eventPoints + adjustmentPoints;
+    const points = totalEventPoints + adjustmentPoints;
 
     return {
       season,
@@ -1336,8 +1452,12 @@ const handlers = {
         seasonId,
         playerId,
         points,
-        eventPoints,
-        adjustmentPoints
+        eventPoints: totalEventPoints,
+        adjustmentPoints,
+        eventBreakdown,
+        wins,
+        losses,
+        matchesPlayed
       }
     };
   },

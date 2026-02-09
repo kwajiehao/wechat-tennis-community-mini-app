@@ -60,7 +60,12 @@ exports.main = async (event, context) => {
   const season = seasonRes && seasonRes.data ? seasonRes.data : null;
 
   if (event.all) {
-    await assertAdmin(OPENID);
+    // Fetch all active players to include everyone in leaderboard (even with 0 points)
+    const allPlayersRes = await db.collection('players')
+      .where({ isActive: db.command.neq(false) })
+      .field({ _id: true, name: true })
+      .get();
+    const allPlayers = allPlayersRes.data || [];
 
     const eventsRes = await db.collection('events')
       .where({ seasonId, status: 'completed' })
@@ -87,24 +92,59 @@ exports.main = async (event, context) => {
       adjustmentsByPlayer[pid] = (adjustmentsByPlayer[pid] || 0) + (Number(adj.deltaPoints) || 0);
     }
 
-    const allPlayerIds = new Set([
-      ...Object.keys(playerPoints),
-      ...Object.keys(adjustmentsByPlayer)
-    ]);
+    // Compute wins/losses from completed matches in this season
+    const matchesRes = await db.collection('matches')
+      .where({ seasonId, status: 'completed' })
+      .get();
+    const completedMatches = matchesRes.data || [];
+    const matchIds = completedMatches.map(m => m._id);
 
-    const statsList = [];
-    for (const playerId of allPlayerIds) {
-      const eventPoints = playerPoints[playerId] || 0;
-      const adjustmentPoints = adjustmentsByPlayer[playerId] || 0;
-      statsList.push({
-        playerId,
-        points: eventPoints + adjustmentPoints,
-        eventPoints,
-        adjustmentPoints
-      });
+    const resultsRes = matchIds.length > 0
+      ? await db.collection('results').where({ matchId: db.command.in(matchIds) }).get()
+      : { data: [] };
+    const results = resultsRes.data || [];
+
+    // Build wins/losses/matchesPlayed per player
+    const playerWins = {};
+    const playerMatchesPlayed = {};
+    for (const match of completedMatches) {
+      const participants = match.participants || [];
+      for (const pid of participants) {
+        playerMatchesPlayed[pid] = (playerMatchesPlayed[pid] || 0) + 1;
+      }
+    }
+    for (const result of results) {
+      const winners = result.winnerPlayers || [];
+      for (const pid of winners) {
+        playerWins[pid] = (playerWins[pid] || 0) + 1;
+      }
     }
 
-    statsList.sort((a, b) => b.points - a.points);
+    // Include all active players, not just those with points
+    const statsList = allPlayers.map(player => {
+      const playerId = player._id;
+      const eventPts = playerPoints[playerId] || 0;
+      const adjustmentPts = adjustmentsByPlayer[playerId] || 0;
+      const wins = playerWins[playerId] || 0;
+      const matchesPlayed = playerMatchesPlayed[playerId] || 0;
+      const losses = matchesPlayed - wins;
+      return {
+        playerId,
+        playerName: player.name,
+        points: eventPts + adjustmentPts,
+        eventPoints: eventPts,
+        adjustmentPoints: adjustmentPts,
+        wins,
+        losses,
+        matchesPlayed
+      };
+    });
+
+    // Sort by points descending, then by name ascending for ties
+    statsList.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return (a.playerName || '').localeCompare(b.playerName || '');
+    });
 
     return { season, statsList };
   }
@@ -122,15 +162,66 @@ exports.main = async (event, context) => {
 
   const eventsRes = await db.collection('events')
     .where({ seasonId, status: 'completed' })
-    .field({ playerPoints: true })
+    .field({ _id: true, title: true, date: true, playerPoints: true, leaderboard: true })
     .get();
   const completedEvents = eventsRes.data || [];
 
-  let eventPoints = 0;
+  // Build event breakdown: list of events with points earned from each
+  const eventBreakdown = [];
+  let totalEventPoints = 0;
   for (const evt of completedEvents) {
     const evtPoints = evt.playerPoints || {};
-    eventPoints += (evtPoints[playerId] || 0);
+    const pts = evtPoints[playerId] || 0;
+    if (pts > 0) {
+      // Find player's placement in the leaderboard
+      let placement = null;
+      if (evt.leaderboard && evt.leaderboard.rankings) {
+        const playerRanking = evt.leaderboard.rankings.find(r => r.playerId === playerId);
+        if (playerRanking && playerRanking.rank <= 2) {
+          placement = playerRanking.rank;
+        }
+      }
+      eventBreakdown.push({
+        eventId: evt._id,
+        eventTitle: evt.title,
+        eventDate: evt.date,
+        points: pts,
+        placement
+      });
+    }
+    totalEventPoints += pts;
   }
+
+  // Sort events by date descending
+  eventBreakdown.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+
+  // Get wins/losses/matchesPlayed for this player in this season
+  const matchesRes = await db.collection('matches')
+    .where({ seasonId, status: 'completed' })
+    .get();
+  const completedMatches = matchesRes.data || [];
+  const matchIds = completedMatches.map(m => m._id);
+
+  const resultsRes = matchIds.length > 0
+    ? await db.collection('results').where({ matchId: db.command.in(matchIds) }).get()
+    : { data: [] };
+  const results = resultsRes.data || [];
+
+  let wins = 0;
+  let matchesPlayed = 0;
+  for (const match of completedMatches) {
+    const participants = match.participants || [];
+    if (participants.includes(playerId)) {
+      matchesPlayed++;
+    }
+  }
+  for (const result of results) {
+    const winners = result.winnerPlayers || [];
+    if (winners.includes(playerId)) {
+      wins++;
+    }
+  }
+  const losses = matchesPlayed - wins;
 
   const adjustmentsRes = await db.collection('season_point_adjustments')
     .where({ seasonId, playerId })
@@ -140,7 +231,7 @@ exports.main = async (event, context) => {
     0
   );
 
-  const points = eventPoints + adjustmentPoints;
+  const points = totalEventPoints + adjustmentPoints;
 
   return {
     season,
@@ -148,8 +239,12 @@ exports.main = async (event, context) => {
       seasonId,
       playerId,
       points,
-      eventPoints,
-      adjustmentPoints
+      eventPoints: totalEventPoints,
+      adjustmentPoints,
+      eventBreakdown,
+      wins,
+      losses,
+      matchesPlayed
     }
   };
 };

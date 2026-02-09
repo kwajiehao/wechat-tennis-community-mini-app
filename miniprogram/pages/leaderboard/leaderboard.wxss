@@ -1,0 +1,75 @@
+/* ABOUTME: Styles for leaderboard page with table layout. */
+
+.loading-card {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.loading-text {
+  color: #888;
+}
+
+.empty-text {
+  text-align: center;
+  color: #888;
+  padding: 40rpx 0;
+}
+
+.table-container {
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.table-header {
+  display: flex;
+  background: #1e2a3a;
+  color: #fff;
+  font-weight: 600;
+  font-size: 26rpx;
+  padding: 24rpx 16rpx;
+}
+
+.table-body {
+  font-size: 28rpx;
+}
+
+.table-row {
+  display: flex;
+  padding: 20rpx 16rpx;
+  border-bottom: 1rpx solid #eee;
+  align-items: center;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row.top-three {
+  background: #fffbeb;
+}
+
+.col-rank {
+  width: 60rpx;
+  text-align: center;
+  font-weight: 600;
+}
+
+.col-name {
+  flex: 1;
+  padding-left: 16rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-stat {
+  width: 80rpx;
+  text-align: center;
+}
+
+.col-stat.points {
+  font-weight: 600;
+  color: #1565c0;
+}

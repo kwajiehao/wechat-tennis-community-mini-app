@@ -9,7 +9,7 @@
     <view class="card">
       <view class="title">{{i18n.index_welcome}}</view>
       <view class="button" bindtap="goProfile">{{hasProfile ? i18n.nav_profile : i18n.nav_register}}</view>
-      <view class="button secondary" bindtap="goMatches">{{i18n.nav_matches}}</view>
+      <view class="button secondary" bindtap="goLeaderboard">{{i18n.nav_leaderboard}}</view>
       <view class="button secondary" bindtap="goStats">{{i18n.nav_stats}}</view>
       <view class="button secondary" bindtap="goPlayers">{{i18n.nav_players}}</view>
       <view class="button secondary" bindtap="goSettings">{{i18n.nav_settings}}</view>

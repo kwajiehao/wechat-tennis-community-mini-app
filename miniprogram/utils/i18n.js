@@ -8,8 +8,8 @@ const strings = {
     nav_events: 'Events',
     nav_profile: 'Profile',
     nav_register: 'Register',
-    nav_matches: 'My Matches',
-    nav_stats: 'Stats',
+    nav_leaderboard: 'Leaderboard',
+    nav_stats: 'My Stats',
     nav_players: 'Players',
     nav_admin: 'Admin',
     nav_settings: 'Settings',
@@ -100,20 +100,28 @@ const strings = {
     // Settings page
     settings_title: 'Settings',
 
-    // Matches page
-    matches_title: 'My Matches',
-    matches_no_matches: 'No matches found',
-    matches_vs: 'vs',
-    matches_pending: 'Pending',
-    matches_completed: 'Completed',
+    // Leaderboard page
+    leaderboard_title: 'Leaderboard',
+    leaderboard_no_season: 'No active season',
+    leaderboard_no_data: 'No matches played yet',
+    leaderboard_player: 'Player',
+    leaderboard_played: 'P',
+    leaderboard_wins: 'W',
+    leaderboard_losses: 'L',
+    leaderboard_points: 'Pts',
 
     // Stats page
     stats_title: 'Statistics',
+    stats_overall: 'Overall',
+    stats_view_for: 'View stats for',
     stats_wins: 'Wins',
     stats_losses: 'Losses',
     stats_points: 'Points',
     stats_win_rate: 'Win Rate',
     stats_matches_played: 'Matches Played',
+    stats_from_events: 'From events',
+    stats_adjustments: 'Adjustments',
+    stats_event_breakdown: 'Points by Event',
 
     // Admin page
     admin_title: 'Admin Panel',
@@ -223,7 +231,6 @@ const strings = {
     toast_failed_load_event: 'Failed to load event',
     toast_failed_load_players: 'Failed to load players',
     toast_failed_load_seasons: 'Failed to load seasons',
-    toast_failed_load_matches: 'Failed to load matches',
     toast_failed_load_matchups: 'Failed to load matchups',
     toast_failed_load_leaderboard: 'Failed to load leaderboard',
     toast_signed_up: 'Signed up',
@@ -248,6 +255,9 @@ const strings = {
     toast_activated: 'Activated',
     toast_deactivated: 'Deactivated',
     toast_player_signed_up: 'Player signed up',
+    toast_invalid_score_no_winner: 'One team must have score of 4',
+    toast_invalid_score_both_win: 'Only one team can have score of 4',
+    toast_tiebreak_required: 'Tiebreak score required for 4-3 set',
 
     // Season page
     season_title: 'Season',
@@ -292,8 +302,8 @@ const strings = {
     nav_events: '活动',
     nav_profile: '个人',
     nav_register: '注册',
-    nav_matches: '我的比赛',
-    nav_stats: '统计',
+    nav_leaderboard: '排行榜',
+    nav_stats: '我的统计',
     nav_players: '球员',
     nav_admin: '管理',
     nav_settings: '设置',
@@ -384,20 +394,28 @@ const strings = {
     // Settings page
     settings_title: '设置',
 
-    // Matches page
-    matches_title: '我的比赛',
-    matches_no_matches: '暂无比赛记录',
-    matches_vs: '对',
-    matches_pending: '待进行',
-    matches_completed: '已完成',
+    // Leaderboard page
+    leaderboard_title: '排行榜',
+    leaderboard_no_season: '暂无活动赛季',
+    leaderboard_no_data: '暂无比赛记录',
+    leaderboard_player: '球员',
+    leaderboard_played: '场',
+    leaderboard_wins: '胜',
+    leaderboard_losses: '负',
+    leaderboard_points: '分',
 
     // Stats page
     stats_title: '统计数据',
+    stats_overall: '总体',
+    stats_view_for: '查看统计',
     stats_wins: '胜场',
     stats_losses: '负场',
     stats_points: '积分',
     stats_win_rate: '胜率',
     stats_matches_played: '比赛场次',
+    stats_from_events: '来自活动',
+    stats_adjustments: '调整',
+    stats_event_breakdown: '各活动积分',
 
     // Admin page
     admin_title: '管理后台',
@@ -495,7 +513,7 @@ const strings = {
     admin_add_player: '+ 添加球员',
     admin_start_time: '开始时间',
     admin_end_time: '结束时间',
-    admin_set_label: '第',
+    admin_set_label: '局',
     admin_tiebreak: '抢七',
     admin_tiebreak_score: '抢七对方得分',
     admin_waitlist: '候补名单',
@@ -507,7 +525,6 @@ const strings = {
     toast_failed_load_event: '加载活动失败',
     toast_failed_load_players: '加载球员失败',
     toast_failed_load_seasons: '加载赛季失败',
-    toast_failed_load_matches: '加载比赛失败',
     toast_failed_load_matchups: '加载对阵失败',
     toast_failed_load_leaderboard: '加载排行榜失败',
     toast_signed_up: '报名成功',
@@ -532,6 +549,9 @@ const strings = {
     toast_activated: '已激活',
     toast_deactivated: '已停用',
     toast_player_signed_up: '球员已报名',
+    toast_invalid_score_no_winner: '必须有一方得分为4',
+    toast_invalid_score_both_win: '只能有一方得分为4',
+    toast_tiebreak_required: '4-3比分需要填写抢七得分',
 
     // Season page
     season_title: '赛季',

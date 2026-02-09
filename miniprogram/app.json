@@ -3,7 +3,7 @@
     "pages/index/index",
     "pages/event/event",
     "pages/profile/profile",
-    "pages/matches/matches",
+    "pages/leaderboard/leaderboard",
     "pages/stats/stats",
     "pages/admin/admin",
     "pages/season/season",

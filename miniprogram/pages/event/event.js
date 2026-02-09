@@ -67,6 +67,7 @@ Page({
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
     },
+    scoreOptions: ['0', '1', '2', '3', '4'],
     showTieBreaker: false,
     tiedPlayers: [],
     selectedChampion: '',
@@ -461,10 +462,11 @@ Page({
       'resultEntry.selectedMatch': match
     });
   },
-  onSetScoreInput(e) {
+  onSetScorePick(e) {
     const { index, team } = e.currentTarget.dataset;
+    const pickedValue = this.data.scoreOptions[e.detail.value];
     const sets = this.data.resultEntry.sets.slice();
-    sets[index] = { ...sets[index], [team]: e.detail.value };
+    sets[index] = { ...sets[index], [team]: pickedValue };
     // Clear tiebreak if no longer a 4-3 or 3-4 set
     const a = sets[index].teamAGames;
     const b = sets[index].teamBGames;
@@ -507,6 +509,28 @@ Page({
     if (!entry.winner) {
       wx.showToast({ title: this.data.i18n.toast_select_winner, icon: 'none' });
       return;
+    }
+
+    // Validate that each set has exactly one team with score of 4
+    for (const set of sets) {
+      const a = Number.parseInt(set.teamAGames, 10);
+      const b = Number.parseInt(set.teamBGames, 10);
+      const aHas4 = a === 4;
+      const bHas4 = b === 4;
+      if (!aHas4 && !bHas4) {
+        wx.showToast({ title: this.data.i18n.toast_invalid_score_no_winner, icon: 'none' });
+        return;
+      }
+      if (aHas4 && bHas4) {
+        wx.showToast({ title: this.data.i18n.toast_invalid_score_both_win, icon: 'none' });
+        return;
+      }
+      // Require tiebreak score for 4-3 or 3-4 sets
+      const isTiebreak = (a === 4 && b === 3) || (a === 3 && b === 4);
+      if (isTiebreak && (set.tiebreak === undefined || set.tiebreak === '')) {
+        wx.showToast({ title: this.data.i18n.toast_tiebreak_required, icon: 'none' });
+        return;
+      }
     }
 
     callFunction('enterResult', {

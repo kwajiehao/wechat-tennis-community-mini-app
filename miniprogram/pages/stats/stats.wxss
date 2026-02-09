@@ -1,1 +1,150 @@
-/* stats page styles */
+/* ABOUTME: Styles for stats page with filter, stats grid, and event breakdown. */
+
+.loading-card {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.loading-text {
+  color: #888;
+}
+
+/* Filter section */
+.filter-section {
+  margin-bottom: 20rpx;
+}
+
+.filter-label {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.filter-picker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+}
+
+.filter-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1565c0;
+}
+
+.filter-arrow {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  margin-top: 16rpx;
+}
+
+.stats-grid.season-stats {
+  margin-top: 24rpx;
+}
+
+.stat-item {
+  flex: 1;
+  min-width: 40%;
+  background: #f8f8f8;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  text-align: center;
+}
+
+.stat-item.highlight {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  flex: 0 0 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.stat-value.large {
+  font-size: 56rpx;
+  color: #1565c0;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 4rpx;
+}
+
+/* Points breakdown */
+.points-breakdown {
+  margin-top: 16rpx;
+  padding: 16rpx;
+  background: #fafafa;
+  border-radius: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.breakdown-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* Event list */
+.event-list {
+  margin-top: 12rpx;
+}
+
+.event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+
+.event-item:last-child {
+  border-bottom: none;
+}
+
+.event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.event-title {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.event-date {
+  font-size: 24rpx;
+  color: #888;
+}
+
+.event-points {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #4caf50;
+}
+
+/* Empty message */
+.empty-message {
+  text-align: center;
+  color: #999;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+}
