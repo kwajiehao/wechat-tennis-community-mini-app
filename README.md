@@ -157,3 +157,12 @@ The experience version lets non-technical testers use the app without publishing
 - Admin UI for editing matchups directly.
 - Notifications to players on signup/match publish.
 - Skill updates and rating history.
+
+## Cloudbase querying
+It's easier to query in in the DevTools console than in the UI. An example query:
+```
+  const db = wx.cloud.database()                                                                                  
+  db.collection('matches').where({                                                                                
+    participants: "<your id>"                                                              
+  }).get().then(res => console.log(res.data))                                                                     
+  ```
