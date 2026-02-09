@@ -27,14 +27,26 @@
 
 .player-info {
   display: flex;
-  align-items: center;
-  gap: 12rpx;
+  flex-direction: column;
+  gap: 6rpx;
   flex: 1;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .player-name {
   font-size: 28rpx;
   color: #333;
+}
+
+.player-signup-time {
+  font-size: 22rpx;
+  color: #888;
 }
 
 .player-badges {

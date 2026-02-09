@@ -465,6 +465,7 @@ const handlers = {
           availabilitySlots,
           preferredMatchTypes,
           status: 'signed',
+          createdAt: now,
           updatedAt: now
         }
       });

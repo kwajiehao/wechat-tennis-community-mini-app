@@ -125,6 +125,7 @@ exports.main = async (event, context) => {
         availabilitySlots,
         preferredMatchTypes,
         status: 'signed',
+        createdAt: now,
         updatedAt: now,
         seasonId
       }

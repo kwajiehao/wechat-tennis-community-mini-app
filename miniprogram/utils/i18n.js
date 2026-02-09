@@ -86,6 +86,7 @@ const strings = {
     event_winner: 'Winner',
     event_pending: 'Pending',
     event_completed_notice: 'This event has been completed',
+    event_signed_at: 'Signed up',
 
     // Profile page
     profile_title: 'My Profile',
@@ -349,6 +350,7 @@ const strings = {
     event_winner: '胜',
     event_pending: '待定',
     event_completed_notice: '此活动已结束',
+    event_signed_at: '报名时间',
 
     // Profile page
     profile_title: '我的资料',

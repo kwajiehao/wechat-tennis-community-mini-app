@@ -80,7 +80,10 @@
         <view class="player-list">
           <view wx:for="{{signedUpPlayers}}" wx:key="playerId" class="player-item">
             <view class="player-info">
-              <text class="player-name">{{item.name}}</text>
+              <view class="player-name-row">
+                <text class="player-name">{{item.name}}</text>
+                <text class="player-signup-time" wx:if="{{item.signedUpAt}}">{{item.signedUpAt}}</text>
+              </view>
               <view class="player-badges">
                 <text class="player-badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
                 <text class="player-badge gender {{item.gender === 'F' ? 'female' : 'male'}}">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>

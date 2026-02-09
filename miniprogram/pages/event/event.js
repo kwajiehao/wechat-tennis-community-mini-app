@@ -24,6 +24,18 @@ function filterPlayersByMatchType(players, matchType) {
   return players.filter(p => (p.gender || '').toUpperCase() === requiredGender);
 }
 
+function formatSignupTime(isoString) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
 Page({
   data: {
     i18n: {},
@@ -115,12 +127,19 @@ Page({
         const allSignups = r1.signups || [];
         const allMatches = r2.matches || [];
 
-        const signedUpPlayers = allSignups.map(s => ({
+        const sortedSignups = allSignups.slice().sort((a, b) => {
+          const timeA = a.createdAt || '';
+          const timeB = b.createdAt || '';
+          return timeA.localeCompare(timeB);
+        });
+
+        const signedUpPlayers = sortedSignups.map(s => ({
           playerId: s.playerId,
           name: s.playerName || 'Unknown',
           ntrp: s.playerNtrp,
           gender: (s.playerGender || '').toUpperCase(),
-          isTestPlayer: s.isTestPlayer || false
+          isTestPlayer: s.isTestPlayer || false,
+          signedUpAt: formatSignupTime(s.createdAt)
         }));
 
         const matches = allMatches
