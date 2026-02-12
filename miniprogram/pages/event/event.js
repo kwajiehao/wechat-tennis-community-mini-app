@@ -53,6 +53,7 @@ Page({
     showAddPlayer: false,
     availablePlayersForSignup: [],
     selectedPlayerToAdd: [],
+    hasCompletedMatches: false,
     dataLoaded: false,
     newMatchup: {
       matchType: 'mens_singles',
@@ -171,12 +172,14 @@ Page({
           });
 
         const pendingMatches = matches.filter(m => m.status !== 'completed');
+        const hasCompletedMatches = matches.some(m => m.status === 'completed');
 
         this.setData({
           signupStatus: mySignup ? mySignup.status : '',
           signedUpPlayers,
           matches,
-          pendingMatches
+          pendingMatches,
+          hasCompletedMatches
         });
       })
       .catch(err => {

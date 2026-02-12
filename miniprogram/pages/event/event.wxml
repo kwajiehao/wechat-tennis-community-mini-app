@@ -14,68 +14,67 @@
       <view class="label" wx:if="{{event.startTime}}">{{event.startTime}} - {{event.endTime}}</view>
     </view>
 
-    <block wx:if="{{isAdmin && event.status !== 'completed'}}">
+    <block wx:if="{{isAdmin}}">
       <view class="card">
         <view class="title">{{i18n.nav_admin}}</view>
         <view class="button {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'generateMatchups'}}" wx:if="{{event.status === 'open'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
         <view class="button secondary {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'confirmRegenerateMatchups'}}" wx:if="{{event.status === 'in_progress'}}">{{i18n.admin_regenerate_matchups || 'Regenerate Matchups'}}</view>
         <view class="hint" wx:if="{{event.status === 'open' && signedUpPlayers.length < 4}}">{{i18n.admin_min_players_hint || 'Minimum 4 players required'}}</view>
         <view class="hint" wx:if="{{event.status === 'match_started'}}">{{i18n.admin_match_started_hint || 'Matches have started - cannot regenerate'}}</view>
-        <view class="button" bindtap="completeEvent" wx:if="{{event.status === 'in_progress' || event.status === 'match_started'}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
+        <view class="button" bindtap="completeEvent" wx:if="{{event.status !== 'completed' && matches.length > 0}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
 
-        <view class="divider"></view>
-
-        <view class="button secondary" bindtap="toggleAddMatchup" wx:if="{{!showAddMatchup}}">{{i18n.admin_add_matchup || '+ Add Matchup'}}</view>
-        <block wx:if="{{showAddMatchup}}">
-          <view class="add-matchup-form">
-            <view class="label">{{i18n.admin_match_type}}</view>
-            <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onAddMatchupTypePicker">
-              <view class="picker-value">{{newMatchup.matchTypeLabel || i18n.common_select}}</view>
-            </picker>
-
-            <view class="label">{{i18n.admin_team_a}}</view>
-            <searchable-picker
-              items="{{filteredPlayersForMatchup}}"
-              selectedIds="{{newMatchup.teamA}}"
-              excludeIds="{{newMatchup.teamB}}"
-              placeholder="{{i18n.common_search}}"
-              maxSelect="{{newMatchup.maxPlayers}}"
-              bind:change="onAddMatchupTeamAChange"
-            />
-
-            <view class="team-b-section">
-              <view class="label">{{i18n.admin_team_b}}</view>
-              <searchable-picker
-                items="{{filteredPlayersForMatchup}}"
-                selectedIds="{{newMatchup.teamB}}"
-                excludeIds="{{newMatchup.teamA}}"
-                placeholder="{{i18n.common_search}}"
-                maxSelect="{{newMatchup.maxPlayers}}"
-                bind:change="onAddMatchupTeamBChange"
-              />
-            </view>
-
-            <view class="button-row">
-              <view class="button" bindtap="addMatchup">{{i18n.common_save}}</view>
-              <view class="button secondary" bindtap="toggleAddMatchup">{{i18n.common_cancel}}</view>
-            </view>
-          </view>
-        </block>
-      </view>
-    </block>
-
-    <block wx:if="{{isAdmin && event.status === 'completed'}}">
-      <view class="card">
-        <view class="title">{{i18n.nav_admin}}</view>
         <block wx:if="{{!event.leaderboard || !event.leaderboard.computed}}">
-          <view class="button" bindtap="computeScore">{{i18n.admin_compute_score || 'Compute Score'}}</view>
-          <view class="button secondary" bindtap="reopenEvent">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+          <view class="button {{!hasCompletedMatches || event.status !== 'completed' ? 'disabled' : ''}}" bindtap="{{hasCompletedMatches && event.status === 'completed' ? 'computeScore' : ''}}">{{i18n.admin_compute_score || 'Compute Score'}}</view>
         </block>
-        <block wx:else>
+
+        <view class="button secondary" bindtap="reopenEvent" wx:if="{{event.status === 'completed' && (!event.leaderboard || !event.leaderboard.computed)}}">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+
+        <block wx:if="{{event.leaderboard && event.leaderboard.computed}}">
           <view class="locked-notice">
             <text class="lock-icon">🔒</text>
             <text>{{i18n.event_score_locked || 'Score finalized'}}</text>
           </view>
+        </block>
+
+        <block wx:if="{{event.status !== 'completed'}}">
+          <view class="divider"></view>
+
+          <view class="button secondary" bindtap="toggleAddMatchup" wx:if="{{!showAddMatchup}}">{{i18n.admin_add_matchup || '+ Add Matchup'}}</view>
+          <block wx:if="{{showAddMatchup}}">
+            <view class="add-matchup-form">
+              <view class="label">{{i18n.admin_match_type}}</view>
+              <picker mode="selector" range="{{matchTypes}}" range-key="label" bindchange="onAddMatchupTypePicker">
+                <view class="picker-value">{{newMatchup.matchTypeLabel || i18n.common_select}}</view>
+              </picker>
+
+              <view class="label">{{i18n.admin_team_a}}</view>
+              <searchable-picker
+                items="{{filteredPlayersForMatchup}}"
+                selectedIds="{{newMatchup.teamA}}"
+                excludeIds="{{newMatchup.teamB}}"
+                placeholder="{{i18n.common_search}}"
+                maxSelect="{{newMatchup.maxPlayers}}"
+                bind:change="onAddMatchupTeamAChange"
+              />
+
+              <view class="team-b-section">
+                <view class="label">{{i18n.admin_team_b}}</view>
+                <searchable-picker
+                  items="{{filteredPlayersForMatchup}}"
+                  selectedIds="{{newMatchup.teamB}}"
+                  excludeIds="{{newMatchup.teamA}}"
+                  placeholder="{{i18n.common_search}}"
+                  maxSelect="{{newMatchup.maxPlayers}}"
+                  bind:change="onAddMatchupTeamBChange"
+                />
+              </view>
+
+              <view class="button-row">
+                <view class="button" bindtap="addMatchup">{{i18n.common_save}}</view>
+                <view class="button secondary" bindtap="toggleAddMatchup">{{i18n.common_cancel}}</view>
+              </view>
+            </view>
+          </block>
         </block>
       </view>
     </block>
