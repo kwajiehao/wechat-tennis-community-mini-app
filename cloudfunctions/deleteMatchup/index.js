@@ -64,5 +64,17 @@ exports.main = async (event, context) => {
 
   await db.collection('matches').doc(matchId).remove();
 
+  if (eventId) {
+    const remaining = await db.collection('matches').where({ eventId }).count();
+    if (remaining.total === 0) {
+      const eventRes2 = await db.collection('events').doc(eventId).get().catch(() => null);
+      if (eventRes2 && eventRes2.data && eventRes2.data.status === 'in_progress') {
+        await db.collection('events').doc(eventId).update({
+          data: { status: 'open' }
+        });
+      }
+    }
+  }
+
   return { deleted: true };
 };

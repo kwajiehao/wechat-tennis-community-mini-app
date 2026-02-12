@@ -86,5 +86,11 @@ exports.main = async (event, context) => {
     data: { matchId: res._id }
   });
 
+  if (eventRes.data.status === 'open') {
+    await db.collection('events').doc(eventId).update({
+      data: { status: 'in_progress' }
+    });
+  }
+
   return { matchId: res._id };
 };
