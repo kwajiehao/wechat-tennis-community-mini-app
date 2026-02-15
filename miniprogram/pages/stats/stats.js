@@ -20,9 +20,16 @@ Page({
     isLoading: true
   },
 
-  onLoad() {
+  onLoad(options) {
     initCloud();
     this.loadI18n();
+    if (options.playerId) {
+      this._playerId = options.playerId;
+      const playerName = options.playerName ? decodeURIComponent(options.playerName) : '';
+      if (playerName) {
+        wx.setNavigationBarTitle({ title: playerName });
+      }
+    }
     this.loadData();
   },
 
@@ -37,9 +44,10 @@ Page({
   loadData() {
     this.setData({ isLoading: true });
 
+    const statsParams = this._playerId ? { playerId: this._playerId } : { mine: true };
     Promise.all([
       callFunction('listSeasons', {}),
-      callFunction('getStats', { mine: true })
+      callFunction('getStats', statsParams)
     ])
       .then(([seasonsRes, statsRes]) => {
         const seasons = seasonsRes.result.seasons || [];
@@ -122,7 +130,8 @@ Page({
   },
 
   loadSeasonStats(seasonId) {
-    callFunction('getSeasonStats', { seasonId, mine: true })
+    const params = this._playerId ? { seasonId, playerId: this._playerId } : { seasonId, mine: true };
+    callFunction('getSeasonStats', params)
       .then(res => {
         const stats = res.result.stats || null;
         const eventBreakdown = stats ? (stats.eventBreakdown || []) : [];

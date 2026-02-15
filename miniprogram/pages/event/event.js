@@ -353,6 +353,24 @@ Page({
       });
   },
   reopenEvent() {
+    const event = this.data.event;
+    const hasComputedScores = event && event.leaderboard && event.leaderboard.computed;
+
+    if (hasComputedScores) {
+      wx.showModal({
+        title: '',
+        content: this.data.i18n.admin_reopen_scored_event_warning || 'This will clear the computed leaderboard and season points for this event. Continue?',
+        success: (res) => {
+          if (res.confirm) {
+            this.executeReopenEvent();
+          }
+        }
+      });
+    } else {
+      this.executeReopenEvent();
+    }
+  },
+  executeReopenEvent() {
     const eventId = this.data.eventId;
     callFunction('reopenEvent', { eventId })
       .then(() => {
@@ -363,6 +381,27 @@ Page({
         console.error(err);
         wx.showToast({ title: err.message || 'Reopen failed', icon: 'none' });
       });
+  },
+  clearResult(e) {
+    const matchId = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: '',
+      content: this.data.i18n.admin_confirm_clear_result || 'Clear this result? The match will return to pending.',
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('deleteResult', { matchId })
+            .then(() => {
+              wx.showToast({ title: this.data.i18n.toast_result_cleared || 'Result cleared', icon: 'success' });
+              this.fetchEventData();
+            })
+            .catch(err => {
+              console.error(err);
+              const msg = i18n.translateError(err.message) || 'Clear failed';
+              wx.showToast({ title: msg, icon: 'none' });
+            });
+        }
+      }
+    });
   },
   toggleAddMatchup() {
     const showAddMatchup = !this.data.showAddMatchup;
@@ -600,7 +639,8 @@ Page({
   },
   selectChampion(e) {
     const playerId = e.currentTarget.dataset.playerId;
-    this.setData({ selectedChampion: playerId });
+    this.setData({ showTieBreaker: false, tiedPlayers: [], selectedChampion: '' });
+    this.executeComputeScore(playerId);
   },
   closeTieBreaker() {
     this.setData({
@@ -608,18 +648,5 @@ Page({
       tiedPlayers: [],
       selectedChampion: ''
     });
-  },
-  confirmChampion() {
-    const championId = this.data.selectedChampion;
-    if (!championId) {
-      wx.showToast({
-        title: this.data.i18n.admin_select_champion || 'Select a champion',
-        icon: 'none'
-      });
-      return;
-    }
-
-    this.setData({ showTieBreaker: false });
-    this.executeComputeScore(championId);
   }
 });

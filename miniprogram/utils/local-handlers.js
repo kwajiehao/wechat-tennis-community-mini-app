@@ -868,11 +868,6 @@ const handlers = {
     if (!eventData) throw new Error('EVENT_NOT_FOUND');
     if (eventData.status !== 'completed') throw new Error('EVENT_NOT_COMPLETED');
 
-    // Block reopening if score has been computed (event is locked)
-    if (eventData.leaderboard && eventData.leaderboard.computed) {
-      throw new Error('EVENT_LOCKED');
-    }
-
     // Restore to previous status (in_progress or match_started)
     const restoreStatus = eventData.previousStatus || 'in_progress';
 
@@ -881,7 +876,8 @@ const handlers = {
         status: restoreStatus,
         playerPoints: null,
         completedAt: null,
-        previousStatus: null
+        previousStatus: null,
+        leaderboard: null
       }
     });
 
@@ -1380,8 +1376,6 @@ const handlers = {
       const player = await getPlayerByOpenId(OPENID);
       if (!player) return { stats: null, season };
       playerId = player._id;
-    } else {
-      await assertAdmin(OPENID);
     }
 
     const eventsRes = await store.collection('events').where({ seasonId, status: 'completed' }).get();
@@ -1684,6 +1678,58 @@ const handlers = {
     }
 
     return { success: true, removedMatchups };
+  },
+
+  async deleteResult(event) {
+    const { OPENID } = getWXContext();
+    const settings = await assertAdmin(OPENID);
+    const { matchId } = event;
+    if (!matchId) throw new Error('MISSING_FIELDS');
+
+    const matchRes = await store.collection('matches').doc(matchId).get().catch(() => null);
+    if (!matchRes || !matchRes.data) throw new Error('MATCH_NOT_FOUND');
+    const match = matchRes.data;
+
+    // Block if event has computed leaderboard (locked)
+    if (match.eventId) {
+      const eventRes = await store.collection('events').doc(match.eventId).get().catch(() => null);
+      if (eventRes && eventRes.data && eventRes.data.leaderboard && eventRes.data.leaderboard.computed) {
+        throw new Error('EVENT_LOCKED');
+      }
+    }
+
+    // Find and delete the result(s)
+    const resultsRes = await store.collection('results').get();
+    const matchResults = (resultsRes.data || []).filter(r => r.matchId === matchId);
+    for (const result of matchResults) {
+      await store.collection('results').doc(result._id).remove();
+    }
+
+    // Reset match to pre-result state
+    await store.collection('matches').doc(matchId).update({
+      data: {
+        status: match.status === 'completed' ? 'approved' : match.status,
+        completedAt: null,
+        score: null,
+        winner: null
+      }
+    });
+
+    // Recalculate UTR for all participants
+    const participants = match.participants || [...(match.teamA || []), ...(match.teamB || [])];
+    for (const playerId of participants) {
+      const playersRes = await store.collection('players').get();
+      const player = (playersRes.data || []).find(p => p._id === playerId);
+      const playerNtrp = player ? player.ntrp : 3.0;
+      const newUTR = await recalculatePlayerUTR(playerId, playerNtrp);
+      if (newUTR !== null) {
+        await store.collection('players').doc(playerId).update({
+          data: { utr: newUTR, utrUpdatedAt: new Date().toISOString() }
+        });
+      }
+    }
+
+    return { matchId };
   },
 
   async deleteMatchup(data) {

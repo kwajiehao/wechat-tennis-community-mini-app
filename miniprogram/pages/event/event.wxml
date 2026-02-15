@@ -27,7 +27,7 @@
           <view class="button {{!hasCompletedMatches || event.status !== 'completed' ? 'disabled' : ''}}" bindtap="{{hasCompletedMatches && event.status === 'completed' ? 'computeScore' : ''}}">{{i18n.admin_compute_score || 'Compute Score'}}</view>
         </block>
 
-        <view class="button secondary" bindtap="reopenEvent" wx:if="{{event.status === 'completed' && (!event.leaderboard || !event.leaderboard.computed)}}">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
+        <view class="button secondary" bindtap="reopenEvent" wx:if="{{event.status === 'completed'}}">{{i18n.admin_reopen_event || 'Reopen Event'}}</view>
 
         <block wx:if="{{event.leaderboard && event.leaderboard.computed}}">
           <view class="locked-notice">
@@ -195,6 +195,7 @@
               <view class="matchup-header">
                 <view class="matchup-type">{{item.matchTypeLabel}}</view>
                 <view class="matchup-delete" data-id="{{item._id}}" catchtap="deleteMatchup" wx:if="{{isAdmin && event.status !== 'completed' && item.status !== 'completed'}}">×</view>
+                <view class="matchup-delete" data-id="{{item._id}}" catchtap="clearResult" wx:if="{{isAdmin && item.status === 'completed' && (!event.leaderboard || !event.leaderboard.computed)}}">×</view>
               </view>
               <view class="matchup-versus">
                 <view class="team-block team-a {{item.winner === 'A' ? 'winner' : ''}}">

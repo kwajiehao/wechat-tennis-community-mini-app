@@ -31,6 +31,15 @@ Page({
     });
   },
 
+  navigateToPlayerStats(e) {
+    const { playerId, playerName } = e.currentTarget.dataset;
+    if (playerId) {
+      wx.navigateTo({
+        url: `/pages/stats/stats?playerId=${playerId}&playerName=${encodeURIComponent(playerName || '')}`
+      });
+    }
+  },
+
   loadLeaderboard() {
     this.setData({ loading: true });
     return callFunction('getSeasonStats', { all: true })
@@ -45,6 +54,7 @@ Page({
         console.log('statsList from getSeasonStats:', JSON.stringify(statsList));
         const leaderboard = statsList.map((s, index) => ({
           rank: index + 1,
+          playerId: s.playerId,
           name: s.playerName || 'Unknown',
           matchesPlayed: s.matchesPlayed || 0,
           wins: s.wins || 0,

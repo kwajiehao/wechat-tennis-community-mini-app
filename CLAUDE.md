@@ -28,14 +28,14 @@ miniprogram/           # Client-side WeChat Mini Program
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
 
-cloudfunctions/        # 29 serverless functions (Node.js)
+cloudfunctions/        # 30 serverless functions (Node.js)
   # Player: upsertPlayer, getPlayer, listPlayers, deletePlayer
   # Matchups: addMatchup, deleteMatchup
   # Auth: checkAdmin
   # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent, computeEventScore
   # Signups: signupEvent, listSignups
   # Matchmaking: generateMatchups, regenerateMatchups (open status only), approveMatchups (deprecated)
-  # Results: enterResult, listMatches
+  # Results: enterResult, listMatches, deleteResult
   # Stats: getStats, recalculateStats, getSeasonStats
   # Seasons: createSeason, listSeasons, setActiveSeason, adminAdjustSeasonPoints
   # Data: adminExportCSV, adminImportCSV
@@ -72,7 +72,7 @@ Events progress through these statuses:
 ### Two-Step Event Completion
 
 1. **Complete Event** - Marks event as `completed`. No scores calculated yet. Admin can still reopen.
-2. **Compute Score** - Calculates final leaderboard and permanently locks the event. Reopen is disabled.
+2. **Compute Score** - Calculates final leaderboard and locks the event. Admin can reopen (clears leaderboard and season points). Individual match results can be cleared via `deleteResult` when event is not locked.
 
 ### Leaderboard Calculation Rules (in computeEventScore)
 - Count wins per player (doubles count as 1 win per player on winning team)

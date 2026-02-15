@@ -1,5 +1,5 @@
 // ABOUTME: Computes final leaderboard for a completed event with ranking bonuses.
-// ABOUTME: Handles tie-breaking and permanently locks event from reopening.
+// ABOUTME: Handles tie-breaking and locks event scores until admin reopens.
 
 const cloud = require('wx-server-sdk');
 
@@ -241,8 +241,8 @@ exports.main = async (event, context) => {
   // Update event with leaderboard and playerPoints
   await db.collection('events').doc(eventId).update({
     data: {
-      leaderboard,
-      playerPoints
+      leaderboard: _.set(leaderboard),
+      playerPoints: _.set(playerPoints)
     }
   });
 

@@ -17,5 +17,7 @@
     "navigationBarTextStyle": "white"
   },
   "style": "v2",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true,
   "sitemapLocation": "sitemap.json"
 }

@@ -18,6 +18,23 @@
     </view>
   </view>
 
+  <view class="section-title">{{i18n.admin_manage_events}}</view>
+  <block wx:if="{{events.length === 0}}">
+    <view class="card">
+      <view class="empty-message">{{i18n.season_no_results}}</view>
+    </view>
+  </block>
+  <block wx:for="{{events}}" wx:key="_id">
+    <view class="card event-card {{item.status === 'completed' ? 'completed' : ''}}" data-id="{{item._id}}" bindtap="goToEvent">
+      <view class="event-header">
+        <view class="title clickable">{{item.title}}</view>
+        <view class="status-badge {{item.status}}">{{item.status}}</view>
+      </view>
+      <view class="label">{{item.date}} - {{item.location}}</view>
+      <view class="label hint">{{i18n.admin_tap_to_manage || 'Tap to manage'}}</view>
+    </view>
+  </block>
+
   <view class="section-header">
     <view class="section-title">{{showAllMatches ? i18n.season_all_matches : i18n.season_recent_matches}}</view>
     <view class="toggle-link" bindtap="toggleShowAllMatches">

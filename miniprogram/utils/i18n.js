@@ -281,7 +281,7 @@ const strings = {
     // Event scoring
     admin_compute_score: 'Compute Score',
     admin_compute_score_title: 'Compute Final Score',
-    admin_compute_score_warning: 'This will calculate the final leaderboard and lock the event. You will not be able to reopen it. Continue?',
+    admin_compute_score_warning: 'This will calculate the final leaderboard and lock the event. Continue?',
     admin_tie_breaker_title: 'Tie Detected',
     admin_tie_breaker_desc: 'These players are tied on wins and game difference. Select the champion:',
     admin_select_champion: 'Select a champion',
@@ -290,6 +290,9 @@ const strings = {
     common_confirm: 'Confirm',
     common_remarks: 'Remarks',
     toast_score_computed: 'Score computed',
+    toast_result_cleared: 'Result cleared',
+    admin_confirm_clear_result: 'Clear this result? The match will return to pending.',
+    admin_reopen_scored_event_warning: 'This will clear the computed leaderboard and season points for this event. Continue?',
 
     // Error messages for scoring
     error_event_locked: 'Event is locked and cannot be reopened',
@@ -576,7 +579,7 @@ const strings = {
     // Event scoring
     admin_compute_score: '计算积分',
     admin_compute_score_title: '计算最终积分',
-    admin_compute_score_warning: '这将计算最终排行榜并锁定活动。锁定后将无法重新开放。继续？',
+    admin_compute_score_warning: '这将计算最终排行榜并锁定活动。继续？',
     admin_tie_breaker_title: '检测到平局',
     admin_tie_breaker_desc: '以下球员的胜场和净胜局数相同。请选择冠军：',
     admin_select_champion: '请选择冠军',
@@ -585,6 +588,9 @@ const strings = {
     common_confirm: '确认',
     common_remarks: '备注',
     toast_score_computed: '积分已计算',
+    toast_result_cleared: '结果已清除',
+    admin_confirm_clear_result: '清除此结果？比赛将恢复为待定状态。',
+    admin_reopen_scored_event_warning: '这将清除此活动的排行榜和赛季积分。继续？',
 
     // Error messages for scoring
     error_event_locked: '活动已锁定，无法重新开放',

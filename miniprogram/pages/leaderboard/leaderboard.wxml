@@ -30,7 +30,7 @@
       <view class="table-body">
         <view class="table-row {{index < 3 ? 'top-three' : ''}}" wx:for="{{leaderboard}}" wx:key="rank">
           <view class="col-rank">{{item.rank}}</view>
-          <view class="col-name">{{item.name}}</view>
+          <view class="col-name tappable" bindtap="navigateToPlayerStats" data-player-id="{{item.playerId}}" data-player-name="{{item.name}}">{{item.name}}</view>
           <view class="col-stat">{{item.matchesPlayed}}</view>
           <view class="col-stat">{{item.wins}}</view>
           <view class="col-stat">{{item.losses}}</view>

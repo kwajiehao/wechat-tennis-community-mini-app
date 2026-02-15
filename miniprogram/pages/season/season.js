@@ -20,6 +20,7 @@ Page({
     i18n: {},
     seasonId: '',
     seasonName: '',
+    events: [],
     leaderboard: [],
     recentMatches: [],
     allMatches: [],
@@ -48,8 +49,32 @@ Page({
   },
 
   loadSeasonData() {
+    this.fetchEvents();
     this.loadLeaderboard();
     this.loadMatches();
+  },
+
+  fetchEvents() {
+    callFunction('listEvents', { seasonId: this.data.seasonId })
+      .then(res => {
+        const events = (res.result.events || []).sort((a, b) => {
+          const dateA = a.createdAt || a.date || '';
+          const dateB = b.createdAt || b.date || '';
+          return dateB.localeCompare(dateA);
+        });
+        this.setData({ events });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ title: this.data.i18n.toast_failed_load_events, icon: 'none' });
+      });
+  },
+
+  goToEvent(e) {
+    const eventId = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/event/event?eventId=${eventId}`
+    });
   },
 
   loadLeaderboard() {

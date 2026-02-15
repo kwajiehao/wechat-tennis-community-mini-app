@@ -64,6 +64,10 @@
   white-space: nowrap;
 }
 
+.col-name.tappable {
+  color: #1565c0;
+}
+
 .col-stat {
   width: 80rpx;
   text-align: center;
