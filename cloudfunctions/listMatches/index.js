@@ -79,8 +79,8 @@ async function buildNames(matches) {
       teamANames,
       teamBNames,
       eventTitle,
-      score: match.score || (result ? result.score : ''),
-      winner: match.winner || (result ? result.winner : '')
+      score: result ? result.score : '',
+      winner: result ? result.winner : ''
     };
   });
 }
