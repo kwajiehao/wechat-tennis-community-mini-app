@@ -81,8 +81,9 @@ function ntrpToUTR(ntrp) {
 }
 
 function getUTR(player) {
-  if (player.utr != null) return player.utr;
-  return ntrpToUTR(player.ntrp);
+  const ntrpBased = ntrpToUTR(player.ntrp);
+  if (player.utr == null) return ntrpBased;
+  return (ntrpBased + player.utr) / 2;
 }
 
 function classifyPlayers(players) {

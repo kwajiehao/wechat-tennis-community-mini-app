@@ -76,6 +76,7 @@ exports.main = async (event, context) => {
       matchType,
       teamA,
       teamB,
+      participants: teamA.concat(teamB),
       status: 'approved',
       seasonId: eventRes.data.seasonId || (settings ? settings.activeSeasonId : null),
       createdAt: now,
