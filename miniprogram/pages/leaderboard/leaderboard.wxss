@@ -27,17 +27,17 @@
   background: #1e2a3a;
   color: #fff;
   font-weight: 600;
-  font-size: 26rpx;
-  padding: 24rpx 16rpx;
+  font-size: 24rpx;
+  padding: 24rpx 12rpx;
 }
 
 .table-body {
-  font-size: 28rpx;
+  font-size: 26rpx;
 }
 
 .table-row {
   display: flex;
-  padding: 20rpx 16rpx;
+  padding: 20rpx 12rpx;
   border-bottom: 1rpx solid #eee;
   align-items: center;
 }
@@ -51,17 +51,19 @@
 }
 
 .col-rank {
-  width: 60rpx;
+  width: 50rpx;
   text-align: center;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .col-name {
-  flex: 1;
-  padding-left: 16rpx;
+  width: 120rpx;
+  padding-left: 8rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .col-name.tappable {
@@ -69,7 +71,7 @@
 }
 
 .col-stat {
-  width: 80rpx;
+  flex: 1;
   text-align: center;
 }
 

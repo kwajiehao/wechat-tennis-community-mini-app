@@ -106,10 +106,11 @@ const strings = {
     leaderboard_no_season: 'No active season',
     leaderboard_no_data: 'No matches played yet',
     leaderboard_player: 'Player',
-    leaderboard_played: 'P',
-    leaderboard_wins: 'W',
-    leaderboard_losses: 'L',
     leaderboard_points: 'Pts',
+    leaderboard_played: 'P',
+    leaderboard_losses: 'L',
+    leaderboard_win_rate: 'W%',
+    leaderboard_champions: 'Bonus',
 
     // Stats page
     stats_title: 'Statistics',
@@ -403,11 +404,12 @@ const strings = {
     leaderboard_title: '排行榜',
     leaderboard_no_season: '暂无活动赛季',
     leaderboard_no_data: '暂无比赛记录',
-    leaderboard_player: '球员',
-    leaderboard_played: '场',
-    leaderboard_wins: '胜',
+    leaderboard_player: '选手',
+    leaderboard_points: '积分',
+    leaderboard_played: '场次',
     leaderboard_losses: '负',
-    leaderboard_points: '分',
+    leaderboard_win_rate: '胜率',
+    leaderboard_champions: '满分',
 
     // Stats page
     stats_title: '统计数据',

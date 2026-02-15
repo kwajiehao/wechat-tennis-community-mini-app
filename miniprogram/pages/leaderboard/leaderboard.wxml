@@ -22,19 +22,21 @@
       <view class="table-header">
         <view class="col-rank">#</view>
         <view class="col-name">{{i18n.leaderboard_player}}</view>
-        <view class="col-stat">{{i18n.leaderboard_played}}</view>
-        <view class="col-stat">{{i18n.leaderboard_wins}}</view>
-        <view class="col-stat">{{i18n.leaderboard_losses}}</view>
         <view class="col-stat">{{i18n.leaderboard_points}}</view>
+        <view class="col-stat">{{i18n.leaderboard_played}}</view>
+        <view class="col-stat">{{i18n.leaderboard_losses}}</view>
+        <view class="col-stat">{{i18n.leaderboard_win_rate}}</view>
+        <view class="col-stat">{{i18n.leaderboard_champions}}</view>
       </view>
       <view class="table-body">
         <view class="table-row {{index < 3 ? 'top-three' : ''}}" wx:for="{{leaderboard}}" wx:key="rank">
           <view class="col-rank">{{item.rank}}</view>
           <view class="col-name tappable" bindtap="navigateToPlayerStats" data-player-id="{{item.playerId}}" data-player-name="{{item.name}}">{{item.name}}</view>
-          <view class="col-stat">{{item.matchesPlayed}}</view>
-          <view class="col-stat">{{item.wins}}</view>
-          <view class="col-stat">{{item.losses}}</view>
           <view class="col-stat points">{{item.points}}</view>
+          <view class="col-stat">{{item.matchesPlayed}}</view>
+          <view class="col-stat">{{item.losses}}</view>
+          <view class="col-stat">{{item.winRate}}</view>
+          <view class="col-stat">{{item.championCount || ''}}</view>
         </view>
       </view>
     </view>

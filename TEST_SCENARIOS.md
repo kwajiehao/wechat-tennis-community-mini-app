@@ -1,21 +1,6 @@
 # WeChat Tennis - Test Scenarios
 
-This document covers all user flows and features for manual testing. Test in local dev mode (`devMode: true`) or against CloudBase.
-
----
-
-## Pre-Seeded Test Data (Local Dev Mode)
-
-| Player | Gender | NTRP | OpenID | Role |
-|--------|--------|------|--------|------|
-| Dev Admin | M | 4.0 | DEV_USER_001 | Admin |
-| Alice Test | F | 3.5 | DEV_USER_002 | Regular |
-| Bob Test | M | 3.5 | DEV_USER_003 | Regular |
-| Carol Test | F | 4.0 | DEV_USER_004 | Regular |
-
-**Pre-seeded Event:** "Dev Tennis Event" (2026-02-15, open status, allows mens_singles, womens_singles, mixed_doubles)
-
-**Pre-seeded Season:** "Dev Season" (2026-01-01 to 2026-06-30, active)
+This document covers all user flows and features for manual testing against CloudBase.
 
 ---
 
@@ -625,8 +610,6 @@ This document covers all user flows and features for manual testing. Test in loc
 
 ## Testing Tips
 
-1. **Local Mode First:** Always test in devMode before CloudBase
-2. **Check Console:** Errors logged to console in dev mode
-3. **Reset Data:** Restart app to reset in-memory data
-4. **Test Both Languages:** Verify all flows in EN and ZH
-5. **Admin vs Regular:** Test same flows as both user types
+1. **Check Console:** Errors logged to console
+2. **Test Both Languages:** Verify all flows in EN and ZH
+3. **Admin vs Regular:** Test same flows as both user types

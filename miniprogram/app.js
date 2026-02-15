@@ -5,14 +5,9 @@ const config = require('./config.js');
 
 App({
   globalData: {
-    envId: config.envId,
-    devMode: config.devMode
+    envId: config.envId
   },
   onLaunch() {
-    if (this.globalData.devMode) {
-      console.log("[DEV MODE] Running with local in-memory storage");
-      return;
-    }
     if (!wx.cloud) {
       console.error("wx.cloud not available. Please use WeChat DevTools 2.2.3+.");
       return;

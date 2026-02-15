@@ -20,10 +20,8 @@ miniprogram/           # Client-side WeChat Mini Program
   pages/               # 9 pages: index, event, profile, leaderboard, stats, admin, season, players, settings
   components/          # Reusable components (searchable-picker)
   utils/
-    cloud.js           # Cloud function wrapper (routes to local in devMode)
+    cloud.js           # Cloud function wrapper for WeChat CloudBase
     i18n.js            # Internationalization (English + Mandarin)
-    local-store.js     # In-memory DB for local development
-    local-handlers.js  # Mock cloud functions for devMode
 
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
@@ -137,18 +135,7 @@ Filters players by gender per match type, then pairs by NTRP:
 
 ### Configuration
 1. Copy `miniprogram/config.example.js` to `miniprogram/config.js`
-2. Edit `config.js` with your settings (this file is gitignored)
-
-### Local Development Mode
-Set `devMode: true` in `config.js` to run without CloudBase:
-- All cloud functions are mocked in `local-handlers.js`
-- Data stored in-memory via `local-store.js`
-- Mock user `DEV_USER_001` is auto-granted admin access
-- Pre-seeded with test players and one event
-
-### Production Mode
-1. Set `devMode: false` in `config.js`
-2. Set `envId` to your CloudBase environment ID
+2. Set `envId` to your CloudBase environment ID (this file is gitignored)
 3. Deploy cloud functions: right-click folder > "Upload and Deploy"
 4. Test: Run Mini Program in simulator or preview on device
 
@@ -170,7 +157,6 @@ The app supports English (en) and Mandarin (zh):
 ## Current Status
 
 Core features complete including:
-- Local development mode with in-memory storage
 - Gender-based matchmaking (5 match types)
 - Event signup display with player names
 - Redesigned admin result entry with set-by-set scoring and ad-hoc matches
@@ -182,4 +168,4 @@ Core features complete including:
 - Season leaderboard shows aggregated points from completed events
 - Test player management in admin panel for matchup testing
 
-No automated tests exist - testing is manual via DevTools or local mode.
+No automated tests exist - testing is manual via DevTools.

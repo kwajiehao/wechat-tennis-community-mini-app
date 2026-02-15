@@ -1,6 +1,6 @@
 # Test Scenarios
 
-Manual testing scenarios for the WeChat Tennis Mini Program. Test in local dev mode (`devMode: true` in config.js) or on the WeChat DevTools simulator.
+Manual testing scenarios for the WeChat Tennis Mini Program. Test on the WeChat DevTools simulator.
 
 ## Event Status Flow
 

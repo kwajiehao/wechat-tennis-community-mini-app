@@ -85,20 +85,6 @@ You can add more admins by editing the `settings` collection.
 8. Check **My Stats** to confirm wins/losses/points update.
 9. (Optional) Use **CSV Export** to pull data and **CSV Import** to rehydrate.
 
-## Local Development Mode
-
-You can run the app without CloudBase for local testing:
-
-1. Copy `miniprogram/config.example.js` to `miniprogram/config.js`
-2. Set `devMode: true` in `config.js`
-3. Run the app in WeChat DevTools
-
-In dev mode:
-- All data is stored in-memory (resets on refresh)
-- Mock user `DEV_USER_001` is auto-granted admin access
-- Pre-seeded with test players and one event
-- No CloudBase deployment needed
-
 ## Deployment
 
 ### Deploy Cloud Functions

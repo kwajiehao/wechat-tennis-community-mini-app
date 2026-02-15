@@ -51,17 +51,21 @@ Page({
           wx.setNavigationBarTitle({ title: season.name || this.data.i18n.leaderboard_title });
         }
 
-        console.log('statsList from getSeasonStats:', JSON.stringify(statsList));
-        const leaderboard = statsList.map((s, index) => ({
-          rank: index + 1,
-          playerId: s.playerId,
-          name: s.playerName || 'Unknown',
-          matchesPlayed: s.matchesPlayed || 0,
-          wins: s.wins || 0,
-          losses: s.losses || 0,
-          points: s.points || 0
-        }));
-        console.log('leaderboard data:', JSON.stringify(leaderboard));
+        const leaderboard = statsList.map((s, index) => {
+          const matchesPlayed = s.matchesPlayed || 0;
+          const wins = s.wins || 0;
+          const winRate = matchesPlayed > 0 ? Math.round(wins / matchesPlayed * 100) : 0;
+          return {
+            rank: index + 1,
+            playerId: s.playerId,
+            name: s.playerName || 'Unknown',
+            points: s.points || 0,
+            matchesPlayed,
+            losses: s.losses || 0,
+            winRate: winRate + '%',
+            championCount: s.championCount || 0
+          };
+        });
 
         this.setData({ season, leaderboard, loading: false });
       })

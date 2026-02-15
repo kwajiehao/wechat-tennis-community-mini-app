@@ -39,15 +39,23 @@ exports.main = async (event, context) => {
 
     const eventsRes = await db.collection('events')
       .where({ seasonId, status: 'completed' })
-      .field({ playerPoints: true })
+      .field({ playerPoints: true, leaderboard: true })
       .get();
     const completedEvents = eventsRes.data || [];
 
     const playerPoints = {};
+    const championCounts = {};
     for (const evt of completedEvents) {
       const eventPoints = evt.playerPoints || {};
       for (const [playerId, points] of Object.entries(eventPoints)) {
         playerPoints[playerId] = (playerPoints[playerId] || 0) + points;
+      }
+      if (evt.leaderboard && evt.leaderboard.computed) {
+        const rankings = evt.leaderboard.rankings || [];
+        const champion = rankings.find(r => r.rank === 1);
+        if (champion) {
+          championCounts[champion.playerId] = (championCounts[champion.playerId] || 0) + 1;
+        }
       }
     }
 
@@ -78,8 +86,8 @@ exports.main = async (event, context) => {
     const playerWins = {};
     const playerMatchesPlayed = {};
     for (const match of completedMatches) {
-      const participants = match.participants || [];
-      for (const pid of participants) {
+      const players = [...(match.teamA || []), ...(match.teamB || [])];
+      for (const pid of players) {
         playerMatchesPlayed[pid] = (playerMatchesPlayed[pid] || 0) + 1;
       }
     }
@@ -106,7 +114,8 @@ exports.main = async (event, context) => {
         adjustmentPoints: adjustmentPts,
         wins,
         losses,
-        matchesPlayed
+        matchesPlayed,
+        championCount: championCounts[playerId] || 0
       };
     });
 
@@ -178,8 +187,8 @@ exports.main = async (event, context) => {
   let wins = 0;
   let matchesPlayed = 0;
   for (const match of completedMatches) {
-    const participants = match.participants || [];
-    if (participants.includes(playerId)) {
+    const players = [...(match.teamA || []), ...(match.teamB || [])];
+    if (players.includes(playerId)) {
       matchesPlayed++;
     }
   }

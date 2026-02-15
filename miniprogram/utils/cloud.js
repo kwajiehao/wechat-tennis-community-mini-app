@@ -1,13 +1,9 @@
-// ABOUTME: Cloud function wrapper that routes to local handlers in dev mode.
-// ABOUTME: Provides initCloud() and callFunction() for cloud or local execution.
+// ABOUTME: Cloud function wrapper for WeChat CloudBase.
+// ABOUTME: Provides initCloud() and callFunction() for cloud execution.
 
 const app = getApp();
 
 function initCloud() {
-  if (app.globalData.devMode) {
-    console.log('[DEV MODE] Using local handlers instead of cloud');
-    return true;
-  }
   if (!wx.cloud) {
     wx.showToast({ title: "Cloud not available", icon: "none" });
     return false;
@@ -20,10 +16,6 @@ function initCloud() {
 }
 
 function callFunction(name, data) {
-  if (app.globalData.devMode) {
-    const { handleLocal } = require('./local-handlers');
-    return handleLocal(name, data);
-  }
   return wx.cloud.callFunction({
     name,
     data: data || {}
