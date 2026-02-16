@@ -52,30 +52,6 @@ function planMatchDistribution(maleCount, femaleCount) {
   return { mensDoubles, womensDoubles, mixedDoubles, targetMatchesPerPlayer };
 }
 
-function formBalancedTeam(pool, usedPartners, playerId) {
-  const sorted = pool.slice().sort((a, b) => getUTR(b) - getUTR(a));
-  const midpoint = Math.floor(sorted.length / 2);
-
-  const playerPartners = usedPartners.get(playerId) || new Set();
-  const isStrong = sorted.findIndex(p => p._id === playerId) < midpoint;
-
-  const searchPool = isStrong ? sorted.slice(midpoint) : sorted.slice(0, midpoint);
-
-  for (const candidate of searchPool) {
-    if (candidate._id !== playerId && !playerPartners.has(candidate._id)) {
-      return candidate._id;
-    }
-  }
-
-  for (const candidate of sorted) {
-    if (candidate._id !== playerId && !playerPartners.has(candidate._id)) {
-      return candidate._id;
-    }
-  }
-
-  return null;
-}
-
 // Given 4 players [a, b, c, d], returns the team split with the smallest
 // UTR difference between teams, respecting partner uniqueness constraints.
 // The 3 possible splits are: (ab vs cd), (ac vs bd), (ad vs bc).
@@ -226,6 +202,6 @@ module.exports = {
   getUTR,
   classifyPlayers,
   planMatchDistribution,
-  formBalancedTeam,
+  pickMostBalancedSplit,
   generateConstrainedMatchups
 };

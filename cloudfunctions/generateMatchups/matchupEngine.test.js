@@ -394,4 +394,57 @@ describe('edge cases', () => {
       expect(match.matchType).toBe('mixed_doubles');
     }
   });
+
+  test('1M/1F: too few for any doubles', () => {
+    const plan = planMatchDistribution(1, 1);
+    expect(plan.mensDoubles).toBe(0);
+    expect(plan.womensDoubles).toBe(0);
+    expect(plan.mixedDoubles).toBe(0);
+  });
+
+  test('3M/1F: only mens doubles possible', () => {
+    const plan = planMatchDistribution(3, 1);
+    expect(plan.womensDoubles).toBe(0);
+    expect(plan.mixedDoubles).toBe(0);
+    // Not enough men for doubles either (need 4)
+    expect(plan.mensDoubles).toBe(0);
+  });
+
+  test('4M/0F: mens doubles only, no mixed or womens', () => {
+    const males = makeMales(4);
+    const plan = planMatchDistribution(4, 0);
+    expect(plan.mixedDoubles).toBe(0);
+    expect(plan.womensDoubles).toBe(0);
+    expect(plan.mensDoubles).toBeGreaterThan(0);
+
+    const { matches } = generateConstrainedMatchups(males, plan, allDoubleTypes());
+    expect(matches.length).toBeGreaterThan(0);
+    for (const match of matches) {
+      expect(match.matchType).toBe('mens_doubles');
+    }
+  });
+
+  test('0M/4F: womens doubles only', () => {
+    const females = makeFemales(4);
+    const plan = planMatchDistribution(0, 4);
+    expect(plan.mixedDoubles).toBe(0);
+    expect(plan.mensDoubles).toBe(0);
+    expect(plan.womensDoubles).toBeGreaterThan(0);
+
+    const { matches } = generateConstrainedMatchups(females, plan, allDoubleTypes());
+    expect(matches.length).toBeGreaterThan(0);
+    for (const match of matches) {
+      expect(match.matchType).toBe('womens_doubles');
+    }
+  });
+
+  test('empty player list produces no matches', () => {
+    const plan = planMatchDistribution(0, 0);
+    expect(plan.mensDoubles).toBe(0);
+    expect(plan.womensDoubles).toBe(0);
+    expect(plan.mixedDoubles).toBe(0);
+
+    const { matches } = generateConstrainedMatchups([], plan, allDoubleTypes());
+    expect(matches).toHaveLength(0);
+  });
 });
