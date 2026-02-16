@@ -297,8 +297,8 @@ describe('generateConstrainedMatchups', () => {
 
   describe('team balance', () => {
     test('combined UTR difference between teams is within threshold', () => {
-      const males = makeMales(7, 2.0, 0.5);
-      const females = makeFemales(3, 2.5, 0.5);
+      const males = makeMales(7, 3.0, 0.25);
+      const females = makeFemales(3, 3.0, 0.25);
       const players = [...males, ...females];
       const plan = planMatchDistribution(7, 3);
       const { matches } = generateConstrainedMatchups(players, plan, allDoubleTypes());
@@ -313,9 +313,31 @@ describe('generateConstrainedMatchups', () => {
           return sum + getUTR(p);
         }, 0);
         const diff = Math.abs(teamAUTR - teamBUTR);
-        // Combined UTR difference should be reasonable (within 5.0)
-        expect(diff).toBeLessThan(5.0);
+        // With NTRP 3.0-4.5 range, balanced splits should keep diff under 4.0
+        expect(diff).toBeLessThan(4.0);
       }
+    });
+
+    test('balance optimization picks better split than arbitrary pairing', () => {
+      // 4 males with known UTRs: wide spread to demonstrate balance matters
+      const players = [
+        makePlayer('a', 'M', 2.0),  // UTR 3.5
+        makePlayer('b', 'M', 3.0),  // UTR 6.0
+        makePlayer('c', 'M', 4.0),  // UTR 8.5
+        makePlayer('d', 'M', 5.0),  // UTR 11.0
+      ];
+      const plan = { mensDoubles: 1, womensDoubles: 0, mixedDoubles: 0, targetMatchesPerPlayer: 3 };
+      const { matches } = generateConstrainedMatchups(players, plan, ['mens_doubles']);
+
+      expect(matches).toHaveLength(1);
+      const match = matches[0];
+      const utrOf = id => getUTR(players.find(p => p._id === id));
+      const teamAUTR = match.teamA.reduce((sum, id) => sum + utrOf(id), 0);
+      const teamBUTR = match.teamB.reduce((sum, id) => sum + utrOf(id), 0);
+      const diff = Math.abs(teamAUTR - teamBUTR);
+      // Best split: (a+d)=14.5 vs (b+c)=14.5 → diff=0
+      // Worst split: (a+b)=9.5 vs (c+d)=19.5 → diff=10
+      expect(diff).toBeLessThanOrEqual(1.0);
     });
   });
 });

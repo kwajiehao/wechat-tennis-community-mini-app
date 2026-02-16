@@ -76,6 +76,40 @@ function formBalancedTeam(pool, usedPartners, playerId) {
   return null;
 }
 
+// Given 4 players [a, b, c, d], returns the team split with the smallest
+// UTR difference between teams, respecting partner uniqueness constraints.
+// The 3 possible splits are: (ab vs cd), (ac vs bd), (ad vs bc).
+function pickMostBalancedSplit(candidates, usedPartners, playerLookup) {
+  const [a, b, c, d] = candidates;
+  const splits = [
+    [[a, b], [c, d]],
+    [[a, c], [b, d]],
+    [[a, d], [b, c]],
+  ];
+
+  function teamUTR(team) {
+    return team.reduce((sum, id) => sum + getUTR(playerLookup.get(id)), 0);
+  }
+
+  function hasUsedPartner(team) {
+    return usedPartners.get(team[0]).has(team[1]);
+  }
+
+  let bestSplit = null;
+  let bestDiff = Infinity;
+
+  for (const [t1, t2] of splits) {
+    if (hasUsedPartner(t1) || hasUsedPartner(t2)) continue;
+    const diff = Math.abs(teamUTR(t1) - teamUTR(t2));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestSplit = [t1, t2];
+    }
+  }
+
+  return bestSplit;
+}
+
 function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
   const { males, females } = classifyPlayers(players);
   const { mensDoubles, womensDoubles, mixedDoubles } = matchPlan;
@@ -83,6 +117,7 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
   const usedPartners = new Map();
   const matchCounts = new Map();
   const matches = [];
+  const playerLookup = new Map(players.map(p => [p._id, p]));
 
   players.forEach(p => {
     usedPartners.set(p._id, new Set());
@@ -104,60 +139,30 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
       .slice(0, count);
   }
 
-  if (allowedTypes.includes('mens_doubles') && males.length >= 4) {
-    for (let i = 0; i < mensDoubles; i++) {
-      const available = males.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
+  function generateSameGenderDoubles(pool, count, matchType) {
+    for (let i = 0; i < count; i++) {
+      const available = pool.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
       if (available.length < 4) break;
 
       const candidates = getLowestMatchCountPlayers(available, 4);
-      const p1 = candidates[0];
-      const p2Id = formBalancedTeam(candidates, usedPartners, p1._id);
-      if (!p2Id) continue;
+      const ids = candidates.map(p => p._id);
+      const split = pickMostBalancedSplit(ids, usedPartners, playerLookup);
+      if (!split) continue;
 
-      const remaining = candidates.filter(p => p._id !== p1._id && p._id !== p2Id);
-      if (remaining.length < 2) continue;
-
-      const p3 = remaining[0];
-      const p4Id = formBalancedTeam(remaining, usedPartners, p3._id);
-      if (!p4Id) continue;
-
-      matches.push({
-        matchType: 'mens_doubles',
-        teamA: [p1._id, p2Id],
-        teamB: [p3._id, p4Id]
-      });
-      recordPartnership(p1._id, p2Id);
-      recordPartnership(p3._id, p4Id);
-      incrementMatchCount([p1._id, p2Id, p3._id, p4Id]);
+      const [teamA, teamB] = split;
+      matches.push({ matchType, teamA, teamB });
+      recordPartnership(teamA[0], teamA[1]);
+      recordPartnership(teamB[0], teamB[1]);
+      incrementMatchCount([...teamA, ...teamB]);
     }
   }
 
+  if (allowedTypes.includes('mens_doubles') && males.length >= 4) {
+    generateSameGenderDoubles(males, mensDoubles, 'mens_doubles');
+  }
+
   if (allowedTypes.includes('womens_doubles') && females.length >= 4) {
-    for (let i = 0; i < womensDoubles; i++) {
-      const available = females.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
-      if (available.length < 4) break;
-
-      const candidates = getLowestMatchCountPlayers(available, 4);
-      const p1 = candidates[0];
-      const p2Id = formBalancedTeam(candidates, usedPartners, p1._id);
-      if (!p2Id) continue;
-
-      const remaining = candidates.filter(p => p._id !== p1._id && p._id !== p2Id);
-      if (remaining.length < 2) continue;
-
-      const p3 = remaining[0];
-      const p4Id = formBalancedTeam(remaining, usedPartners, p3._id);
-      if (!p4Id) continue;
-
-      matches.push({
-        matchType: 'womens_doubles',
-        teamA: [p1._id, p2Id],
-        teamB: [p3._id, p4Id]
-      });
-      recordPartnership(p1._id, p2Id);
-      recordPartnership(p3._id, p4Id);
-      incrementMatchCount([p1._id, p2Id, p3._id, p4Id]);
-    }
+    generateSameGenderDoubles(females, womensDoubles, 'womens_doubles');
   }
 
   if (allowedTypes.includes('mixed_doubles') && males.length >= 2 && females.length >= 2) {
@@ -174,28 +179,41 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
       const f1 = femaleCandidates[0];
       const f2 = femaleCandidates[1];
 
-      const m1Partners = usedPartners.get(m1._id);
-      const m2Partners = usedPartners.get(m2._id);
+      // Two possible configurations: (m1+f1 vs m2+f2) or (m1+f2 vs m2+f1)
+      const configs = [
+        { teamA: [m1._id, f1._id], teamB: [m2._id, f2._id] },
+        { teamA: [m1._id, f2._id], teamB: [m2._id, f1._id] },
+      ];
 
-      let teamA, teamB;
-      if (!m1Partners.has(f1._id) && !m2Partners.has(f2._id)) {
-        teamA = [m1._id, f1._id];
-        teamB = [m2._id, f2._id];
-      } else if (!m1Partners.has(f2._id) && !m2Partners.has(f1._id)) {
-        teamA = [m1._id, f2._id];
-        teamB = [m2._id, f1._id];
-      } else {
-        continue;
+      function teamUTR(team) {
+        return team.reduce((sum, id) => sum + getUTR(playerLookup.get(id)), 0);
       }
+
+      function hasUsedPartner(team) {
+        return usedPartners.get(team[0]).has(team[1]);
+      }
+
+      let bestConfig = null;
+      let bestDiff = Infinity;
+      for (const cfg of configs) {
+        if (hasUsedPartner(cfg.teamA) || hasUsedPartner(cfg.teamB)) continue;
+        const diff = Math.abs(teamUTR(cfg.teamA) - teamUTR(cfg.teamB));
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestConfig = cfg;
+        }
+      }
+
+      if (!bestConfig) continue;
 
       matches.push({
         matchType: 'mixed_doubles',
-        teamA,
-        teamB
+        teamA: bestConfig.teamA,
+        teamB: bestConfig.teamB
       });
-      recordPartnership(teamA[0], teamA[1]);
-      recordPartnership(teamB[0], teamB[1]);
-      incrementMatchCount([...teamA, ...teamB]);
+      recordPartnership(bestConfig.teamA[0], bestConfig.teamA[1]);
+      recordPartnership(bestConfig.teamB[0], bestConfig.teamB[1]);
+      incrementMatchCount([...bestConfig.teamA, ...bestConfig.teamB]);
     }
   }
 
