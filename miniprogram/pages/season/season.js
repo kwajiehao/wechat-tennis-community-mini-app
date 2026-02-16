@@ -132,7 +132,7 @@ Page({
   onShareTimeline() {
     return {
       title: this.data.seasonName || 'Tennis Community',
-      query: `seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`
+      query: `targetPage=season&seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`
     };
   }
 });

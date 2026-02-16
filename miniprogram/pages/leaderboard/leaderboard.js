@@ -94,7 +94,10 @@ Page({
   onShareTimeline() {
     const season = this.data.season;
     return {
-      title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard')
+      title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
+      query: this._seasonId
+        ? `targetPage=leaderboard&seasonId=${this._seasonId}`
+        : 'targetPage=leaderboard'
     };
   }
 });

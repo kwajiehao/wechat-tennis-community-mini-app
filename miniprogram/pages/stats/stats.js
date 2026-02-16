@@ -165,8 +165,12 @@ Page({
     };
   },
   onShareTimeline() {
+    const query = this._playerId
+      ? `targetPage=stats&playerId=${this._playerId}&playerName=${encodeURIComponent(this._playerName || '')}`
+      : '';
     return {
-      title: this._playerName || this.data.i18n.stats_title || 'Player Stats'
+      title: this._playerName || this.data.i18n.stats_title || 'Player Stats',
+      query
     };
   }
 });

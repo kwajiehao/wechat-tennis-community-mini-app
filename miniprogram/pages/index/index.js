@@ -15,8 +15,21 @@ Page({
     dataLoaded: false,
     isAdmin: false
   },
-  onLoad() {
+  onLoad(options) {
     initCloud();
+    // Handle redirect from 朋友圈 sharing
+    if (options.targetPage) {
+      const page = options.targetPage;
+      const queryParts = [];
+      for (const [key, value] of Object.entries(options)) {
+        if (key !== 'targetPage') {
+          queryParts.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      const queryStr = queryParts.length ? '?' + queryParts.join('&') : '';
+      wx.redirectTo({ url: `/pages/${page}/${page}${queryStr}` });
+      return;
+    }
     i18n.init();
     this.loadI18n();
     this.loadInitialData();

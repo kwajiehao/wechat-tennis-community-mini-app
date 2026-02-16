@@ -686,7 +686,7 @@ Page({
     const event = this.data.event;
     return {
       title: event ? event.title : 'Tennis Community',
-      query: `eventId=${this.data.eventId}`
+      query: `targetPage=event&eventId=${this.data.eventId}`
     };
   }
 });
