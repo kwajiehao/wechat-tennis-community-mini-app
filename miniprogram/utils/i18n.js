@@ -40,8 +40,7 @@ const strings = {
     error_event_not_in_progress: 'Event must be in progress to complete',
     error_event_not_completed: 'Complete the event before computing score',
     error_event_not_open: 'Cannot withdraw once event is in progress',
-    error_event_full: 'Event is full (max 9 players)',
-    error_male_limit_reached: 'Male limit reached (max 5 men)',
+    error_event_full: 'Event is full (max 20 players)',
 
     // Gender
     gender_male: 'Male',
@@ -342,8 +341,7 @@ const strings = {
     error_event_not_in_progress: '活动必须处于进行中状态才能完成',
     error_event_not_completed: '请先完成活动再计算积分',
     error_event_not_open: '活动进行中无法取消报名',
-    error_event_full: '活动已满（最多9人）',
-    error_male_limit_reached: '男性名额已满（最多5人）',
+    error_event_full: '活动已满（最多20人）',
 
     // Gender
     gender_male: '男',
@@ -616,12 +614,7 @@ function init() {
     currentLang = saved;
     return saved;
   }
-  try {
-    const info = wx.getSystemInfoSync();
-    currentLang = (info.language || '').startsWith('en') ? 'en' : 'zh';
-  } catch (e) {
-    currentLang = 'zh';
-  }
+  currentLang = 'zh';
   return currentLang;
 }
 
@@ -658,7 +651,6 @@ const errorCodeMap = {
   'EVENT_NOT_COMPLETED': 'error_event_not_completed',
   'EVENT_NOT_OPEN': 'error_event_not_open',
   'EVENT_FULL': 'error_event_full',
-  'MALE_LIMIT_REACHED': 'error_male_limit_reached',
   'MISSING_PROFILE': 'event_no_profile',
   'PROFILE_INCOMPLETE': 'event_profile_incomplete',
   'EVENT_LOCKED': 'error_event_locked',
