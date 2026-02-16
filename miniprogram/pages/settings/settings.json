@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "Settings"
+  "navigationBarTitleText": "Settings",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true
 }

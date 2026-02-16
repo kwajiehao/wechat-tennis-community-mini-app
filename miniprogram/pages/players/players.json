@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "Players",
-  "enablePullDownRefresh": true
+  "enablePullDownRefresh": true,
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true
 }

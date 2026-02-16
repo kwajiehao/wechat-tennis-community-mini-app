@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "Season"
+  "navigationBarTitleText": "Season",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true
 }

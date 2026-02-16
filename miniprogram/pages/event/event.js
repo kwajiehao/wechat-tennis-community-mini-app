@@ -114,7 +114,8 @@ Page({
       });
   },
   fetchEventData() {
-    return callFunction('listEvents', { eventId: this.data.eventId })
+    const eventId = this.data.eventId;
+    return callFunction('listEvents', { eventId })
       .then(res => {
         const event = (res.result.events || [])[0] || null;
 
@@ -132,9 +133,12 @@ Page({
 
         this.setData({ event, showGameDiff });
         return Promise.all([
-          callFunction('listSignups', { eventId: this.data.eventId, mine: true }),
-          callFunction('listSignups', { eventId: this.data.eventId, includeNames: true }),
-          callFunction('listMatches', { eventId: this.data.eventId })
+          callFunction('listSignups', { eventId, mine: true })
+            .catch(err => { console.error('[event] listSignups mine failed:', err); return { result: {} }; }),
+          callFunction('listSignups', { eventId, includeNames: true })
+            .catch(err => { console.error('[event] listSignups includeNames failed:', err); return { result: {} }; }),
+          callFunction('listMatches', { eventId })
+            .catch(err => { console.error('[event] listMatches failed:', err); return { result: {} }; })
         ]);
       })
       .then(results => {
@@ -183,7 +187,7 @@ Page({
         });
       })
       .catch(err => {
-        console.error(err);
+        console.error('[event] fetchEventData failed:', err);
         wx.showToast({ title: this.data.i18n.toast_failed_load_event, icon: 'none' });
       });
   },

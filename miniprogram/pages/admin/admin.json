@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "Admin",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true,
   "usingComponents": {
     "searchable-picker": "/components/searchable-picker/searchable-picker"
   }

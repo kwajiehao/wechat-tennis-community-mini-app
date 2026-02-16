@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "My Stats"
+  "navigationBarTitleText": "My Stats",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true
 }
