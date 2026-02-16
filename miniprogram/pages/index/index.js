@@ -17,6 +17,7 @@ Page({
   },
   onLoad(options) {
     initCloud();
+    i18n.init();
     // Handle redirect from 朋友圈 sharing
     if (options.targetPage) {
       const page = options.targetPage;
@@ -27,10 +28,16 @@ Page({
         }
       }
       const queryStr = queryParts.length ? '?' + queryParts.join('&') : '';
-      wx.redirectTo({ url: `/pages/${page}/${page}${queryStr}` });
+      wx.redirectTo({
+        url: `/pages/${page}/${page}${queryStr}`,
+        fail: () => {
+          // Redirect not available (e.g., 朋友圈 single page mode)
+          this.loadI18n();
+          this.loadInitialData();
+        }
+      });
       return;
     }
-    i18n.init();
     this.loadI18n();
     this.loadInitialData();
   },
