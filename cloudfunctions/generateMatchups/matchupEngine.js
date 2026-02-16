@@ -30,21 +30,23 @@ function classifyPlayers(players) {
 function planMatchDistribution(maleCount, femaleCount) {
   const totalPlayers = maleCount + femaleCount;
   const targetMatchesPerPlayer = totalPlayers <= 6 ? 3 : 4;
-  const totalPlayerSlots = totalPlayers * targetMatchesPerPlayer;
-  const totalMatches = Math.floor(totalPlayerSlots / 4);
 
-  let mensDoubles = 0, womensDoubles = 0, mixedDoubles = 0;
+  let womensDoubles = 0, mixedDoubles = 0, mensDoubles = 0;
 
+  // Each WD match uses 4 female slots, each XD match uses 2 female + 2 male slots,
+  // each MD match uses 4 male slots. Fill slots so each gender plays ~target matches.
   if (femaleCount >= 4) {
-    womensDoubles = Math.min(Math.floor(femaleCount / 2), Math.floor(totalMatches / 3));
-  }
-  if (maleCount >= 4) {
-    mensDoubles = Math.min(Math.floor(maleCount / 2), Math.floor(totalMatches / 3));
+    womensDoubles = Math.floor(femaleCount / 2);
   }
 
-  const pairCount = Math.min(maleCount, femaleCount);
-  if (pairCount >= 2) {
-    mixedDoubles = Math.max(1, totalMatches - mensDoubles - womensDoubles);
+  if (femaleCount >= 2 && maleCount >= 2) {
+    mixedDoubles = Math.floor((femaleCount * targetMatchesPerPlayer - womensDoubles * 4) / 2);
+    mixedDoubles = Math.max(0, mixedDoubles);
+  }
+
+  if (maleCount >= 4) {
+    mensDoubles = Math.floor((maleCount * targetMatchesPerPlayer - mixedDoubles * 2) / 4);
+    mensDoubles = Math.max(0, mensDoubles);
   }
 
   return { mensDoubles, womensDoubles, mixedDoubles, targetMatchesPerPlayer };
