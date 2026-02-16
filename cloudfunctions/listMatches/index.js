@@ -4,6 +4,32 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const SETTINGS_ID = 'core';
+
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: _.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
   pointsConfig: { win: 3, loss: 1 },
@@ -55,19 +81,13 @@ async function buildNames(matches) {
     matchIds.push(match._id);
   });
 
-  const playersRes = playerIds.size > 0
-    ? await db.collection('players').where({ _id: _.in(Array.from(playerIds)) }).get()
-    : { data: [] };
-  const eventsRes = eventIds.size > 0
-    ? await db.collection('events').where({ _id: _.in(Array.from(eventIds)) }).get()
-    : { data: [] };
-  const resultsRes = matchIds.length > 0
-    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-    : { data: [] };
+  const playersData = await batchIn('players', '_id', Array.from(playerIds));
+  const eventsData = await batchIn('events', '_id', Array.from(eventIds));
+  const resultsData = await batchIn('results', 'matchId', matchIds);
 
-  const playerMap = new Map(playersRes.data.map(p => [p._id, p]));
-  const eventMap = new Map(eventsRes.data.map(e => [e._id, e]));
-  const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
+  const playerMap = new Map(playersData.map(p => [p._id, p]));
+  const eventMap = new Map(eventsData.map(e => [e._id, e]));
+  const resultMap = new Map(resultsData.map(r => [r.matchId, r]));
 
   return matches.map(match => {
     const teamANames = (match.teamA || []).map(id => (playerMap.get(id) || {}).name || 'Unknown').join(', ');
@@ -95,20 +115,15 @@ exports.main = async (event, context) => {
     if (!player) {
       return { matches: [] };
     }
-    const res = await db.collection('matches')
-      .where({ participants: _.in([player._id]) })
-      .get();
-    matches = res.data || [];
+    matches = await getAll(() => db.collection('matches')
+      .where({ participants: _.in([player._id]) }));
   } else if (eventId) {
     // Anyone can view matches for a specific event
-    const res = await db.collection('matches')
-      .where({ eventId })
-      .get();
-    matches = res.data || [];
+    matches = await getAll(() => db.collection('matches')
+      .where({ eventId }));
   } else {
     await assertAdmin(OPENID);
-    const res = await db.collection('matches').get();
-    matches = res.data || [];
+    matches = await getAll(() => db.collection('matches'));
   }
 
   const enriched = await buildNames(matches);

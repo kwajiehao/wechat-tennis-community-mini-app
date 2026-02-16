@@ -7,6 +7,32 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const SETTINGS_ID = 'core';
 
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: db.command.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
+
 async function getSettings() {
   const res = await db.collection('settings').doc(SETTINGS_ID).get().catch(() => null);
   return res && res.data ? res.data : null;
@@ -31,17 +57,13 @@ exports.main = async (event, context) => {
 
   if (event.all) {
     // Fetch all active players to include everyone in leaderboard (even with 0 points)
-    const allPlayersRes = await db.collection('players')
+    const allPlayers = await getAll(() => db.collection('players')
       .where({ isActive: db.command.neq(false) })
-      .field({ _id: true, name: true })
-      .get();
-    const allPlayers = allPlayersRes.data || [];
+      .field({ _id: true, name: true }));
 
-    const eventsRes = await db.collection('events')
+    const completedEvents = await getAll(() => db.collection('events')
       .where({ seasonId, status: 'completed' })
-      .field({ playerPoints: true, leaderboard: true })
-      .get();
-    const completedEvents = eventsRes.data || [];
+      .field({ playerPoints: true, leaderboard: true }));
 
     const playerPoints = {};
     const championCounts = {};
@@ -59,10 +81,8 @@ exports.main = async (event, context) => {
       }
     }
 
-    const adjustmentsRes = await db.collection('season_point_adjustments')
-      .where({ seasonId })
-      .get();
-    const adjustments = adjustmentsRes.data || [];
+    const adjustments = await getAll(() => db.collection('season_point_adjustments')
+      .where({ seasonId }));
 
     const adjustmentsByPlayer = {};
     for (const adj of adjustments) {
@@ -71,16 +91,15 @@ exports.main = async (event, context) => {
     }
 
     // Compute wins/losses from completed matches in this season
-    const matchesRes = await db.collection('matches')
-      .where({ seasonId, status: 'completed' })
-      .get();
-    const completedMatches = matchesRes.data || [];
+    const completedMatches = await getAll(() => db.collection('matches')
+      .where({ seasonId, status: 'completed' }));
     const matchIds = completedMatches.map(m => m._id);
 
-    const resultsRes = matchIds.length > 0
-      ? await db.collection('results').where({ matchId: db.command.in(matchIds) }).get()
-      : { data: [] };
-    const results = resultsRes.data || [];
+    console.log('[getSeasonStats] seasonId:', seasonId, 'completedMatches:', completedMatches.length, 'matchIds:', matchIds.length);
+
+    const results = await batchIn('results', 'matchId', matchIds);
+
+    console.log('[getSeasonStats] results:', results.length);
 
     // Build wins/losses/matchesPlayed per player
     const playerWins = {};
@@ -91,6 +110,8 @@ exports.main = async (event, context) => {
         playerMatchesPlayed[pid] = (playerMatchesPlayed[pid] || 0) + 1;
       }
     }
+
+    console.log('[getSeasonStats] playerMatchesPlayed sample:', JSON.stringify(Object.entries(playerMatchesPlayed).slice(0, 5)));
     for (const result of results) {
       const winners = result.winnerPlayers || [];
       for (const pid of winners) {
@@ -137,11 +158,9 @@ exports.main = async (event, context) => {
     playerId = player._id;
   }
 
-  const eventsRes = await db.collection('events')
+  const completedEvents = await getAll(() => db.collection('events')
     .where({ seasonId, status: 'completed' })
-    .field({ _id: true, title: true, date: true, playerPoints: true, leaderboard: true })
-    .get();
-  const completedEvents = eventsRes.data || [];
+    .field({ _id: true, title: true, date: true, playerPoints: true, leaderboard: true }));
 
   // Build event breakdown: list of events with points earned from each
   const eventBreakdown = [];
@@ -173,16 +192,11 @@ exports.main = async (event, context) => {
   eventBreakdown.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
 
   // Get wins/losses/matchesPlayed for this player in this season
-  const matchesRes = await db.collection('matches')
-    .where({ seasonId, status: 'completed' })
-    .get();
-  const completedMatches = matchesRes.data || [];
+  const completedMatches = await getAll(() => db.collection('matches')
+    .where({ seasonId, status: 'completed' }));
   const matchIds = completedMatches.map(m => m._id);
 
-  const resultsRes = matchIds.length > 0
-    ? await db.collection('results').where({ matchId: db.command.in(matchIds) }).get()
-    : { data: [] };
-  const results = resultsRes.data || [];
+  const results = await batchIn('results', 'matchId', matchIds);
 
   let wins = 0;
   let matchesPlayed = 0;
@@ -200,10 +214,9 @@ exports.main = async (event, context) => {
   }
   const losses = matchesPlayed - wins;
 
-  const adjustmentsRes = await db.collection('season_point_adjustments')
-    .where({ seasonId, playerId })
-    .get();
-  const adjustmentPoints = (adjustmentsRes.data || []).reduce(
+  const adjustmentData = await getAll(() => db.collection('season_point_adjustments')
+    .where({ seasonId, playerId }));
+  const adjustmentPoints = adjustmentData.reduce(
     (sum, item) => sum + (Number(item.deltaPoints) || 0),
     0
   );

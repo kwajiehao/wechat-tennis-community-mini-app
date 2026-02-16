@@ -6,6 +6,20 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const { playerId, mine } = event;
@@ -23,11 +37,9 @@ exports.main = async (event, context) => {
   const stats = statsRes && statsRes.data ? statsRes.data : null;
 
   // Get event breakdown across all completed events
-  const eventsRes = await db.collection('events')
+  const completedEvents = await getAll(() => db.collection('events')
     .where({ status: 'completed' })
-    .field({ _id: true, title: true, date: true, playerPoints: true, leaderboard: true })
-    .get();
-  const completedEvents = eventsRes.data || [];
+    .field({ _id: true, title: true, date: true, playerPoints: true, leaderboard: true }));
 
   const eventBreakdown = [];
   for (const evt of completedEvents) {

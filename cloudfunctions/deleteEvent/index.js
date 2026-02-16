@@ -7,6 +7,32 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const SETTINGS_ID = 'core';
+
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: _.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
   pointsConfig: { win: 3, loss: 1 },
@@ -52,17 +78,13 @@ async function recalcStatsForPlayers(playerIds, pointsConfig) {
   const lossPoints = pointsConfig && pointsConfig.loss !== undefined ? pointsConfig.loss : 1;
 
   for (const playerId of playerIds) {
-    const matchesRes = await db.collection('matches')
-      .where({ status: 'completed', participants: _.in([playerId]) })
-      .get();
-    const matches = matchesRes.data || [];
+    const matches = await getAll(() => db.collection('matches')
+      .where({ status: 'completed', participants: _.in([playerId]) }));
     const matchIds = matches.map(m => m._id);
 
-    const resultsRes = matchIds.length > 0
-      ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-      : { data: [] };
+    const resultsData = await batchIn('results', 'matchId', matchIds);
 
-    const wins = (resultsRes.data || []).filter(r => (r.winnerPlayers || []).includes(playerId)).length;
+    const wins = resultsData.filter(r => (r.winnerPlayers || []).includes(playerId)).length;
     const matchesPlayed = matches.length;
     const losses = Math.max(0, matchesPlayed - wins);
 
@@ -110,8 +132,7 @@ exports.main = async (event, context) => {
   }
 
   // Collect all matches for this event
-  const matchesRes = await db.collection('matches').where({ eventId }).get();
-  const matches = matchesRes.data || [];
+  const matches = await getAll(() => db.collection('matches').where({ eventId }));
   const matchIds = matches.map(m => m._id);
 
   // Collect all participant player IDs for stats recalculation
@@ -125,8 +146,7 @@ exports.main = async (event, context) => {
 
   // Delete all results for these matches
   if (matchIds.length > 0) {
-    const resultsRes = await db.collection('results').where({ matchId: _.in(matchIds) }).get();
-    const results = resultsRes.data || [];
+    const results = await batchIn('results', 'matchId', matchIds);
     for (const result of results) {
       await db.collection('results').doc(result._id).remove();
     }
@@ -138,8 +158,7 @@ exports.main = async (event, context) => {
   }
 
   // Delete all signups
-  const signupsRes = await db.collection('signups').where({ eventId }).get();
-  const signups = signupsRes.data || [];
+  const signups = await getAll(() => db.collection('signups').where({ eventId }));
   for (const signup of signups) {
     await db.collection('signups').doc(signup._id).remove();
   }

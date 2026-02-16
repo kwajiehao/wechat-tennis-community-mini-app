@@ -7,6 +7,32 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const SETTINGS_ID = 'core';
+
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: _.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
   pointsConfig: { win: 3, loss: 1 },
@@ -101,10 +127,8 @@ async function recalculatePlayerUTR(playerId, playerNtrp) {
   const PROVISIONAL_THRESHOLD = 5;
 
   const matchIds = matches.map(m => m._id);
-  const resultsRes = await db.collection('results')
-    .where({ matchId: _.in(matchIds) })
-    .get();
-  const resultMap = new Map((resultsRes.data || []).map(r => [r.matchId, r]));
+  const resultsData = await batchIn('results', 'matchId', matchIds);
+  const resultMap = new Map(resultsData.map(r => [r.matchId, r]));
 
   // Get all opponent player IDs
   const opponentIds = new Set();
@@ -113,10 +137,8 @@ async function recalculatePlayerUTR(playerId, playerNtrp) {
     (m.teamB || []).forEach(id => { if (id !== playerId) opponentIds.add(id); });
   });
 
-  const opponentsRes = await db.collection('players')
-    .where({ _id: _.in([...opponentIds]) })
-    .get();
-  const opponentMap = new Map((opponentsRes.data || []).map(p => [p._id, p]));
+  const opponentsData = await batchIn('players', '_id', [...opponentIds]);
+  const opponentMap = new Map(opponentsData.map(p => [p._id, p]));
 
   // Calculate weighted average of match ratings
   let weightedSum = 0;
@@ -185,10 +207,7 @@ async function recalculatePlayerUTR(playerId, playerNtrp) {
 async function updatePlayerStrength(match, winnerSide, sets) {
   const allIds = [...(match.teamA || []), ...(match.teamB || [])];
 
-  const playersRes = await db.collection('players')
-    .where({ _id: _.in(allIds) })
-    .get();
-  const players = playersRes.data || [];
+  const players = await batchIn('players', '_id', allIds);
 
   const now = new Date().toISOString();
 
@@ -225,17 +244,13 @@ async function recalcStatsForPlayers(playerIds, pointsConfig) {
   const lossPoints = pointsConfig && pointsConfig.loss !== undefined ? pointsConfig.loss : 1;
 
   for (const playerId of playerIds) {
-    const matchesRes = await db.collection('matches')
-      .where({ status: 'completed', participants: _.in([playerId]) })
-      .get();
-    const matches = matchesRes.data || [];
+    const matches = await getAll(() => db.collection('matches')
+      .where({ status: 'completed', participants: _.in([playerId]) }));
     const matchIds = matches.map(m => m._id);
 
-    const resultsRes = matchIds.length > 0
-      ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-      : { data: [] };
+    const resultsData = await batchIn('results', 'matchId', matchIds);
 
-    const wins = (resultsRes.data || []).filter(r => (r.winnerPlayers || []).includes(playerId)).length;
+    const wins = resultsData.filter(r => (r.winnerPlayers || []).includes(playerId)).length;
     const matchesPlayed = matches.length;
     const losses = Math.max(0, matchesPlayed - wins);
 

@@ -21,7 +21,6 @@ Page({
     seasonId: '',
     seasonName: '',
     events: [],
-    leaderboard: [],
     recentMatches: [],
     allMatches: [],
     displayedMatches: [],
@@ -50,7 +49,6 @@ Page({
 
   loadSeasonData() {
     this.fetchEvents();
-    this.loadLeaderboard();
     this.loadMatches();
   },
 
@@ -77,34 +75,12 @@ Page({
     });
   },
 
-  loadLeaderboard() {
+  goToLeaderboard() {
     const seasonId = this.data.seasonId;
-
-    Promise.all([
-      callFunction('getSeasonStats', { seasonId, all: true }),
-      callFunction('listPlayers', {})
-    ])
-      .then(([statsRes, playersRes]) => {
-        const statsList = statsRes.result.statsList || [];
-        const players = playersRes.result.players || [];
-        const playerMap = new Map(players.map(p => [p._id, p]));
-
-        const leaderboard = statsList.map(stats => {
-          const player = playerMap.get(stats.playerId);
-          return {
-            playerId: stats.playerId,
-            points: stats.points || 0,
-            name: player ? player.name : 'Unknown',
-            ntrp: player ? player.ntrp : null
-          };
-        });
-
-        this.setData({ leaderboard });
-      })
-      .catch(err => {
-        console.error(err);
-        wx.showToast({ title: this.data.i18n.toast_failed_load_leaderboard, icon: 'none' });
-      });
+    const seasonName = encodeURIComponent(this.data.seasonName);
+    wx.navigateTo({
+      url: `/pages/leaderboard/leaderboard?seasonId=${seasonId}&seasonName=${seasonName}`
+    });
   },
 
   loadMatches() {

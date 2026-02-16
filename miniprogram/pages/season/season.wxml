@@ -1,22 +1,7 @@
 <view class="container">
-  <view class="section-title">{{i18n.season_leaderboard}}</view>
-  <view class="card leaderboard-card">
-    <block wx:if="{{leaderboard.length === 0}}">
-      <view class="empty-message">{{i18n.season_no_results}}</view>
-    </block>
-    <view class="leaderboard-table" wx:if="{{leaderboard.length > 0}}">
-      <view class="table-header">
-        <text class="col-rank">#</text>
-        <text class="col-name">{{i18n.players_title || 'Player'}}</text>
-        <text class="col-points">{{i18n.season_points || 'Pts'}}</text>
-      </view>
-      <view class="table-row" wx:for="{{leaderboard}}" wx:key="playerId">
-        <text class="col-rank">{{index + 1}}</text>
-        <text class="col-name">{{item.name}}</text>
-        <text class="col-points">{{item.points}}</text>
-      </view>
-    </view>
-  </view>
+  <view class="button" bindtap="goToLeaderboard">{{i18n.season_leaderboard}}</view>
+
+  <view class="divider"></view>
 
   <view class="section-title">{{i18n.admin_manage_events}}</view>
   <block wx:if="{{events.length === 0}}">

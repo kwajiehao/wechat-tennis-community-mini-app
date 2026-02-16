@@ -12,8 +12,11 @@ Page({
     loading: true
   },
 
-  onLoad() {
+  onLoad(options) {
     this.loadI18n();
+    if (options.seasonId) {
+      this._seasonId = options.seasonId;
+    }
     this.loadLeaderboard();
   },
 
@@ -42,7 +45,11 @@ Page({
 
   loadLeaderboard() {
     this.setData({ loading: true });
-    return callFunction('getSeasonStats', { all: true })
+    const params = { all: true };
+    if (this._seasonId) {
+      params.seasonId = this._seasonId;
+    }
+    return callFunction('getSeasonStats', params)
       .then(res => {
         const season = res.result.season || null;
         const statsList = res.result.statsList || [];
@@ -79,7 +86,9 @@ Page({
     const season = this.data.season;
     return {
       title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
-      path: '/pages/leaderboard/leaderboard'
+      path: this._seasonId
+        ? `/pages/leaderboard/leaderboard?seasonId=${this._seasonId}`
+        : '/pages/leaderboard/leaderboard'
     };
   },
   onShareTimeline() {

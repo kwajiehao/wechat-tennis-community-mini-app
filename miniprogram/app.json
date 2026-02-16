@@ -19,5 +19,6 @@
   "style": "v2",
   "enableShareAppMessage": true,
   "enableShareTimeline": true,
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "__usePrivacyCheck__": true
 }

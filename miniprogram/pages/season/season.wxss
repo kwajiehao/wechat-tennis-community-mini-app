@@ -71,6 +71,12 @@
   font-weight: 600;
 }
 
+.divider {
+  height: 1rpx;
+  background: #eee;
+  margin: 24rpx 0;
+}
+
 .empty-message {
   text-align: center;
   color: #666;

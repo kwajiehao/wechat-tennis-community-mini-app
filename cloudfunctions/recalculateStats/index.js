@@ -4,6 +4,33 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const SETTINGS_ID = 'core';
+
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: _.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
+
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
   pointsConfig: { win: 3, loss: 1 },
@@ -42,17 +69,13 @@ async function recalcForPlayer(playerId, pointsConfig) {
   const winPoints = pointsConfig?.win ?? 3;
   const lossPoints = pointsConfig?.loss ?? 1;
 
-  const matchesRes = await db.collection('matches')
-    .where({ status: 'completed', participants: _.in([playerId]) })
-    .get();
-  const matches = matchesRes.data || [];
+  const matches = await getAll(() => db.collection('matches')
+    .where({ status: 'completed', participants: _.in([playerId]) }));
   const matchIds = matches.map(m => m._id);
 
-  const resultsRes = matchIds.length > 0
-    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-    : { data: [] };
+  const resultsData = await batchIn('results', 'matchId', matchIds);
 
-  const wins = (resultsRes.data || []).filter(r => (r.winnerPlayers || []).includes(playerId)).length;
+  const wins = resultsData.filter(r => (r.winnerPlayers || []).includes(playerId)).length;
   const matchesPlayed = matches.length;
   const losses = Math.max(0, matchesPlayed - wins);
 
@@ -85,8 +108,8 @@ exports.main = async (event, context) => {
 
   let playerIds = event.playerIds || [];
   if (!Array.isArray(playerIds) || playerIds.length === 0) {
-    const playersRes = await db.collection('players').get();
-    playerIds = (playersRes.data || []).map(p => p._id);
+    const playersData = await getAll(() => db.collection('players'));
+    playerIds = playersData.map(p => p._id);
   }
 
   for (const playerId of playerIds) {

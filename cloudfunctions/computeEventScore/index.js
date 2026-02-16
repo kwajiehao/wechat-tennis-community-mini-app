@@ -7,6 +7,32 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const SETTINGS_ID = 'core';
+
+async function getAll(queryFn) {
+  const LIMIT = 100;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const res = await queryFn().skip(offset).limit(LIMIT).get();
+    const batch = res.data || [];
+    all = all.concat(batch);
+    if (batch.length < LIMIT) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
+async function batchIn(collectionName, field, values) {
+  if (values.length === 0) return [];
+  const BATCH = 20;
+  let all = [];
+  for (let i = 0; i < values.length; i += BATCH) {
+    const chunk = values.slice(i, i + BATCH);
+    const batch = await getAll(() => db.collection(collectionName).where({ [field]: _.in(chunk) }));
+    all = all.concat(batch);
+  }
+  return all;
+}
 const DEFAULT_SETTINGS = {
   adminOpenIds: [],
   pointsConfig: { win: 3, loss: 1 },
@@ -75,17 +101,12 @@ exports.main = async (event, context) => {
   }
 
   // Fetch all completed matches for this event
-  const matchesRes = await db.collection('matches')
-    .where({ eventId, status: 'completed' })
-    .get();
-  const matches = matchesRes.data || [];
+  const matches = await getAll(() => db.collection('matches')
+    .where({ eventId, status: 'completed' }));
 
   // Fetch results for those matches
   const matchIds = matches.map(m => m._id);
-  const resultsRes = matchIds.length > 0
-    ? await db.collection('results').where({ matchId: _.in(matchIds) }).get()
-    : { data: [] };
-  const results = resultsRes.data || [];
+  const results = await batchIn('results', 'matchId', matchIds);
   const resultMap = new Map(results.map(r => [r.matchId, r]));
 
   // Calculate player stats: wins and game difference
@@ -211,10 +232,8 @@ exports.main = async (event, context) => {
 
   // Fetch player names for all rankings
   const playerIds = rankings.map(r => r.playerId);
-  const playersRes = playerIds.length > 0
-    ? await db.collection('players').where({ _id: _.in(playerIds) }).get()
-    : { data: [] };
-  const playerNameMap = new Map((playersRes.data || []).map(p => [p._id, p.name]));
+  const playersData = await batchIn('players', '_id', playerIds);
+  const playerNameMap = new Map(playersData.map(p => [p._id, p.name]));
 
   for (const r of rankings) {
     r.playerName = playerNameMap.get(r.playerId) || 'Unknown';
