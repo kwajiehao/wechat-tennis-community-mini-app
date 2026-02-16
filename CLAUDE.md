@@ -32,7 +32,7 @@ cloudfunctions/        # 30 serverless functions (Node.js)
   # Auth: checkAdmin
   # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent, computeEventScore
   # Signups: signupEvent, listSignups
-  # Matchmaking: generateMatchups, regenerateMatchups (open status only), approveMatchups (deprecated)
+  # Matchmaking: generateMatchups (index.js + matchupEngine.js), regenerateMatchups, approveMatchups (deprecated)
   # Results: enterResult, listMatches, deleteResult
   # Stats: getStats, recalculateStats, getSeasonStats
   # Seasons: createSeason, listSeasons, setActiveSeason, adminAdjustSeasonPoints
@@ -104,10 +104,12 @@ Every function follows this structure:
 - First user to call admin function becomes admin (bootstrap logic)
 
 ### Matchmaking Algorithm
-Filters players by gender per match type, then pairs by NTRP:
-- **mens_singles/womens_singles**: Filter by gender, pair adjacent players by NTRP
-- **mens_doubles/womens_doubles**: Filter by gender, pair into teams, then pair teams by combined NTRP
-- **mixed_doubles**: Pair male/female into teams, then pair teams by combined NTRP
+Pure algorithm lives in `cloudfunctions/generateMatchups/matchupEngine.js`, cloud boilerplate in `index.js`.
+
+**Distribution** (`planMatchDistribution`): Slot-filling equations allocate matches so each gender plays ~target matches (target=3 for ≤6 players, 4 otherwise). Each WD uses 4 female slots, each XD uses 2 male + 2 female, each MD uses 4 male slots.
+
+**Team formation** (`generateConstrainedMatchups`): For same-gender doubles, picks 4 lowest-match-count players and evaluates all 3 possible team splits, choosing the one minimizing UTR difference. For mixed doubles, tries both M+F configurations. Partner uniqueness enforced across all matches.
+
 - Unmatched players go to waitlist
 
 ### Stats Calculation
@@ -168,4 +170,7 @@ Core features complete including:
 - Season leaderboard shows aggregated points from completed events
 - Test player management in admin panel for matchup testing
 
-No automated tests exist - testing is manual via DevTools.
+### Automated Tests
+Matchup engine has Jest tests: `cd cloudfunctions/generateMatchups && npm test` (37 tests covering distribution, gender enforcement, partner uniqueness, team balance, edge cases).
+
+Other modules are tested manually via DevTools.
