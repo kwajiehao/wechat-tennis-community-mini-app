@@ -36,6 +36,8 @@
           </view>
         </block>
 
+        <view class="button danger" bindtap="deleteEvent" wx:if="{{!event.leaderboard || !event.leaderboard.computed}}">{{i18n.admin_delete_event || 'Delete Event'}}</view>
+
         <block wx:if="{{event.status !== 'completed'}}">
           <view class="divider"></view>
 

@@ -642,6 +642,28 @@ Page({
     this.setData({ showTieBreaker: false, tiedPlayers: [], selectedChampion: '' });
     this.executeComputeScore(playerId);
   },
+  deleteEvent() {
+    wx.showModal({
+      title: '',
+      content: this.data.i18n.admin_confirm_delete_event || 'Are you sure you want to delete this event? All signups, matchups, and results will be permanently deleted.',
+      success: (res) => {
+        if (res.confirm) {
+          callFunction('deleteEvent', { eventId: this.data.eventId })
+            .then(() => {
+              wx.showToast({ title: this.data.i18n.toast_event_deleted || 'Event Deleted', icon: 'success' });
+              setTimeout(() => {
+                wx.navigateBack();
+              }, 500);
+            })
+            .catch(err => {
+              console.error(err);
+              const msg = i18n.translateError(err.message) || 'Delete failed';
+              wx.showToast({ title: msg, icon: 'none' });
+            });
+        }
+      }
+    });
+  },
   closeTieBreaker() {
     this.setData({
       showTieBreaker: false,

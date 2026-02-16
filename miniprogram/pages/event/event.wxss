@@ -571,3 +571,9 @@
 .modal-actions .button {
   flex: 1;
 }
+
+/* Danger button */
+.button.danger {
+  background: #c62828;
+  color: #fff;
+}
