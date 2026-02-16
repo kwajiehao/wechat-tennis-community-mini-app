@@ -1,5 +1,5 @@
-// ABOUTME: Stats page showing player statistics with filter for overall vs specific season.
-// ABOUTME: Displays wins, losses, points, win rate (as %), and event breakdown for seasons.
+// ABOUTME: Stats page showing player season statistics with season filter.
+// ABOUTME: Displays wins, losses, points, win rate (as %), and event breakdown.
 
 const { initCloud, callFunction } = require('../../utils/cloud');
 const i18n = require('../../utils/i18n');
@@ -7,16 +7,13 @@ const i18n = require('../../utils/i18n');
 Page({
   data: {
     i18n: {},
-    selectedFilter: 'overall',
+    selectedFilter: '',
     selectedFilterLabel: '',
-    formattedWinRate: '0%',
     seasonWinRate: '0%',
     filterOptions: [],
     seasons: [],
-    stats: null,
     seasonStats: null,
     eventBreakdown: [],
-    overallEventBreakdown: [],
     isLoading: true
   },
 
@@ -25,9 +22,9 @@ Page({
     this.loadI18n();
     if (options.playerId) {
       this._playerId = options.playerId;
-      const playerName = options.playerName ? decodeURIComponent(options.playerName) : '';
-      if (playerName) {
-        wx.setNavigationBarTitle({ title: playerName });
+      this._playerName = options.playerName ? decodeURIComponent(options.playerName) : '';
+      if (this._playerName) {
+        wx.setNavigationBarTitle({ title: this._playerName });
       }
     }
     this.loadData();
@@ -44,37 +41,39 @@ Page({
   loadData() {
     this.setData({ isLoading: true });
 
-    const statsParams = this._playerId ? { playerId: this._playerId } : { mine: true };
-    Promise.all([
-      callFunction('listSeasons', {}),
-      callFunction('getStats', statsParams)
-    ])
-      .then(([seasonsRes, statsRes]) => {
+    const promises = [callFunction('listSeasons', {})];
+
+    // Resolve own player info for sharing when viewing own stats
+    if (!this._playerId) {
+      promises.push(callFunction('getPlayer', {}));
+    }
+
+    Promise.all(promises)
+      .then(([seasonsRes, playerRes]) => {
+        if (playerRes) {
+          const player = playerRes.result.player;
+          if (player) {
+            this._playerId = player._id;
+            this._playerName = player.name || '';
+          }
+        }
+
         const seasons = seasonsRes.result.seasons || [];
         const activeSeasonId = seasonsRes.result.activeSeasonId;
-        const stats = statsRes.result.stats || null;
-
-        // Build filter options: Overall + all seasons
-        const strs = i18n.getStrings();
-        const filterOptions = [
-          { value: 'overall', label: strs.stats_overall || 'Overall' }
-        ];
 
         // Sort seasons by start date descending (newest first)
         const sortedSeasons = seasons.slice().sort((a, b) => {
           return (b.startDate || '').localeCompare(a.startDate || '');
         });
 
-        for (const season of sortedSeasons) {
-          filterOptions.push({
-            value: season._id,
-            label: season.name
-          });
-        }
+        const filterOptions = sortedSeasons.map(season => ({
+          value: season._id,
+          label: season.name
+        }));
 
-        // Determine initial selection: active season or 'overall'
-        let selectedFilter = 'overall';
-        let selectedFilterLabel = filterOptions[0].label;
+        // Default to active season, or first season
+        let selectedFilter = '';
+        let selectedFilterLabel = '';
         if (activeSeasonId) {
           const activeOption = filterOptions.find(o => o.value === activeSeasonId);
           if (activeOption) {
@@ -82,26 +81,20 @@ Page({
             selectedFilterLabel = activeOption.label;
           }
         }
-
-        // Format win rate for display
-        const formattedWinRate = this.formatWinRate(stats ? stats.winRate : null);
-
-        // Get overall event breakdown from stats
-        const overallEventBreakdown = stats && stats.eventBreakdown ? stats.eventBreakdown : [];
+        if (!selectedFilter && filterOptions.length > 0) {
+          selectedFilter = filterOptions[0].value;
+          selectedFilterLabel = filterOptions[0].label;
+        }
 
         this.setData({
           seasons,
           filterOptions,
-          stats,
           selectedFilter,
           selectedFilterLabel,
-          formattedWinRate,
-          overallEventBreakdown,
           isLoading: false
         });
 
-        // Load season stats if we defaulted to active season
-        if (selectedFilter !== 'overall') {
+        if (selectedFilter) {
           this.loadSeasonStats(selectedFilter);
         }
       })
@@ -124,9 +117,7 @@ Page({
       eventBreakdown: []
     });
 
-    if (option.value !== 'overall') {
-      this.loadSeasonStats(option.value);
-    }
+    this.loadSeasonStats(option.value);
   },
 
   loadSeasonStats(seasonId) {
@@ -155,33 +146,27 @@ Page({
       });
   },
 
-  getFilterLabel() {
-    const option = this.data.filterOptions.find(o => o.value === this.data.selectedFilter);
-    return option ? option.label : '';
-  },
-
-  formatWinRate(winRate) {
-    if (winRate === null || winRate === undefined) return '0%';
-    // winRate is stored as decimal (0 to 1), convert to percentage
-    const pct = Math.round(winRate * 100);
-    return pct + '%';
-  },
-
   navigateToEvent(e) {
     const eventId = e.currentTarget.dataset.eventId;
     if (eventId) {
       wx.navigateTo({ url: `/pages/event/event?eventId=${eventId}` });
     }
   },
+
+  _getSharePath() {
+    if (!this._playerId) return '/pages/index/index';
+    return `/pages/stats/stats?playerId=${this._playerId}&playerName=${encodeURIComponent(this._playerName || '')}`;
+  },
+
   onShareAppMessage() {
     return {
-      title: this.data.i18n.app_title || 'Tennis Community',
-      path: '/pages/index/index'
+      title: this._playerName || this.data.i18n.stats_title || 'Player Stats',
+      path: this._getSharePath()
     };
   },
   onShareTimeline() {
     return {
-      title: this.data.i18n.app_title || 'Tennis Community'
+      title: this._playerName || this.data.i18n.stats_title || 'Player Stats'
     };
   }
 });

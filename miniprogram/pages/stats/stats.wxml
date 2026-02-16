@@ -22,60 +22,8 @@
       </picker>
     </view>
 
-    <!-- Overall Stats -->
-    <block wx:if="{{selectedFilter === 'overall'}}">
-      <view class="card">
-        <view class="title">{{i18n.stats_overall || 'Overall'}}</view>
-        <block wx:if="{{stats}}">
-          <view class="stats-grid">
-            <view class="stat-item">
-              <view class="stat-value">{{stats.matchesPlayed || 0}}</view>
-              <view class="stat-label">{{i18n.stats_matches_played}}</view>
-            </view>
-            <view class="stat-item">
-              <view class="stat-value">{{stats.wins || 0}}</view>
-              <view class="stat-label">{{i18n.stats_wins}}</view>
-            </view>
-            <view class="stat-item">
-              <view class="stat-value">{{stats.losses || 0}}</view>
-              <view class="stat-label">{{i18n.stats_losses}}</view>
-            </view>
-            <view class="stat-item">
-              <view class="stat-value">{{formattedWinRate}}</view>
-              <view class="stat-label">{{i18n.stats_win_rate}}</view>
-            </view>
-          </view>
-        </block>
-        <block wx:else>
-          <view class="empty-message">{{i18n.matches_no_matches}}</view>
-        </block>
-      </view>
-
-      <!-- Overall Event Breakdown -->
-      <block wx:if="{{overallEventBreakdown.length > 0}}">
-        <view class="card">
-          <view class="title">{{i18n.stats_event_breakdown || 'Points by Event'}}</view>
-          <view class="event-list">
-            <view
-              wx:for="{{overallEventBreakdown}}"
-              wx:key="eventId"
-              class="event-item"
-              data-event-id="{{item.eventId}}"
-              bindtap="navigateToEvent"
-            >
-              <view class="event-info">
-                <text class="event-title">{{item.eventTitle}}</text>
-                <text class="event-date">{{item.eventDate}}</text>
-              </view>
-              <view class="event-points">{{item.placement === 1 ? '🏆 ' : ''}}{{item.placement === 2 ? '🥈 ' : ''}}+{{item.points}}</view>
-            </view>
-          </view>
-        </view>
-      </block>
-    </block>
-
     <!-- Season Stats -->
-    <block wx:if="{{selectedFilter !== 'overall'}}">
+    <block wx:if="{{selectedFilter}}">
       <view class="card">
         <view class="title">{{selectedFilterLabel || i18n.stats_title}}</view>
         <block wx:if="{{seasonStats}}">
