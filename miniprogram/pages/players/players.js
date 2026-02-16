@@ -175,5 +175,16 @@ Page({
         }
       }
     });
+  },
+  onShareAppMessage() {
+    return {
+      title: this.data.i18n.players_title || 'Players',
+      path: '/pages/players/players'
+    };
+  },
+  onShareTimeline() {
+    return {
+      title: this.data.i18n.players_title || 'Players'
+    };
   }
 });

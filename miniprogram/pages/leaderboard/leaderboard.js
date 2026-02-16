@@ -74,5 +74,18 @@ Page({
         this.setData({ loading: false });
         wx.showToast({ title: this.data.i18n.toast_failed_load_leaderboard, icon: 'none' });
       });
+  },
+  onShareAppMessage() {
+    const season = this.data.season;
+    return {
+      title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
+      path: '/pages/leaderboard/leaderboard'
+    };
+  },
+  onShareTimeline() {
+    const season = this.data.season;
+    return {
+      title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard')
+    };
   }
 });

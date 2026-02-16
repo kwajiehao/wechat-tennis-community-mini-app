@@ -670,5 +670,19 @@ Page({
       tiedPlayers: [],
       selectedChampion: ''
     });
+  },
+  onShareAppMessage() {
+    const event = this.data.event;
+    return {
+      title: event ? event.title : 'Tennis Community',
+      path: `/pages/event/event?eventId=${this.data.eventId}`
+    };
+  },
+  onShareTimeline() {
+    const event = this.data.event;
+    return {
+      title: event ? event.title : 'Tennis Community',
+      query: `eventId=${this.data.eventId}`
+    };
   }
 });

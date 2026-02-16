@@ -146,5 +146,17 @@ Page({
       showAllMatches: showAll,
       displayedMatches: showAll ? this.data.allMatches : this.data.recentMatches
     });
+  },
+  onShareAppMessage() {
+    return {
+      title: this.data.seasonName || 'Tennis Community',
+      path: `/pages/season/season?seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`
+    };
+  },
+  onShareTimeline() {
+    return {
+      title: this.data.seasonName || 'Tennis Community',
+      query: `seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`
+    };
   }
 });

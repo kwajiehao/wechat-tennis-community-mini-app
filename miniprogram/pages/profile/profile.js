@@ -91,5 +91,16 @@ Page({
         console.error(err);
         wx.showToast({ title: err.message || 'Save failed', icon: 'none' });
       });
+  },
+  onShareAppMessage() {
+    return {
+      title: this.data.i18n.app_title || 'Tennis Community',
+      path: '/pages/index/index'
+    };
+  },
+  onShareTimeline() {
+    return {
+      title: this.data.i18n.app_title || 'Tennis Community'
+    };
   }
 });

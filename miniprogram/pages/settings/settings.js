@@ -25,5 +25,16 @@ Page({
     i18n.setLang(newLang);
     this.loadI18n();
     wx.showToast({ title: newLang === 'zh' ? '已切换到中文' : 'Switched to English', icon: 'none' });
+  },
+  onShareAppMessage() {
+    return {
+      title: this.data.i18n.app_title || 'Tennis Community',
+      path: '/pages/index/index'
+    };
+  },
+  onShareTimeline() {
+    return {
+      title: this.data.i18n.app_title || 'Tennis Community'
+    };
   }
 });
