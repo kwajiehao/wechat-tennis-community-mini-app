@@ -42,7 +42,7 @@ cloudfunctions/        # 30 serverless functions (Node.js)
 ## Database Collections
 
 - `players` - Player profiles (name, gender, NTRP, wechatOpenId, isTestPlayer)
-- `events` - Tennis events (date, location, startTime, endTime, matchTypesAllowed, seasonId, status, playerPoints, completedAt, leaderboard)
+- `events` - Tennis events (date, location, startTime, endTime, eventType, matchTypesAllowed, seasonId, status, playerPoints, completedAt, leaderboard)
 - `signups` - Event signups (playerId, eventId, preferredMatchTypes, seasonId)
 - `matches` - Generated matches (teamsA/B, matchType, status, seasonId)
 - `results` - Match results (matchId, score, sets, winner, winnerPlayers)
@@ -51,10 +51,14 @@ cloudfunctions/        # 30 serverless functions (Node.js)
 - `seasons` - Season definitions (name, dates, status)
 - `season_point_adjustments` - Point adjustment ledger for manual adjustments
 
+## Event Types
+
+Events have an `eventType` field (`'singles'` or `'doubles'`, default `'doubles'`). This determines which matchup algorithm is used during generation. Singles events override `matchTypesAllowed` to `['singles']` and require only 2 players minimum.
+
 ## Match Types
 
 Fixed enum of 6 match types (stored as strings):
-- `singles` - Any gender, 1v1 (ad-hoc only, not auto-generated)
+- `singles` - Any gender, 1v1 (auto-generated for singles events, or ad-hoc)
 - `mens_singles` - Male players only, 1v1
 - `womens_singles` - Female players only, 1v1
 - `mens_doubles` - Male players only, 2v2
@@ -113,6 +117,10 @@ Pure algorithm lives in `cloudfunctions/generateMatchups/matchupEngine.js`, clou
 
 - Unmatched players go to waitlist
 
+**Singles** (`generateSinglesMatchups`): For singles events, all players go into one pool regardless of gender. Each round picks the two available players with the lowest match counts and smallest UTR difference who haven't already played each other. Target matches per player: 3 for ≤6 players, 4 otherwise.
+
+`generateMatchups/index.js` branches on `eventData.eventType`: `'singles'` calls `generateSinglesMatchups`, `'doubles'` (default) uses the doubles flow.
+
 ### Stats Calculation
 - Overall: `points = wins * winPoints + losses * lossPoints` (recalculated on every result entry)
 - Event: When admin runs `computeEventScore`, leaderboard is calculated with wins + bonuses (1st: +4, 2nd: +2). `playerPoints` map is stored on the event with total points per player.
@@ -160,7 +168,8 @@ The app supports English (en) and Mandarin (zh):
 ## Current Status
 
 Core features complete including:
-- Gender-based matchmaking (5 match types)
+- Gender-based matchmaking (5 match types) + automatic singles matchup generation
+- Singles event type with dedicated 1v1 matchup algorithm (no gender filtering, UTR-balanced pairing)
 - Event signup display with player names
 - Redesigned admin result entry with set-by-set scoring and ad-hoc matches
 - i18n support (English + Mandarin)
@@ -172,6 +181,6 @@ Core features complete including:
 - Test player management in admin panel for matchup testing
 
 ### Automated Tests
-Matchup engine has Jest tests: `cd cloudfunctions/generateMatchups && npm test` (37 tests covering distribution, gender enforcement, partner uniqueness, team balance, edge cases).
+Matchup engine has Jest tests: `cd cloudfunctions/generateMatchups && npm test` (57 tests covering distribution, gender enforcement, partner uniqueness, team balance, singles matchups, and edge cases).
 
 Other modules are tested manually via DevTools.
