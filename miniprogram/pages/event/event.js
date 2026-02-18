@@ -7,6 +7,7 @@ const i18n = require('../../utils/i18n');
 function getMatchTypes() {
   const strs = i18n.getStrings();
   return [
+    { value: 'singles', label: strs.match_singles },
     { value: 'mens_singles', label: strs.match_mens_singles },
     { value: 'womens_singles', label: strs.match_womens_singles },
     { value: 'mens_doubles', label: strs.match_mens_doubles },
@@ -16,7 +17,7 @@ function getMatchTypes() {
 }
 
 function filterPlayersByMatchType(players, matchType) {
-  if (!matchType || matchType === 'mixed_doubles') {
+  if (!matchType || matchType === 'mixed_doubles' || matchType === 'singles') {
     return players;
   }
   const isMensMatch = matchType.startsWith('mens_');

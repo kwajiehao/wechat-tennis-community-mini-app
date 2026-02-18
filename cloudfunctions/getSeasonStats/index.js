@@ -140,9 +140,12 @@ exports.main = async (event, context) => {
       };
     });
 
-    // Sort by points descending, then by name ascending for ties
+    // Sort by points descending, then by win percentage descending, then by name
     statsList.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
+      const aWinRate = a.matchesPlayed > 0 ? a.wins / a.matchesPlayed : 0;
+      const bWinRate = b.matchesPlayed > 0 ? b.wins / b.matchesPlayed : 0;
+      if (bWinRate !== aWinRate) return bWinRate - aWinRate;
       return (a.playerName || '').localeCompare(b.playerName || '');
     });
 

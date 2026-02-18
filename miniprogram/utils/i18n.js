@@ -55,6 +55,7 @@ const strings = {
     players_test_player: 'Test',
 
     // Match types
+    match_singles: 'Singles',
     match_mens_singles: "Men's Singles",
     match_womens_singles: "Women's Singles",
     match_mens_doubles: "Men's Doubles",
@@ -356,6 +357,7 @@ const strings = {
     players_test_player: '测试',
 
     // Match types
+    match_singles: '单打',
     match_mens_singles: '男子单打',
     match_womens_singles: '女子单打',
     match_mens_doubles: '男子双打',

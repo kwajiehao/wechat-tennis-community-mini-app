@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const VALID_MATCH_TYPES = [
+  'singles',
   'mens_singles',
   'womens_singles',
   'mens_doubles',

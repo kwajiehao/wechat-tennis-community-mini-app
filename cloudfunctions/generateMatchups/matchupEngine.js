@@ -2,6 +2,7 @@
 // ABOUTME: Decoupled from WeChat cloud SDK for testability.
 
 const VALID_MATCH_TYPES = [
+  'singles',
   'mens_singles',
   'womens_singles',
   'mens_doubles',

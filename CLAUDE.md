@@ -53,7 +53,8 @@ cloudfunctions/        # 30 serverless functions (Node.js)
 
 ## Match Types
 
-Fixed enum of 5 match types (stored as strings):
+Fixed enum of 6 match types (stored as strings):
+- `singles` - Any gender, 1v1 (ad-hoc only, not auto-generated)
 - `mens_singles` - Male players only, 1v1
 - `womens_singles` - Female players only, 1v1
 - `mens_doubles` - Male players only, 2v2
@@ -115,7 +116,7 @@ Pure algorithm lives in `cloudfunctions/generateMatchups/matchupEngine.js`, clou
 ### Stats Calculation
 - Overall: `points = wins * winPoints + losses * lossPoints` (recalculated on every result entry)
 - Event: When admin runs `computeEventScore`, leaderboard is calculated with wins + bonuses (1st: +4, 2nd: +2). `playerPoints` map is stored on the event with total points per player.
-- Season: Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments.
+- Season: Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments. Sorted by points DESC, then win percentage DESC, then name ASC.
 
 ## Important Gotchas
 
