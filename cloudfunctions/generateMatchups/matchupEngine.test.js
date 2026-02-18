@@ -6,7 +6,9 @@ const {
   getUTR,
   classifyPlayers,
   planMatchDistribution,
-  generateConstrainedMatchups
+  generateConstrainedMatchups,
+  generateSinglesMatchups,
+  pickBestSinglesPair
 } = require('./matchupEngine');
 
 // --- Test helpers ---
@@ -446,5 +448,290 @@ describe('edge cases', () => {
 
     const { matches } = generateConstrainedMatchups([], plan, allDoubleTypes());
     expect(matches).toHaveLength(0);
+  });
+});
+
+// --- pickBestSinglesPair ---
+
+describe('pickBestSinglesPair', () => {
+  test('returns pair with smallest UTR difference', () => {
+    const players = [
+      makePlayer('p1', 'M', 3.0),
+      makePlayer('p2', 'M', 3.5),
+      makePlayer('p3', 'M', 5.0),
+    ];
+    const usedOpponents = new Map(players.map(p => [p._id, new Set()]));
+    const matchCounts = new Map(players.map(p => [p._id, 0]));
+    const playerLookup = new Map(players.map(p => [p._id, p]));
+
+    const pair = pickBestSinglesPair(players, usedOpponents, matchCounts, playerLookup);
+    expect(pair).not.toBeNull();
+    // p1 (UTR 6.0) and p2 (UTR 7.25) are closest
+    expect(pair.sort()).toEqual(['p1', 'p2'].sort());
+  });
+
+  test('skips pairs that already played each other', () => {
+    const players = [
+      makePlayer('p1', 'M', 3.0),
+      makePlayer('p2', 'M', 3.5),
+      makePlayer('p3', 'M', 5.0),
+    ];
+    const usedOpponents = new Map([
+      ['p1', new Set(['p2'])],
+      ['p2', new Set(['p1'])],
+      ['p3', new Set()]
+    ]);
+    const matchCounts = new Map(players.map(p => [p._id, 0]));
+    const playerLookup = new Map(players.map(p => [p._id, p]));
+
+    const pair = pickBestSinglesPair(players, usedOpponents, matchCounts, playerLookup);
+    expect(pair).not.toBeNull();
+    // p1-p2 already played, so the pair must include p3
+    expect(pair.includes('p3')).toBe(true);
+    // And must not be the p1-p2 pair
+    expect(pair.sort().join('-')).not.toBe('p1-p2');
+  });
+
+  test('returns null when no valid pairs exist', () => {
+    const players = [
+      makePlayer('p1', 'M', 3.0),
+      makePlayer('p2', 'M', 3.5),
+    ];
+    const usedOpponents = new Map([
+      ['p1', new Set(['p2'])],
+      ['p2', new Set(['p1'])]
+    ]);
+    const matchCounts = new Map(players.map(p => [p._id, 0]));
+    const playerLookup = new Map(players.map(p => [p._id, p]));
+
+    const pair = pickBestSinglesPair(players, usedOpponents, matchCounts, playerLookup);
+    expect(pair).toBeNull();
+  });
+
+  test('prioritizes players with fewer matches', () => {
+    const players = [
+      makePlayer('p1', 'M', 3.0),
+      makePlayer('p2', 'M', 3.0),
+      makePlayer('p3', 'M', 3.0),
+      makePlayer('p4', 'M', 3.0),
+    ];
+    const usedOpponents = new Map(players.map(p => [p._id, new Set()]));
+    const matchCounts = new Map([
+      ['p1', 0], ['p2', 0], ['p3', 3], ['p4', 3]
+    ]);
+    const playerLookup = new Map(players.map(p => [p._id, p]));
+
+    const pair = pickBestSinglesPair(players, usedOpponents, matchCounts, playerLookup);
+    expect(pair).not.toBeNull();
+    // Should prefer p1 and p2 who have 0 matches
+    expect(pair.sort()).toEqual(['p1', 'p2'].sort());
+  });
+});
+
+// --- generateSinglesMatchups ---
+
+describe('generateSinglesMatchups', () => {
+  describe('basic match shape', () => {
+    test('all matches have matchType "singles" and single-player teams', () => {
+      const players = [
+        makePlayer('p1', 'M', 3.0),
+        makePlayer('p2', 'F', 3.5),
+        makePlayer('p3', 'M', 4.0),
+        makePlayer('p4', 'F', 4.5),
+      ];
+      const { matches } = generateSinglesMatchups(players);
+
+      for (const match of matches) {
+        expect(match.matchType).toBe('singles');
+        expect(match.teamA).toHaveLength(1);
+        expect(match.teamB).toHaveLength(1);
+      }
+    });
+
+    test('matchCounts tracks all players', () => {
+      const players = [
+        makePlayer('p1', 'M', 3.0),
+        makePlayer('p2', 'F', 3.5),
+        makePlayer('p3', 'M', 4.0),
+      ];
+      const { matchCounts } = generateSinglesMatchups(players);
+
+      for (const player of players) {
+        expect(matchCounts.has(player._id)).toBe(true);
+      }
+    });
+  });
+
+  describe('match count targets', () => {
+    test('2 players produce 1 match', () => {
+      const players = [
+        makePlayer('p1', 'M', 3.0),
+        makePlayer('p2', 'F', 3.5),
+      ];
+      const { matches } = generateSinglesMatchups(players);
+      expect(matches).toHaveLength(1);
+    });
+
+    test('3 players produce triangle: each plays 2 matches', () => {
+      const players = [
+        makePlayer('p1', 'M', 3.0),
+        makePlayer('p2', 'F', 3.5),
+        makePlayer('p3', 'M', 4.0),
+      ];
+      const { matches, matchCounts } = generateSinglesMatchups(players);
+      expect(matches).toHaveLength(3);
+      for (const player of players) {
+        expect(matchCounts.get(player._id)).toBe(2);
+      }
+    });
+
+    test('6 players target 3 matches each', () => {
+      const players = Array.from({ length: 6 }, (_, i) =>
+        makePlayer(`p${i + 1}`, i % 2 === 0 ? 'M' : 'F', 3.0 + i * 0.25)
+      );
+      const { matchCounts } = generateSinglesMatchups(players);
+      for (const player of players) {
+        expect(matchCounts.get(player._id)).toBeLessThanOrEqual(3);
+        expect(matchCounts.get(player._id)).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    test('8 players target 4 matches each', () => {
+      const players = Array.from({ length: 8 }, (_, i) =>
+        makePlayer(`p${i + 1}`, i % 2 === 0 ? 'M' : 'F', 3.0 + i * 0.25)
+      );
+      const { matchCounts } = generateSinglesMatchups(players);
+      for (const player of players) {
+        expect(matchCounts.get(player._id)).toBeLessThanOrEqual(4);
+        expect(matchCounts.get(player._id)).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    test('no player exceeds target match count', () => {
+      const players = Array.from({ length: 10 }, (_, i) =>
+        makePlayer(`p${i + 1}`, i % 2 === 0 ? 'M' : 'F', 3.0 + i * 0.1)
+      );
+      const target = 4; // >6 players
+      const { matchCounts } = generateSinglesMatchups(players);
+      for (const player of players) {
+        expect(matchCounts.get(player._id)).toBeLessThanOrEqual(target);
+      }
+    });
+  });
+
+  describe('opponent uniqueness', () => {
+    test('no rematches across all matches', () => {
+      const players = Array.from({ length: 8 }, (_, i) =>
+        makePlayer(`p${i + 1}`, i % 2 === 0 ? 'M' : 'F', 3.0 + i * 0.25)
+      );
+      const { matches } = generateSinglesMatchups(players);
+
+      const pairings = new Set();
+      for (const match of matches) {
+        const key = [match.teamA[0], match.teamB[0]].sort().join('-');
+        expect(pairings.has(key)).toBe(false);
+        pairings.add(key);
+      }
+    });
+  });
+
+  describe('UTR balancing', () => {
+    test('prefers closer-rated pairings', () => {
+      // 4 players with spread ratings
+      const players = [
+        makePlayer('low1', 'M', 2.0),   // UTR 3.5
+        makePlayer('low2', 'M', 2.5),   // UTR 4.75
+        makePlayer('high1', 'M', 4.5),  // UTR 9.75
+        makePlayer('high2', 'M', 5.0),  // UTR 11.0
+      ];
+      const { matches } = generateSinglesMatchups(players);
+
+      // First matches should pair close ratings: low1-low2 and high1-high2
+      const firstPairings = matches.slice(0, 2).map(m =>
+        [m.teamA[0], m.teamB[0]].sort().join('-')
+      );
+      const hasClosePair = firstPairings.some(p =>
+        p === 'low1-low2' || p === 'high1-high2'
+      );
+      expect(hasClosePair).toBe(true);
+    });
+  });
+
+  describe('gender neutrality', () => {
+    test('cross-gender pairings happen', () => {
+      const players = [
+        makePlayer('m1', 'M', 3.0),
+        makePlayer('f1', 'F', 3.0),
+        makePlayer('m2', 'M', 3.5),
+        makePlayer('f2', 'F', 3.5),
+      ];
+      const { matches } = generateSinglesMatchups(players);
+
+      const hasCrossGender = matches.some(m => {
+        const a = players.find(p => p._id === m.teamA[0]);
+        const b = players.find(p => p._id === m.teamB[0]);
+        return a.gender !== b.gender;
+      });
+      expect(hasCrossGender).toBe(true);
+    });
+
+    test('all-male group works', () => {
+      const players = makeMales(6);
+      const { matches } = generateSinglesMatchups(players);
+      expect(matches.length).toBeGreaterThan(0);
+    });
+
+    test('all-female group works', () => {
+      const players = makeFemales(6);
+      const { matches } = generateSinglesMatchups(players);
+      expect(matches.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('edge cases', () => {
+    test('0 players returns empty', () => {
+      const { matches, matchCounts } = generateSinglesMatchups([]);
+      expect(matches).toHaveLength(0);
+      expect(matchCounts.size).toBe(0);
+    });
+
+    test('1 player returns no matches', () => {
+      const players = [makePlayer('p1', 'M', 3.0)];
+      const { matches } = generateSinglesMatchups(players);
+      expect(matches).toHaveLength(0);
+    });
+
+    test('players with identical NTRP get paired', () => {
+      const players = [
+        makePlayer('p1', 'M', 3.5),
+        makePlayer('p2', 'F', 3.5),
+        makePlayer('p3', 'M', 3.5),
+        makePlayer('p4', 'F', 3.5),
+      ];
+      const { matches } = generateSinglesMatchups(players);
+      expect(matches.length).toBeGreaterThan(0);
+    });
+
+    test('15 players stress test: reasonable match counts, no crashes', () => {
+      const players = Array.from({ length: 15 }, (_, i) =>
+        makePlayer(`p${i + 1}`, i % 2 === 0 ? 'M' : 'F', 2.5 + (i % 5) * 0.5)
+      );
+      const { matches, matchCounts } = generateSinglesMatchups(players);
+      expect(matches.length).toBeGreaterThan(0);
+
+      // No rematches
+      const pairings = new Set();
+      for (const match of matches) {
+        const key = [match.teamA[0], match.teamB[0]].sort().join('-');
+        expect(pairings.has(key)).toBe(false);
+        pairings.add(key);
+      }
+
+      // No player exceeds target
+      const target = 4;
+      for (const player of players) {
+        expect(matchCounts.get(player._id)).toBeLessThanOrEqual(target);
+      }
+    });
   });
 });

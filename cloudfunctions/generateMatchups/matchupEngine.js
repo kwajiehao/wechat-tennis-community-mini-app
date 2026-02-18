@@ -197,6 +197,73 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
   return { matches, matchCounts };
 }
 
+// From available players (sorted by match count ascending), find the pair
+// with smallest UTR difference that hasn't already played each other.
+function pickBestSinglesPair(available, usedOpponents, matchCounts, playerLookup) {
+  // Sort by match count ascending so we prefer players with fewer matches
+  const sorted = available.slice().sort((a, b) => {
+    const countDiff = matchCounts.get(a._id) - matchCounts.get(b._id);
+    if (countDiff !== 0) return countDiff;
+    return 0;
+  });
+
+  let bestPair = null;
+  let bestDiff = Infinity;
+
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      const a = sorted[i];
+      const b = sorted[j];
+
+      if (usedOpponents.get(a._id).has(b._id)) continue;
+
+      const diff = Math.abs(getUTR(a) - getUTR(b));
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPair = [a._id, b._id];
+      }
+    }
+  }
+
+  return bestPair;
+}
+
+function generateSinglesMatchups(players) {
+  const matchCounts = new Map();
+  const usedOpponents = new Map();
+  const matches = [];
+  const playerLookup = new Map(players.map(p => [p._id, p]));
+
+  players.forEach(p => {
+    matchCounts.set(p._id, 0);
+    usedOpponents.set(p._id, new Set());
+  });
+
+  if (players.length < 2) {
+    return { matches, matchCounts };
+  }
+
+  const target = players.length <= 6 ? 3 : 4;
+  const maxRounds = Math.floor(players.length * target / 2);
+
+  for (let round = 0; round < maxRounds; round++) {
+    const available = players.filter(p => matchCounts.get(p._id) < target);
+    if (available.length < 2) break;
+
+    const pair = pickBestSinglesPair(available, usedOpponents, matchCounts, playerLookup);
+    if (!pair) break;
+
+    const [aId, bId] = pair;
+    matches.push({ matchType: 'singles', teamA: [aId], teamB: [bId] });
+    usedOpponents.get(aId).add(bId);
+    usedOpponents.get(bId).add(aId);
+    matchCounts.set(aId, matchCounts.get(aId) + 1);
+    matchCounts.set(bId, matchCounts.get(bId) + 1);
+  }
+
+  return { matches, matchCounts };
+}
+
 module.exports = {
   VALID_MATCH_TYPES,
   ntrpToUTR,
@@ -204,5 +271,7 @@ module.exports = {
   classifyPlayers,
   planMatchDistribution,
   pickMostBalancedSplit,
-  generateConstrainedMatchups
+  generateConstrainedMatchups,
+  generateSinglesMatchups,
+  pickBestSinglesPair
 };
