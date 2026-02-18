@@ -195,7 +195,7 @@
           <view class="matchup-row">
             <view class="matchup-content">
               <view class="matchup-header">
-                <view class="matchup-type">{{item.matchTypeLabel}}</view>
+                <view class="matchup-type"><text class="matchup-number">#{{index + 1}}</text> {{item.matchTypeLabel}}</view>
                 <view class="matchup-delete" data-id="{{item._id}}" catchtap="deleteMatchup" wx:if="{{isAdmin && event.status !== 'completed' && item.status !== 'completed'}}">×</view>
                 <view class="matchup-delete" data-id="{{item._id}}" catchtap="clearResult" wx:if="{{isAdmin && item.status === 'completed' && (!event.leaderboard || !event.leaderboard.computed)}}">×</view>
               </view>

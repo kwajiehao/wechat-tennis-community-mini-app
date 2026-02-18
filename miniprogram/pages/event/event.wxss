@@ -133,6 +133,11 @@
   color: #666;
 }
 
+.matchup-number {
+  font-weight: 600;
+  color: #333;
+}
+
 .matchup-versus {
   display: flex;
   flex-direction: row;
