@@ -17,9 +17,9 @@
     <block wx:if="{{isAdmin}}">
       <view class="card">
         <view class="title">{{i18n.nav_admin}}</view>
-        <view class="button {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'generateMatchups'}}" wx:if="{{event.status === 'open'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
-        <view class="button secondary {{signedUpPlayers.length < 4 ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < 4 ? '' : 'confirmRegenerateMatchups'}}" wx:if="{{event.status === 'in_progress'}}">{{i18n.admin_regenerate_matchups || 'Regenerate Matchups'}}</view>
-        <view class="hint" wx:if="{{event.status === 'open' && signedUpPlayers.length < 4}}">{{i18n.admin_min_players_hint || 'Minimum 4 players required'}}</view>
+        <view class="button {{signedUpPlayers.length < minPlayersForMatchups ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < minPlayersForMatchups ? '' : 'generateMatchups'}}" wx:if="{{event.status === 'open'}}">{{i18n.admin_generate_matchups || 'Generate Matchups'}}</view>
+        <view class="button secondary {{signedUpPlayers.length < minPlayersForMatchups ? 'disabled' : ''}}" bindtap="{{signedUpPlayers.length < minPlayersForMatchups ? '' : 'confirmRegenerateMatchups'}}" wx:if="{{event.status === 'in_progress'}}">{{i18n.admin_regenerate_matchups || 'Regenerate Matchups'}}</view>
+        <view class="hint" wx:if="{{event.status === 'open' && signedUpPlayers.length < minPlayersForMatchups}}">{{event.eventType === 'singles' ? i18n.admin_min_players_hint_singles : i18n.admin_min_players_hint || 'Minimum 4 players required'}}</view>
         <view class="hint" wx:if="{{event.status === 'match_started'}}">{{i18n.admin_match_started_hint || 'Matches have started - cannot regenerate'}}</view>
         <view class="button" bindtap="completeEvent" wx:if="{{event.status !== 'completed' && matches.length > 0}}">{{i18n.admin_complete_event || 'Complete Event'}}</view>
 

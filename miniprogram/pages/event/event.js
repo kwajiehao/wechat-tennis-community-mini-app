@@ -73,7 +73,8 @@ Page({
     showTieBreaker: false,
     tiedPlayers: [],
     selectedChampion: '',
-    showGameDiff: false
+    showGameDiff: false,
+    minPlayersForMatchups: 4
   },
   onLoad(query) {
     initCloud();
@@ -132,7 +133,8 @@ Page({
           }
         }
 
-        this.setData({ event, showGameDiff });
+        const minPlayersForMatchups = (event && event.eventType === 'singles') ? 2 : 4;
+        this.setData({ event, showGameDiff, minPlayersForMatchups });
         return Promise.all([
           callFunction('listSignups', { eventId, mine: true })
             .catch(err => { console.error('[event] listSignups mine failed:', err); return { result: {} }; }),

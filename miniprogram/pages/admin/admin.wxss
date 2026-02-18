@@ -380,3 +380,11 @@
 .button-row .button {
   flex: 1;
 }
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+}

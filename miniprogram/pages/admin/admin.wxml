@@ -63,6 +63,12 @@
     <picker mode="time" value="{{newEvent.endTime}}" bindchange="onEventEndTimeChange">
       <view class="input picker-value">{{newEvent.endTime || i18n.common_select}}</view>
     </picker>
+    <view class="label">{{i18n.admin_event_type}}</view>
+    <view class="switch-row">
+      <text>{{i18n.admin_event_type_doubles}}</text>
+      <switch checked="{{newEvent.eventType === 'singles'}}" bindchange="onEventTypeChange" />
+      <text>{{i18n.admin_event_type_singles}}</text>
+    </view>
     <view class="button" bindtap="createEvent">{{i18n.admin_create_event || 'Create Event'}}</view>
   </view>
 

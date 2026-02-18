@@ -6,7 +6,8 @@ const {
   VALID_MATCH_TYPES,
   classifyPlayers,
   planMatchDistribution,
-  generateConstrainedMatchups
+  generateConstrainedMatchups,
+  generateSinglesMatchups
 } = require('./matchupEngine');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -130,12 +131,18 @@ exports.main = async (event, context) => {
     .filter(r => r.player && r.player.isActive !== false);
 
   const activePlayers = roster.map(r => r.player);
-  const { males, females } = classifyPlayers(activePlayers);
-  const allMatchTypes = eventData.matchTypesAllowed || VALID_MATCH_TYPES;
-  const doublesTypes = allMatchTypes.filter(t => t.includes('doubles'));
-  const matchPlan = planMatchDistribution(males.length, females.length);
+  const eventType = eventData.eventType || 'doubles';
 
-  const { matches, matchCounts } = generateConstrainedMatchups(activePlayers, matchPlan, doublesTypes);
+  let matches, matchCounts;
+  if (eventType === 'singles') {
+    ({ matches, matchCounts } = generateSinglesMatchups(activePlayers));
+  } else {
+    const { males, females } = classifyPlayers(activePlayers);
+    const allMatchTypes = eventData.matchTypesAllowed || VALID_MATCH_TYPES;
+    const doublesTypes = allMatchTypes.filter(t => t.includes('doubles'));
+    const matchPlan = planMatchDistribution(males.length, females.length);
+    ({ matches, matchCounts } = generateConstrainedMatchups(activePlayers, matchPlan, doublesTypes));
+  }
 
   const now = new Date().toISOString();
   const matchesToCreate = matches.map(match => ({

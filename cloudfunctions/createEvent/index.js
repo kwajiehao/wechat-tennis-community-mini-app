@@ -80,15 +80,19 @@ exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   await assertAdmin(OPENID);
 
+  const VALID_EVENT_TYPES = ['singles', 'doubles'];
   const {
     title,
     date,
     location,
     startTime = '',
     endTime = '',
+    eventType: rawEventType,
     matchTypesAllowed = VALID_MATCH_TYPES,
     seasonId: providedSeasonId
   } = event;
+
+  const eventType = VALID_EVENT_TYPES.includes(rawEventType) ? rawEventType : 'doubles';
 
   if (!title || !date) {
     throw new Error('MISSING_FIELDS');
@@ -101,7 +105,9 @@ exports.main = async (event, context) => {
     throw new Error('DUPLICATE_EVENT_TITLE');
   }
 
-  const validatedMatchTypes = matchTypesAllowed.filter(t => VALID_MATCH_TYPES.includes(t));
+  const validatedMatchTypes = eventType === 'singles'
+    ? ['singles']
+    : matchTypesAllowed.filter(t => VALID_MATCH_TYPES.includes(t));
   if (validatedMatchTypes.length === 0) {
     throw new Error('INVALID_MATCH_TYPES');
   }
@@ -115,6 +121,7 @@ exports.main = async (event, context) => {
       location: location || '',
       startTime,
       endTime,
+      eventType,
       matchTypesAllowed: validatedMatchTypes,
       status: 'open',
       waitlist: [],

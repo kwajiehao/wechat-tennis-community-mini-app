@@ -43,7 +43,8 @@ Page({
       date: '',
       location: '',
       startTime: '',
-      endTime: ''
+      endTime: '',
+      eventType: 'doubles'
     },
     resultEntry: {
       mode: 'matchmaking',
@@ -303,6 +304,9 @@ Page({
   onEventEndTimeChange(e) {
     this.setData({ 'newEvent.endTime': e.detail.value });
   },
+  onEventTypeChange(e) {
+    this.setData({ 'newEvent.eventType': e.detail.value ? 'singles' : 'doubles' });
+  },
   createEvent() {
     const data = this.data.newEvent;
     callFunction('createEvent', {
@@ -310,7 +314,8 @@ Page({
       date: data.date,
       location: data.location,
       startTime: data.startTime,
-      endTime: data.endTime
+      endTime: data.endTime,
+      eventType: data.eventType
     })
       .then(() => {
         wx.showToast({ title: this.data.i18n.toast_event_created, icon: 'success' });
