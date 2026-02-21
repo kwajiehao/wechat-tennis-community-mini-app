@@ -1,4 +1,4 @@
-// ABOUTME: Leaderboard page showing player rankings for the active season.
+// ABOUTME: Leaderboard page showing player rankings with a season selector.
 // ABOUTME: Displays games played, wins, losses, and points in a table format.
 
 const { callFunction } = require('../../utils/cloud');
@@ -9,15 +9,17 @@ Page({
     i18n: {},
     season: null,
     leaderboard: [],
-    loading: true
+    loading: true,
+    seasons: [],
+    filterOptions: [],
+    selectedFilter: '',
+    selectedFilterLabel: ''
   },
 
   onLoad(options) {
     this.loadI18n();
-    if (options.seasonId) {
-      this._seasonId = options.seasonId;
-    }
-    this.loadLeaderboard();
+    this._initialSeasonId = options.seasonId || '';
+    this.loadSeasons();
   },
 
   onShow() {
@@ -26,6 +28,75 @@ Page({
 
   loadI18n() {
     this.setData({ i18n: i18n.getStrings() });
+  },
+
+  loadSeasons() {
+    this.setData({ loading: true });
+    callFunction('listSeasons', {})
+      .then(res => {
+        const seasons = res.result.seasons || [];
+        const activeSeasonId = res.result.activeSeasonId;
+
+        const sortedSeasons = seasons.slice().sort((a, b) => {
+          return (b.startDate || '').localeCompare(a.startDate || '');
+        });
+
+        const filterOptions = sortedSeasons.map(season => ({
+          value: season._id,
+          label: season.name
+        }));
+
+        let selectedFilter = '';
+        let selectedFilterLabel = '';
+
+        // Prefer URL-provided seasonId, then active season, then first
+        if (this._initialSeasonId) {
+          const urlOption = filterOptions.find(o => o.value === this._initialSeasonId);
+          if (urlOption) {
+            selectedFilter = urlOption.value;
+            selectedFilterLabel = urlOption.label;
+          }
+        }
+        if (!selectedFilter && activeSeasonId) {
+          const activeOption = filterOptions.find(o => o.value === activeSeasonId);
+          if (activeOption) {
+            selectedFilter = activeSeasonId;
+            selectedFilterLabel = activeOption.label;
+          }
+        }
+        if (!selectedFilter && filterOptions.length > 0) {
+          selectedFilter = filterOptions[0].value;
+          selectedFilterLabel = filterOptions[0].label;
+        }
+
+        this.setData({ seasons, filterOptions, selectedFilter, selectedFilterLabel });
+
+        if (selectedFilter) {
+          this.loadLeaderboard();
+        } else {
+          this.setData({ loading: false });
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        this.setData({ loading: false });
+        wx.showToast({ title: this.data.i18n.toast_failed_load_leaderboard, icon: 'none' });
+      });
+  },
+
+  onSeasonChange(e) {
+    const index = e.detail.value;
+    const option = this.data.filterOptions[index];
+    if (!option) return;
+
+    this.setData({
+      selectedFilter: option.value,
+      selectedFilterLabel: option.label,
+      season: null,
+      leaderboard: []
+    });
+
+    this.loadLeaderboard();
   },
 
   onPullDownRefresh() {
@@ -46,8 +117,8 @@ Page({
   loadLeaderboard() {
     this.setData({ loading: true });
     const params = { all: true };
-    if (this._seasonId) {
-      params.seasonId = this._seasonId;
+    if (this.data.selectedFilter) {
+      params.seasonId = this.data.selectedFilter;
     }
     return callFunction('getSeasonStats', params)
       .then(res => {
@@ -84,19 +155,21 @@ Page({
   },
   onShareAppMessage() {
     const season = this.data.season;
+    const seasonId = this.data.selectedFilter;
     return {
       title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
-      path: this._seasonId
-        ? `/pages/leaderboard/leaderboard?seasonId=${this._seasonId}`
+      path: seasonId
+        ? `/pages/leaderboard/leaderboard?seasonId=${seasonId}`
         : '/pages/leaderboard/leaderboard'
     };
   },
   onShareTimeline() {
     const season = this.data.season;
+    const seasonId = this.data.selectedFilter;
     return {
       title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
-      query: this._seasonId
-        ? `targetPage=leaderboard&seasonId=${this._seasonId}`
+      query: seasonId
+        ? `targetPage=leaderboard&seasonId=${seasonId}`
         : 'targetPage=leaderboard'
     };
   }

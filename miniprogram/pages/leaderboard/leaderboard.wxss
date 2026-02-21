@@ -1,4 +1,30 @@
-/* ABOUTME: Styles for leaderboard page with table layout. */
+/* ABOUTME: Styles for leaderboard page with season filter and table layout. */
+
+/* Filter section */
+.filter-section {
+  margin-bottom: 20rpx;
+}
+
+.filter-picker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+}
+
+.filter-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1565c0;
+}
+
+.filter-arrow {
+  font-size: 24rpx;
+  color: #999;
+}
 
 .loading-card {
   text-align: center;
