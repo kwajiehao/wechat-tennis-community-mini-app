@@ -36,7 +36,7 @@
           <view class="col-stat">{{item.matchesPlayed}}</view>
           <view class="col-stat">{{item.losses}}</view>
           <view class="col-stat">{{item.winRate}}</view>
-          <view class="col-stat">{{item.championCount || ''}}</view>
+          <view class="col-stat">{{item.perfectEventCount || ''}}</view>
         </view>
       </view>
     </view>

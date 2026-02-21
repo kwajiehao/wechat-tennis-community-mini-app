@@ -110,7 +110,7 @@ const strings = {
     leaderboard_played: 'P',
     leaderboard_losses: 'L',
     leaderboard_win_rate: 'W%',
-    leaderboard_champions: 'Bonus',
+    leaderboard_champions: 'Perfect',
 
     // Stats page
     stats_title: 'Statistics',

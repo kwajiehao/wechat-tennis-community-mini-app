@@ -2,6 +2,7 @@
 // ABOUTME: Combines event-based points with manual adjustments for season leaderboard.
 
 const cloud = require('wx-server-sdk');
+const { computePerfectEventCounts } = require('./perfectEvents');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -66,18 +67,14 @@ exports.main = async (event, context) => {
       .field({ playerPoints: true, leaderboard: true }));
 
     const playerPoints = {};
-    const championCounts = {};
+    const scoredEventIds = new Set();
     for (const evt of completedEvents) {
       const eventPoints = evt.playerPoints || {};
       for (const [playerId, points] of Object.entries(eventPoints)) {
         playerPoints[playerId] = (playerPoints[playerId] || 0) + points;
       }
       if (evt.leaderboard && evt.leaderboard.computed) {
-        const rankings = evt.leaderboard.rankings || [];
-        const champion = rankings.find(r => r.rank === 1);
-        if (champion) {
-          championCounts[champion.playerId] = (championCounts[champion.playerId] || 0) + 1;
-        }
+        scoredEventIds.add(evt._id);
       }
     }
 
@@ -119,6 +116,8 @@ exports.main = async (event, context) => {
       }
     }
 
+    const perfectEventCounts = computePerfectEventCounts(completedMatches, results, scoredEventIds);
+
     // Include all active players, not just those with points
     const statsList = allPlayers.map(player => {
       const playerId = player._id;
@@ -136,7 +135,7 @@ exports.main = async (event, context) => {
         wins,
         losses,
         matchesPlayed,
-        championCount: championCounts[playerId] || 0
+        perfectEventCount: perfectEventCounts[playerId] || 0
       };
     });
 

@@ -124,7 +124,7 @@ Pure algorithm lives in `cloudfunctions/generateMatchups/matchupEngine.js`, clou
 ### Stats Calculation
 - Overall: `points = wins * winPoints + losses * lossPoints` (recalculated on every result entry)
 - Event: When admin runs `computeEventScore`, leaderboard is calculated with wins + bonuses (1st: +4, 2nd: +2). `playerPoints` map is stored on the event with total points per player.
-- Season: Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments. Sorted by points DESC, then win percentage DESC, then name ASC.
+- Season: Season leaderboard aggregates `playerPoints` from all completed events + manual adjustments. Sorted by points DESC, then win percentage DESC, then name ASC. "Perfect" column shows how many events a player won 100% of their matches (pure logic in `getSeasonStats/perfectEvents.js`).
 
 ## Important Gotchas
 

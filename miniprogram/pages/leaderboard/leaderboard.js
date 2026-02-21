@@ -70,7 +70,7 @@ Page({
             matchesPlayed,
             losses: s.losses || 0,
             winRate: winRate + '%',
-            championCount: s.championCount || 0
+            perfectEventCount: s.perfectEventCount || 0
           };
         });
 
