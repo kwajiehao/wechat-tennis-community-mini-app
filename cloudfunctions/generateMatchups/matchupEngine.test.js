@@ -9,7 +9,8 @@ const {
   generateConstrainedMatchups,
   generateSinglesMatchups,
   pickBestSinglesPair,
-  combinations
+  combinations,
+  scheduleMatches
 } = require('./matchupEngine');
 
 // --- Test helpers ---
@@ -885,5 +886,109 @@ describe('combinations', () => {
   test('C(6,4) returns 15 groups', () => {
     const result = combinations([1, 2, 3, 4, 5, 6], 4);
     expect(result).toHaveLength(15);
+  });
+});
+
+// --- scheduleMatches ---
+
+describe('scheduleMatches', () => {
+  function makeMatch(id, playerIds) {
+    const teamA = playerIds.slice(0, playerIds.length / 2);
+    const teamB = playerIds.slice(playerIds.length / 2);
+    return {
+      _id: id,
+      matchType: teamA.length === 1 ? 'singles' : 'mens_doubles',
+      teamA,
+      teamB,
+      participants: playerIds
+    };
+  }
+
+  test('assigns matchNumber 1..N to all matches', () => {
+    const matches = [
+      makeMatch('m1', ['a', 'b']),
+      makeMatch('m2', ['c', 'd']),
+      makeMatch('m3', ['a', 'c']),
+      makeMatch('m4', ['b', 'd']),
+      makeMatch('m5', ['a', 'd']),
+    ];
+    const scheduled = scheduleMatches(matches);
+    expect(scheduled).toHaveLength(5);
+
+    const numbers = scheduled.map(m => m.matchNumber).sort((a, b) => a - b);
+    expect(numbers).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  test('no player plays 3+ consecutive matches', () => {
+    // 8 players, 12 matches — enough to force consecutive play without scheduling
+    const players = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const matchups = [
+      ['p1', 'p2'], ['p1', 'p3'], ['p1', 'p4'], ['p1', 'p5'],
+      ['p2', 'p3'], ['p2', 'p4'], ['p2', 'p5'], ['p3', 'p4'],
+      ['p3', 'p5'], ['p4', 'p5'], ['p6', 'p7'], ['p6', 'p8'],
+    ];
+    const matches = matchups.map((pair, i) => makeMatch(`m${i}`, pair));
+    const scheduled = scheduleMatches(matches);
+
+    // Sort by matchNumber
+    scheduled.sort((a, b) => a.matchNumber - b.matchNumber);
+
+    // Check no player has 3+ consecutive matches
+    for (const player of players) {
+      let consecutive = 0;
+      for (const match of scheduled) {
+        if (match.participants.includes(player)) {
+          consecutive++;
+          expect(consecutive).toBeLessThan(3);
+        } else {
+          consecutive = 0;
+        }
+      }
+    }
+  });
+
+  test('no player rests 3+ consecutive matches when they have remaining matches', () => {
+    // A player with 4 matches in a 9-match event shouldn't sit out 3+ in a row
+    const males = makeMales(6, 3.0, 0.25);
+    const plan = planMatchDistribution(6, 0);
+    let { matches } = generateConstrainedMatchups(males, plan, ['mens_doubles']);
+    // Add participants field as index.js would
+    matches = matches.map(m => ({ ...m, participants: [...m.teamA, ...m.teamB] }));
+    const scheduled = scheduleMatches(matches);
+    scheduled.sort((a, b) => a.matchNumber - b.matchNumber);
+
+    for (const player of males) {
+      const playSlots = scheduled
+        .map((m, i) => m.participants.includes(player._id) ? i : -1)
+        .filter(i => i >= 0);
+
+      // Check gaps between consecutive play slots
+      for (let i = 1; i < playSlots.length; i++) {
+        const gap = playSlots[i] - playSlots[i - 1] - 1;
+        // No gap of 3+ rest slots between plays
+        expect(gap).toBeLessThan(3);
+      }
+    }
+  });
+
+  test('empty matches returns empty', () => {
+    expect(scheduleMatches([])).toEqual([]);
+  });
+
+  test('single match gets matchNumber 1', () => {
+    const matches = [makeMatch('m1', ['a', 'b'])];
+    const scheduled = scheduleMatches(matches);
+    expect(scheduled).toHaveLength(1);
+    expect(scheduled[0].matchNumber).toBe(1);
+  });
+
+  test('preserves all match properties', () => {
+    const matches = [
+      { _id: 'm1', matchType: 'singles', teamA: ['a'], teamB: ['b'], participants: ['a', 'b'], extra: 'data' }
+    ];
+    const scheduled = scheduleMatches(matches);
+    expect(scheduled[0].extra).toBe('data');
+    expect(scheduled[0]._id).toBe('m1');
+    expect(scheduled[0].matchNumber).toBe(1);
   });
 });

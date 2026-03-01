@@ -298,6 +298,59 @@ function generateSinglesMatchups(players) {
   return { matches, matchCounts };
 }
 
+// Reorders matches so play time is spread evenly across participants.
+// Assigns matchNumber (1-indexed) to each match.
+function scheduleMatches(matches) {
+  if (matches.length === 0) return [];
+
+  const unscheduled = matches.map((m, i) => i);
+  const scheduled = [];
+  const lastPlaySlot = new Map();
+
+  // Collect all participants
+  for (const match of matches) {
+    for (const id of match.participants || [...match.teamA, ...match.teamB]) {
+      if (!lastPlaySlot.has(id)) lastPlaySlot.set(id, -2);
+    }
+  }
+
+  for (let slot = 0; slot < matches.length; slot++) {
+    let bestIdx = -1;
+    let bestMinGap = -1;
+    let bestTotalGap = -1;
+
+    for (const idx of unscheduled) {
+      const participants = matches[idx].participants || [...matches[idx].teamA, ...matches[idx].teamB];
+
+      // Minimum rest gap across all participants in this match
+      let minGap = Infinity;
+      let totalGap = 0;
+      for (const id of participants) {
+        const gap = slot - lastPlaySlot.get(id);
+        if (gap < minGap) minGap = gap;
+        totalGap += gap;
+      }
+
+      // Pick match with largest minimum gap; break ties by largest total gap
+      if (minGap > bestMinGap || (minGap === bestMinGap && totalGap > bestTotalGap)) {
+        bestMinGap = minGap;
+        bestTotalGap = totalGap;
+        bestIdx = idx;
+      }
+    }
+
+    const participants = matches[bestIdx].participants || [...matches[bestIdx].teamA, ...matches[bestIdx].teamB];
+    for (const id of participants) {
+      lastPlaySlot.set(id, slot);
+    }
+
+    scheduled.push({ ...matches[bestIdx], matchNumber: slot + 1 });
+    unscheduled.splice(unscheduled.indexOf(bestIdx), 1);
+  }
+
+  return scheduled;
+}
+
 module.exports = {
   VALID_MATCH_TYPES,
   combinations,
@@ -308,5 +361,6 @@ module.exports = {
   pickMostBalancedSplit,
   generateConstrainedMatchups,
   generateSinglesMatchups,
-  pickBestSinglesPair
+  pickBestSinglesPair,
+  scheduleMatches
 };
