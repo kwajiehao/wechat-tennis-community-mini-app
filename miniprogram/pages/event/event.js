@@ -681,71 +681,92 @@ Page({
   },
   generateShareImage() {
     const event = this.data.event;
-    if (!event) return;
+    if (!event) {
+      console.log('[shareImage] no event data, skipping');
+      return;
+    }
 
-    const width = 500;
-    const height = 400;
-    const imageHeight = 260;
-    const canvas = wx.createOffscreenCanvas({ type: '2d', width, height });
-    const ctx = canvas.getContext('2d');
-
-    const img = canvas.createImage();
-    img.onload = () => {
-      // White background for entire canvas
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw tennis image with padding
-      const pad = 16;
-      ctx.drawImage(img, pad, pad, width - pad * 2, imageHeight - pad);
-
-      // Subtle separator line
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, imageHeight);
-      ctx.lineTo(width, imageHeight);
-      ctx.stroke();
-
-      const maxTextWidth = width - 40;
-      const textX = 20;
-
-      // Event title
-      ctx.fillStyle = '#1a1a1a';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(this._truncateText(ctx, event.title || '', maxTextWidth), textX, imageHeight + 32);
-
-      // Date and time
-      ctx.font = '15px sans-serif';
-      ctx.fillStyle = '#666666';
-      let dateLine = event.date || '';
-      if (event.startTime) {
-        dateLine += (dateLine ? '  ' : '') + event.startTime;
-        if (event.endTime) dateLine += ' - ' + event.endTime;
-      }
-      if (dateLine) ctx.fillText(dateLine, textX, imageHeight + 60);
-
-      // Write canvas data to temp file
-      const data = ctx.getImageData(0, 0, width, height);
-      const pngData = canvas.toDataURL('image/png');
-      const fs = wx.getFileSystemManager();
-      const filePath = `${wx.env.USER_DATA_PATH}/share_event.png`;
-      fs.writeFile({
-        filePath,
-        data: pngData.replace(/^data:image\/png;base64,/, ''),
-        encoding: 'base64',
-        success: () => {
-          this.setData({ shareImageUrl: filePath });
-        },
-        fail: (err) => {
-          console.error('[event] share image write failed:', err);
+    console.log('[shareImage] starting generation');
+    const query = this.createSelectorQuery();
+    query.select('#shareCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        if (!res[0] || !res[0].node) {
+          console.error('[shareImage] canvas not found:', res);
+          return;
         }
+        console.log('[shareImage] canvas found');
+        const canvas = res[0].node;
+        const ctx = canvas.getContext('2d');
+        const width = 500;
+        const height = 400;
+        const imageHeight = 260;
+        canvas.width = width;
+        canvas.height = height;
+
+        const img = canvas.createImage();
+        img.onload = () => {
+          console.log('[shareImage] background image loaded');
+
+          // White background for entire canvas
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+
+          // Draw tennis image with padding
+          const pad = 16;
+          ctx.drawImage(img, pad, pad, width - pad * 2, imageHeight - pad);
+
+          // Subtle separator line
+          ctx.strokeStyle = '#e0e0e0';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, imageHeight);
+          ctx.lineTo(width, imageHeight);
+          ctx.stroke();
+
+          const maxTextWidth = width - 40;
+          const textX = 20;
+
+          // Event title
+          ctx.fillStyle = '#1a1a1a';
+          ctx.font = 'bold 22px sans-serif';
+          ctx.fillText(this._truncateText(ctx, event.title || '', maxTextWidth), textX, imageHeight + 32);
+
+          // Date and time
+          ctx.font = '15px sans-serif';
+          ctx.fillStyle = '#666666';
+          let dateLine = event.date || '';
+          if (event.startTime) {
+            dateLine += (dateLine ? '  ' : '') + event.startTime;
+            if (event.endTime) dateLine += ' - ' + event.endTime;
+          }
+          if (dateLine) ctx.fillText(dateLine, textX, imageHeight + 60);
+
+          console.log('[shareImage] drawing complete, exporting');
+          wx.canvasToTempFilePath({
+            canvas,
+            x: 0,
+            y: 0,
+            width,
+            height,
+            destWidth: width,
+            destHeight: height,
+            fileType: 'jpg',
+            quality: 0.8,
+            success: (result) => {
+              console.log('[shareImage] export success:', result.tempFilePath);
+              this.setData({ shareImageUrl: result.tempFilePath });
+            },
+            fail: (err) => {
+              console.error('[shareImage] export failed:', err);
+            }
+          });
+        };
+        img.onerror = (err) => {
+          console.error('[shareImage] background image load failed:', err);
+        };
+        img.src = '/images/share.jpg';
       });
-    };
-    img.onerror = (err) => {
-      console.error('[event] share background image load failed:', err);
-    };
-    img.src = '/images/share.jpg';
   },
   _truncateText(ctx, text, maxWidth) {
     if (ctx.measureText(text).width <= maxWidth) return text;
@@ -764,10 +785,12 @@ Page({
     return parts.join(' | ');
   },
   onShareAppMessage() {
+    const imageUrl = this.data.shareImageUrl || '/images/share.jpg';
+    console.log('[shareImage] onShareAppMessage imageUrl:', imageUrl);
     return {
       title: this._getShareTitle(),
       path: `/pages/event/event?eventId=${this.data.eventId}`,
-      imageUrl: this.data.shareImageUrl || '/images/share.jpg'
+      imageUrl
     };
   },
   onShareTimeline() {

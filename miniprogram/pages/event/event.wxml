@@ -1,4 +1,5 @@
 <view class="container">
+  <canvas type="2d" id="shareCanvas" style="width:1px;height:1px;opacity:0;position:fixed;left:0;top:0;"></canvas>
   <block wx:if="{{!dataLoaded}}">
     <view class="card loading-card">
       <view class="loading-text">{{i18n.common_loading}}</view>
