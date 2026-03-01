@@ -127,5 +127,9 @@ exports.main = async (event, context) => {
   }
 
   const enriched = await buildNames(matches);
+
+  // Sort by matchNumber when available (event-specific views)
+  enriched.sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
+
   return { matches: enriched };
 };

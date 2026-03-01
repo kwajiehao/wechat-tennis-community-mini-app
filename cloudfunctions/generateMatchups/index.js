@@ -7,7 +7,8 @@ const {
   classifyPlayers,
   planMatchDistribution,
   generateConstrainedMatchups,
-  generateSinglesMatchups
+  generateSinglesMatchups,
+  scheduleMatches
 } = require('./matchupEngine');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -144,14 +145,22 @@ exports.main = async (event, context) => {
     ({ matches, matchCounts } = generateConstrainedMatchups(activePlayers, matchPlan, doublesTypes));
   }
 
+  // Add participants field and schedule for balanced play order
+  const withParticipants = matches.map(match => ({
+    ...match,
+    participants: match.teamA.concat(match.teamB)
+  }));
+  const scheduled = scheduleMatches(withParticipants);
+
   const now = new Date().toISOString();
-  const matchesToCreate = matches.map(match => ({
+  const matchesToCreate = scheduled.map(match => ({
     eventId,
     seasonId,
     matchType: match.matchType,
+    matchNumber: match.matchNumber,
     teamA: match.teamA,
     teamB: match.teamB,
-    participants: match.teamA.concat(match.teamB),
+    participants: match.participants,
     status: 'approved',
     generatedAt: now,
     approvedBy: null
