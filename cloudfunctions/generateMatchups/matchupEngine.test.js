@@ -342,6 +342,59 @@ describe('generateConstrainedMatchups', () => {
       // Worst split: (a+b)=9.5 vs (c+d)=19.5 → diff=10
       expect(diff).toBeLessThanOrEqual(1.0);
     });
+
+    test('6M/3F: females partner with diverse males in mixed doubles', () => {
+      const males = makeMales(6, 3.0, 0.25);
+      const females = makeFemales(3, 3.0, 0.5);
+      const players = [...males, ...females];
+      const plan = planMatchDistribution(6, 3);
+      const { matches, matchCounts } = generateConstrainedMatchups(players, plan, allDoubleTypes());
+
+      // Every player plays exactly the target number of matches
+      for (const p of players) {
+        expect(matchCounts.get(p._id)).toBe(plan.targetMatchesPerPlayer);
+      }
+
+      // Each female partners with at least 3 distinct males across mixed doubles
+      const maleIds = new Set(males.map(m => m._id));
+      const femalePartners = new Map(females.map(f => [f._id, new Set()]));
+      for (const m of matches.filter(m => m.matchType === 'mixed_doubles')) {
+        for (const team of [m.teamA, m.teamB]) {
+          const fId = team.find(id => !maleIds.has(id));
+          const mId = team.find(id => maleIds.has(id));
+          if (fId && mId) femalePartners.get(fId).add(mId);
+        }
+      }
+      for (const [, partners] of femalePartners) {
+        expect(partners.size).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    test('eligible pool selects UTR-balanced group from 6+ candidates', () => {
+      // 8 males with wide NTRP spread; eligible pool should pick
+      // a balanced group, not just the 4 with fewest matches
+      const players = [
+        makePlayer('m1', 'M', 2.0),  // UTR 3.5
+        makePlayer('m2', 'M', 2.5),  // UTR 4.75
+        makePlayer('m3', 'M', 3.0),  // UTR 6.0
+        makePlayer('m4', 'M', 3.5),  // UTR 7.25
+        makePlayer('m5', 'M', 4.0),  // UTR 8.5
+        makePlayer('m6', 'M', 4.5),  // UTR 9.75
+        makePlayer('m7', 'M', 5.0),  // UTR 11.0
+        makePlayer('m8', 'M', 5.5),  // UTR 12.25
+      ];
+      const plan = { mensDoubles: 8, womensDoubles: 0, mixedDoubles: 0, targetMatchesPerPlayer: 4 };
+      const { matches } = generateConstrainedMatchups(players, plan, ['mens_doubles']);
+
+      const utrOf = id => getUTR(players.find(p => p._id === id));
+      for (const match of matches) {
+        const teamAUTR = match.teamA.reduce((sum, id) => sum + utrOf(id), 0);
+        const teamBUTR = match.teamB.reduce((sum, id) => sum + utrOf(id), 0);
+        const diff = Math.abs(teamAUTR - teamBUTR);
+        // Eligible pool + balanced splits should keep diff under 3.0
+        expect(diff).toBeLessThan(3.0);
+      }
+    });
   });
 });
 

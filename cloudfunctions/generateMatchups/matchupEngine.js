@@ -124,10 +124,19 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
     ids.forEach(id => matchCounts.set(id, matchCounts.get(id) + 1));
   }
 
-  function getLowestMatchCountPlayers(pool, count) {
-    return pool.slice()
-      .sort((a, b) => matchCounts.get(a._id) - matchCounts.get(b._id))
-      .slice(0, count);
+  function getEligiblePool(pool) {
+    const minCount = Math.min(...pool.map(p => matchCounts.get(p._id)));
+    return pool.filter(p => matchCounts.get(p._id) <= minCount + 1);
+  }
+
+  // Filter combo groups to prefer those including minimum-count players
+  function preferMinCountGroups(groups, minSize) {
+    const minCount = Math.min(...groups.flat().map(id => matchCounts.get(id)));
+    const minCountIds = new Set(
+      groups.flat().filter(id => matchCounts.get(id) === minCount)
+    );
+    const priority = groups.filter(g => g.some(id => minCountIds.has(id)));
+    return priority.length > 0 ? priority : groups;
   }
 
   function generateSameGenderDoubles(pool, count, matchType) {
@@ -135,12 +144,25 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
       const available = pool.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
       if (available.length < 4) break;
 
-      const candidates = getLowestMatchCountPlayers(available, 4);
-      const ids = candidates.map(p => p._id);
-      const split = pickMostBalancedSplit(ids, usedPartners, playerLookup);
-      if (!split) continue;
+      const eligible = getEligiblePool(available);
+      const candidates = eligible.length >= 4 ? eligible : available;
+      const allGroups = combinations(candidates.map(p => p._id), 4);
+      const groups = preferMinCountGroups(allGroups);
 
-      const [teamA, teamB] = split;
+      let bestSplit = null;
+      let bestDiff = Infinity;
+      for (const group of groups) {
+        const split = pickMostBalancedSplit(group, usedPartners, playerLookup);
+        if (!split) continue;
+        const diff = Math.abs(teamUTR(split[0], playerLookup) - teamUTR(split[1], playerLookup));
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestSplit = split;
+        }
+      }
+      if (!bestSplit) continue;
+
+      const [teamA, teamB] = bestSplit;
       matches.push({ matchType, teamA, teamB });
       recordPartnership(teamA[0], teamA[1]);
       recordPartnership(teamB[0], teamB[1]);
@@ -162,28 +184,29 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
       const availFemales = females.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
       if (availMales.length < 2 || availFemales.length < 2) break;
 
-      const maleCandidates = getLowestMatchCountPlayers(availMales, 2);
-      const femaleCandidates = getLowestMatchCountPlayers(availFemales, 2);
-
-      const m1 = maleCandidates[0];
-      const m2 = maleCandidates[1];
-      const f1 = femaleCandidates[0];
-      const f2 = femaleCandidates[1];
-
-      // Two possible configurations: (m1+f1 vs m2+f2) or (m1+f2 vs m2+f1)
-      const configs = [
-        { teamA: [m1._id, f1._id], teamB: [m2._id, f2._id] },
-        { teamA: [m1._id, f2._id], teamB: [m2._id, f1._id] },
-      ];
+      const eligibleMales = getEligiblePool(availMales);
+      const eligibleFemales = getEligiblePool(availFemales);
+      const malePool = eligibleMales.length >= 2 ? eligibleMales : availMales;
+      const femalePool = eligibleFemales.length >= 2 ? eligibleFemales : availFemales;
+      const maleGroups = preferMinCountGroups(combinations(malePool.map(p => p._id), 2));
+      const femaleGroups = preferMinCountGroups(combinations(femalePool.map(p => p._id), 2));
 
       let bestConfig = null;
       let bestDiff = Infinity;
-      for (const cfg of configs) {
-        if (hasUsedPartner(cfg.teamA, usedPartners) || hasUsedPartner(cfg.teamB, usedPartners)) continue;
-        const diff = Math.abs(teamUTR(cfg.teamA, playerLookup) - teamUTR(cfg.teamB, playerLookup));
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestConfig = cfg;
+      for (const mg of maleGroups) {
+        for (const fg of femaleGroups) {
+          const configs = [
+            { teamA: [mg[0], fg[0]], teamB: [mg[1], fg[1]] },
+            { teamA: [mg[0], fg[1]], teamB: [mg[1], fg[0]] },
+          ];
+          for (const cfg of configs) {
+            if (hasUsedPartner(cfg.teamA, usedPartners) || hasUsedPartner(cfg.teamB, usedPartners)) continue;
+            const diff = Math.abs(teamUTR(cfg.teamA, playerLookup) - teamUTR(cfg.teamB, playerLookup));
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestConfig = cfg;
+            }
+          }
         }
       }
 
