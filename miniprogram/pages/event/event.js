@@ -95,6 +95,7 @@ Page({
       this.fetchEventData()
     ]).finally(() => {
       this.setData({ dataLoaded: true });
+      this.generateShareImage();
     });
   },
   loadI18n() {
@@ -678,20 +679,95 @@ Page({
       selectedChampion: ''
     });
   },
+  generateShareImage() {
+    const event = this.data.event;
+    if (!event) return;
+
+    const width = 500;
+    const height = 400;
+    const imageHeight = 260;
+    const canvas = wx.createOffscreenCanvas({ type: '2d', width, height });
+    const ctx = canvas.getContext('2d');
+
+    const img = canvas.createImage();
+    img.onload = () => {
+      // White background for entire canvas
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw tennis image with padding
+      const pad = 16;
+      ctx.drawImage(img, pad, pad, width - pad * 2, imageHeight - pad);
+
+      // Subtle separator line
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, imageHeight);
+      ctx.lineTo(width, imageHeight);
+      ctx.stroke();
+
+      const maxTextWidth = width - 40;
+      const textX = 20;
+
+      // Event title
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(this._truncateText(ctx, event.title || '', maxTextWidth), textX, imageHeight + 32);
+
+      // Date and time
+      ctx.font = '15px sans-serif';
+      ctx.fillStyle = '#666666';
+      let dateLine = event.date || '';
+      if (event.startTime) {
+        dateLine += (dateLine ? '  ' : '') + event.startTime;
+        if (event.endTime) dateLine += ' - ' + event.endTime;
+      }
+      if (dateLine) ctx.fillText(dateLine, textX, imageHeight + 60);
+
+      // Write canvas data to temp file
+      const data = ctx.getImageData(0, 0, width, height);
+      const pngData = canvas.toDataURL('image/png');
+      const fs = wx.getFileSystemManager();
+      const filePath = `${wx.env.USER_DATA_PATH}/share_event.png`;
+      fs.writeFile({
+        filePath,
+        data: pngData.replace(/^data:image\/png;base64,/, ''),
+        encoding: 'base64',
+        success: () => {
+          this.setData({ shareImageUrl: filePath });
+        },
+        fail: (err) => {
+          console.error('[event] share image write failed:', err);
+        }
+      });
+    };
+    img.onerror = (err) => {
+      console.error('[event] share background image load failed:', err);
+    };
+    img.src = '/images/share.jpg';
+  },
+  _truncateText(ctx, text, maxWidth) {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let t = text;
+    while (t.length > 0 && ctx.measureText(t + '...').width > maxWidth) {
+      t = t.slice(0, -1);
+    }
+    return t + '...';
+  },
   _getShareTitle() {
     const event = this.data.event;
     if (!event) return 'Tennis Community';
     const parts = [event.title];
     if (event.date) parts.push(event.date);
     if (event.startTime) parts.push(event.startTime + (event.endTime ? '-' + event.endTime : ''));
-    if (event.location) parts.push(event.location);
     return parts.join(' | ');
   },
   onShareAppMessage() {
     return {
       title: this._getShareTitle(),
       path: `/pages/event/event?eventId=${this.data.eventId}`,
-      imageUrl: '/images/share.jpg'
+      imageUrl: this.data.shareImageUrl || '/images/share.jpg'
     };
   },
   onShareTimeline() {
