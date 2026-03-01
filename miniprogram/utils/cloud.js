@@ -16,9 +16,16 @@ function initCloud() {
 }
 
 function callFunction(name, data) {
+  console.log('[cloud] calling:', name, data);
   return wx.cloud.callFunction({
     name,
     data: data || {}
+  }).then(res => {
+    console.log('[cloud] success:', name);
+    return res;
+  }).catch(err => {
+    console.error('[cloud] FAILED:', name, err);
+    throw err;
   });
 }
 

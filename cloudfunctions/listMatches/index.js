@@ -108,28 +108,39 @@ async function buildNames(matches) {
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const { eventId, mine } = event;
+  console.log('[listMatches] start, params:', JSON.stringify({ eventId, mine }), 'OPENID:', OPENID);
 
   let matches = [];
-  if (mine) {
-    const player = await getPlayerByOpenId(OPENID);
-    if (!player) {
-      return { matches: [] };
+  try {
+    if (mine) {
+      console.log('[listMatches] looking up player by openId');
+      const player = await getPlayerByOpenId(OPENID);
+      if (!player) {
+        console.log('[listMatches] no player found, returning empty');
+        return { matches: [] };
+      }
+      console.log('[listMatches] querying matches for player:', player._id);
+      matches = await getAll(() => db.collection('matches')
+        .where({ participants: _.in([player._id]) }));
+    } else if (eventId) {
+      console.log('[listMatches] querying matches for event:', eventId);
+      matches = await getAll(() => db.collection('matches')
+        .where({ eventId }));
+    } else {
+      await assertAdmin(OPENID);
+      matches = await getAll(() => db.collection('matches'));
     }
-    matches = await getAll(() => db.collection('matches')
-      .where({ participants: _.in([player._id]) }));
-  } else if (eventId) {
-    // Anyone can view matches for a specific event
-    matches = await getAll(() => db.collection('matches')
-      .where({ eventId }));
-  } else {
-    await assertAdmin(OPENID);
-    matches = await getAll(() => db.collection('matches'));
+    console.log('[listMatches] found', matches.length, 'matches, enriching...');
+
+    const enriched = await buildNames(matches);
+
+    // Sort by matchNumber when available (event-specific views)
+    enriched.sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
+
+    console.log('[listMatches] success');
+    return { matches: enriched };
+  } catch (err) {
+    console.error('[listMatches] failed:', err);
+    throw err;
   }
-
-  const enriched = await buildNames(matches);
-
-  // Sort by matchNumber when available (event-specific views)
-  enriched.sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
-
-  return { matches: enriched };
 };

@@ -46,50 +46,58 @@ async function getPlayerByOpenId(openid) {
 }
 
 exports.main = async (event, context) => {
-  const { OPENID } = cloud.getWXContext();
-  const { eventId, mine, includeNames } = event;
+  try {
+    const { OPENID } = cloud.getWXContext();
+    const { eventId, mine, includeNames } = event;
+    console.log('[listSignups] params:', { eventId, mine, includeNames, OPENID });
 
-  if (mine) {
-    const player = await getPlayerByOpenId(OPENID);
-    if (!player) {
-      return { signups: [] };
+    if (mine) {
+      const player = await getPlayerByOpenId(OPENID);
+      if (!player) {
+        return { signups: [] };
+      }
+      const query = eventId ? { playerId: player._id, eventId } : { playerId: player._id };
+      console.log('[listSignups] mine query:', query);
+      const res = await db.collection('signups').where(query).get();
+      return { signups: res.data || [] };
     }
-    const query = eventId ? { playerId: player._id, eventId } : { playerId: player._id };
+
+    if (eventId && !mine) {
+      const res = await db.collection('signups')
+        .where({ eventId, status: 'signed' })
+        .get();
+      let signups = res.data || [];
+      console.log('[listSignups] found', signups.length, 'signups for event', eventId);
+
+      if (includeNames) {
+        const playerIds = signups.map(s => s.playerId);
+        if (playerIds.length > 0) {
+          const playersRes = await db.collection('players')
+            .where({ _id: _.in(playerIds) })
+            .get();
+          const playerMap = new Map((playersRes.data || []).map(p => [p._id, p]));
+          signups = signups.map(s => {
+            const player = playerMap.get(s.playerId) || {};
+            return {
+              ...s,
+              playerName: player.name || 'Unknown',
+              playerNtrp: player.ntrp || null,
+              playerGender: (player.gender || '').toUpperCase() || null,
+              isTestPlayer: player.isTestPlayer || false
+            };
+          });
+        }
+      }
+      return { signups };
+    }
+
+    await assertAdmin(OPENID);
+
+    const query = eventId ? { eventId } : {};
     const res = await db.collection('signups').where(query).get();
     return { signups: res.data || [] };
+  } catch (err) {
+    console.error('[listSignups] error:', err.message, err.stack);
+    throw err;
   }
-
-  if (eventId && !mine) {
-    const res = await db.collection('signups')
-      .where({ eventId, status: 'signed' })
-      .get();
-    let signups = res.data || [];
-
-    if (includeNames) {
-      const playerIds = signups.map(s => s.playerId);
-      if (playerIds.length > 0) {
-        const playersRes = await db.collection('players')
-          .where({ _id: _.in(playerIds) })
-          .get();
-        const playerMap = new Map((playersRes.data || []).map(p => [p._id, p]));
-        signups = signups.map(s => {
-          const player = playerMap.get(s.playerId) || {};
-          return {
-            ...s,
-            playerName: player.name || 'Unknown',
-            playerNtrp: player.ntrp || null,
-            playerGender: (player.gender || '').toUpperCase() || null,
-            isTestPlayer: player.isTestPlayer || false
-          };
-        });
-      }
-    }
-    return { signups };
-  }
-
-  await assertAdmin(OPENID);
-
-  const query = eventId ? { eventId } : {};
-  const res = await db.collection('signups').where(query).get();
-  return { signups: res.data || [] };
 };

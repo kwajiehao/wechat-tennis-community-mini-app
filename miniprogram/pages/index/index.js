@@ -8,7 +8,6 @@ Page({
   data: {
     i18n: {},
     events: [],
-    completedEvents: [],
     loading: false,
     hasProfile: false,
     playerId: null,
@@ -89,29 +88,9 @@ Page({
     });
   },
   fetchEventsData() {
-    return Promise.all([
-      callFunction('listEvents', {}),
-      callFunction('listMatches', { mine: true })
-    ])
-      .then(([eventsRes, matchesRes]) => {
-        const allEvents = eventsRes.result.events || [];
-        const myMatches = matchesRes.result.matches || [];
-
-        // Get event IDs where player participated
-        const participatedEventIds = new Set(
-          myMatches.map(m => m.eventId).filter(Boolean)
-        );
-
-        // Split into active and completed events
-        const activeEvents = allEvents.filter(e => e.status !== 'completed');
-        const completedEvents = allEvents
-          .filter(e => e.status === 'completed' && participatedEventIds.has(e._id))
-          .sort((a, b) => (b.completedAt || b.date || '').localeCompare(a.completedAt || a.date || ''));
-
-        this.setData({
-          events: activeEvents,
-          completedEvents
-        });
+    return callFunction('listEvents', { status: ['open', 'in_progress'] })
+      .then(eventsRes => {
+        this.setData({ events: eventsRes.result.events || [] });
       })
       .catch(err => {
         console.error(err);
