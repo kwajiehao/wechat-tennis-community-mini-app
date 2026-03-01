@@ -316,8 +316,8 @@ describe('generateConstrainedMatchups', () => {
           return sum + getUTR(p);
         }, 0);
         const diff = Math.abs(teamAUTR - teamBUTR);
-        // With NTRP 3.0-4.5 range, balanced splits should keep diff under 4.0
-        expect(diff).toBeLessThan(4.0);
+        // Eligible pool + balanced splits should keep diff under 3.0
+        expect(diff).toBeLessThan(3.0);
       }
     });
 
@@ -502,6 +502,46 @@ describe('edge cases', () => {
 
     const { matches } = generateConstrainedMatchups([], plan, allDoubleTypes());
     expect(matches).toHaveLength(0);
+  });
+
+  test('all same NTRP: no crashes, partner uniqueness preserved', () => {
+    const males = Array.from({ length: 8 }, (_, i) =>
+      makePlayer(`m${i + 1}`, 'M', 3.5)
+    );
+    const plan = planMatchDistribution(8, 0);
+    const { matches } = generateConstrainedMatchups(males, plan, ['mens_doubles']);
+
+    expect(matches.length).toBeGreaterThan(0);
+
+    const partnerships = new Set();
+    for (const match of matches) {
+      for (const team of [match.teamA, match.teamB]) {
+        if (team.length === 2) {
+          const key = [team[0], team[1]].sort().join('-');
+          expect(partnerships.has(key)).toBe(false);
+          partnerships.add(key);
+        }
+      }
+    }
+  });
+
+  test('partner uniqueness holds with eligible pool (large candidate set)', () => {
+    const males = makeMales(10, 2.5, 0.3);
+    const females = makeFemales(5, 3.0, 0.25);
+    const players = [...males, ...females];
+    const plan = planMatchDistribution(10, 5);
+    const { matches } = generateConstrainedMatchups(players, plan, allDoubleTypes());
+
+    const partnerships = new Set();
+    for (const match of matches) {
+      for (const team of [match.teamA, match.teamB]) {
+        if (team.length === 2) {
+          const key = [team[0], team[1]].sort().join('-');
+          expect(partnerships.has(key)).toBe(false);
+          partnerships.add(key);
+        }
+      }
+    }
   });
 });
 
