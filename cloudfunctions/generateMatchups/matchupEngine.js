@@ -226,30 +226,35 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
   return { matches, matchCounts };
 }
 
-// From available players (sorted by match count ascending), find the pair
+// From eligible pool (players with count ≤ min + 1), find the pair
 // with smallest UTR difference that hasn't already played each other.
 function pickBestSinglesPair(available, usedOpponents, matchCounts, playerLookup) {
-  // Sort by match count ascending so we prefer players with fewer matches
-  const sorted = available.slice().sort((a, b) => {
-    const countDiff = matchCounts.get(a._id) - matchCounts.get(b._id);
-    if (countDiff !== 0) return countDiff;
-    return 0;
-  });
+  const minCount = Math.min(...available.map(p => matchCounts.get(p._id)));
+  const eligible = available.filter(p => matchCounts.get(p._id) <= minCount + 1);
+  const pool = eligible.length >= 2 ? eligible : available;
+
+  // Prefer pairs including minimum-count players
+  const minCountIds = new Set(pool.filter(p => matchCounts.get(p._id) === minCount).map(p => p._id));
 
   let bestPair = null;
   let bestDiff = Infinity;
+  let bestHasMin = false;
 
-  for (let i = 0; i < sorted.length; i++) {
-    for (let j = i + 1; j < sorted.length; j++) {
-      const a = sorted[i];
-      const b = sorted[j];
+  for (let i = 0; i < pool.length; i++) {
+    for (let j = i + 1; j < pool.length; j++) {
+      const a = pool[i];
+      const b = pool[j];
 
       if (usedOpponents.get(a._id).has(b._id)) continue;
 
+      const hasMin = minCountIds.has(a._id) || minCountIds.has(b._id);
       const diff = Math.abs(getUTR(a) - getUTR(b));
-      if (diff < bestDiff) {
+
+      // Prefer pairs with min-count players; among those, smallest UTR diff
+      if ((hasMin && !bestHasMin) || (hasMin === bestHasMin && diff < bestDiff)) {
         bestDiff = diff;
         bestPair = [a._id, b._id];
+        bestHasMin = hasMin;
       }
     }
   }

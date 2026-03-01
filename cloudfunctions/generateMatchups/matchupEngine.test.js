@@ -580,6 +580,27 @@ describe('pickBestSinglesPair', () => {
     // Should prefer p1 and p2 who have 0 matches
     expect(pair.sort()).toEqual(['p1', 'p2'].sort());
   });
+
+  test('eligible pool constrains to low-count players over UTR-optimal pair', () => {
+    // p3 and p4 have closest UTR but high match counts
+    // Eligible pool (count ≤ min+1 = 1) should exclude them
+    const players = [
+      makePlayer('p1', 'M', 2.0),  // UTR 3.5, count 0
+      makePlayer('p2', 'M', 3.5),  // UTR 7.25, count 0
+      makePlayer('p3', 'M', 4.0),  // UTR 8.5, count 3
+      makePlayer('p4', 'M', 4.5),  // UTR 9.75, count 3
+    ];
+    const usedOpponents = new Map(players.map(p => [p._id, new Set()]));
+    const matchCounts = new Map([
+      ['p1', 0], ['p2', 0], ['p3', 3], ['p4', 3]
+    ]);
+    const playerLookup = new Map(players.map(p => [p._id, p]));
+
+    const pair = pickBestSinglesPair(players, usedOpponents, matchCounts, playerLookup);
+    expect(pair).not.toBeNull();
+    // Should pick p1+p2 (eligible pool), not p3+p4 (closest UTR but high count)
+    expect(pair.sort()).toEqual(['p1', 'p2'].sort());
+  });
 });
 
 // --- generateSinglesMatchups ---
