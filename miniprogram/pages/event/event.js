@@ -678,17 +678,25 @@ Page({
       selectedChampion: ''
     });
   },
-  onShareAppMessage() {
+  _getShareTitle() {
     const event = this.data.event;
+    if (!event) return 'Tennis Community';
+    const parts = [event.title];
+    if (event.date) parts.push(event.date);
+    if (event.startTime) parts.push(event.startTime + (event.endTime ? '-' + event.endTime : ''));
+    if (event.location) parts.push(event.location);
+    return parts.join(' | ');
+  },
+  onShareAppMessage() {
     return {
-      title: event ? event.title : 'Tennis Community',
-      path: `/pages/event/event?eventId=${this.data.eventId}`
+      title: this._getShareTitle(),
+      path: `/pages/event/event?eventId=${this.data.eventId}`,
+      imageUrl: '/images/share.jpg'
     };
   },
   onShareTimeline() {
-    const event = this.data.event;
     return {
-      title: event ? event.title : 'Tennis Community',
+      title: this._getShareTitle(),
       query: `targetPage=event&eventId=${this.data.eventId}`
     };
   }

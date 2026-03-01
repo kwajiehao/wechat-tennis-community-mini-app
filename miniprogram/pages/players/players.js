@@ -179,7 +179,8 @@ Page({
   onShareAppMessage() {
     return {
       title: this.data.i18n.players_title || 'Players',
-      path: '/pages/players/players'
+      path: '/pages/players/players',
+      imageUrl: '/images/share.jpg'
     };
   },
   onShareTimeline() {
