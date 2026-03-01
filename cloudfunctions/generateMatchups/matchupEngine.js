@@ -10,6 +10,20 @@ const VALID_MATCH_TYPES = [
   'mixed_doubles'
 ];
 
+function combinations(arr, k) {
+  if (k > arr.length) return [];
+  if (k === arr.length) return [arr.slice()];
+  if (k === 1) return arr.map(x => [x]);
+  const result = [];
+  for (let i = 0; i <= arr.length - k; i++) {
+    const rest = combinations(arr.slice(i + 1), k - 1);
+    for (const combo of rest) {
+      result.push([arr[i], ...combo]);
+    }
+  }
+  return result;
+}
+
 function ntrpToUTR(ntrp) {
   return 1.0 + ((ntrp || 3.0) - 1.0) * 2.5;
 }
@@ -266,6 +280,7 @@ function generateSinglesMatchups(players) {
 
 module.exports = {
   VALID_MATCH_TYPES,
+  combinations,
   ntrpToUTR,
   getUTR,
   classifyPlayers,

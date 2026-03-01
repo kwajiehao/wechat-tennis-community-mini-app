@@ -8,7 +8,8 @@ const {
   planMatchDistribution,
   generateConstrainedMatchups,
   generateSinglesMatchups,
-  pickBestSinglesPair
+  pickBestSinglesPair,
+  combinations
 } = require('./matchupEngine');
 
 // --- Test helpers ---
@@ -733,5 +734,42 @@ describe('generateSinglesMatchups', () => {
         expect(matchCounts.get(player._id)).toBeLessThanOrEqual(target);
       }
     });
+  });
+});
+
+// --- combinations utility ---
+
+describe('combinations', () => {
+  test('C(4,2) returns 6 pairs', () => {
+    const result = combinations([1, 2, 3, 4], 2);
+    expect(result).toHaveLength(6);
+    expect(result).toEqual(expect.arrayContaining([
+      [1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]
+    ]));
+  });
+
+  test('C(5,4) returns 5 groups', () => {
+    const result = combinations(['a', 'b', 'c', 'd', 'e'], 4);
+    expect(result).toHaveLength(5);
+  });
+
+  test('C(n,n) returns single group with all elements', () => {
+    const result = combinations([1, 2, 3], 3);
+    expect(result).toEqual([[1, 2, 3]]);
+  });
+
+  test('C(n,1) returns n singletons', () => {
+    const result = combinations([1, 2, 3], 1);
+    expect(result).toEqual([[1], [2], [3]]);
+  });
+
+  test('k > n returns empty', () => {
+    const result = combinations([1, 2], 3);
+    expect(result).toEqual([]);
+  });
+
+  test('C(6,4) returns 15 groups', () => {
+    const result = combinations([1, 2, 3, 4, 5, 6], 4);
+    expect(result).toHaveLength(15);
   });
 });
