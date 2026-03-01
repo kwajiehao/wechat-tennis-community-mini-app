@@ -67,6 +67,14 @@ function planMatchDistribution(maleCount, femaleCount) {
   return { mensDoubles, womensDoubles, mixedDoubles, targetMatchesPerPlayer };
 }
 
+function teamUTR(team, playerLookup) {
+  return team.reduce((sum, id) => sum + getUTR(playerLookup.get(id)), 0);
+}
+
+function hasUsedPartner(team, usedPartners) {
+  return usedPartners.get(team[0]).has(team[1]);
+}
+
 // Given 4 players [a, b, c, d], returns the team split with the smallest
 // UTR difference between teams, respecting partner uniqueness constraints.
 // The 3 possible splits are: (ab vs cd), (ac vs bd), (ad vs bc).
@@ -78,20 +86,12 @@ function pickMostBalancedSplit(candidates, usedPartners, playerLookup) {
     [[a, d], [b, c]],
   ];
 
-  function teamUTR(team) {
-    return team.reduce((sum, id) => sum + getUTR(playerLookup.get(id)), 0);
-  }
-
-  function hasUsedPartner(team) {
-    return usedPartners.get(team[0]).has(team[1]);
-  }
-
   let bestSplit = null;
   let bestDiff = Infinity;
 
   for (const [t1, t2] of splits) {
-    if (hasUsedPartner(t1) || hasUsedPartner(t2)) continue;
-    const diff = Math.abs(teamUTR(t1) - teamUTR(t2));
+    if (hasUsedPartner(t1, usedPartners) || hasUsedPartner(t2, usedPartners)) continue;
+    const diff = Math.abs(teamUTR(t1, playerLookup) - teamUTR(t2, playerLookup));
     if (diff < bestDiff) {
       bestDiff = diff;
       bestSplit = [t1, t2];
@@ -176,19 +176,11 @@ function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
         { teamA: [m1._id, f2._id], teamB: [m2._id, f1._id] },
       ];
 
-      function teamUTR(team) {
-        return team.reduce((sum, id) => sum + getUTR(playerLookup.get(id)), 0);
-      }
-
-      function hasUsedPartner(team) {
-        return usedPartners.get(team[0]).has(team[1]);
-      }
-
       let bestConfig = null;
       let bestDiff = Infinity;
       for (const cfg of configs) {
-        if (hasUsedPartner(cfg.teamA) || hasUsedPartner(cfg.teamB)) continue;
-        const diff = Math.abs(teamUTR(cfg.teamA) - teamUTR(cfg.teamB));
+        if (hasUsedPartner(cfg.teamA, usedPartners) || hasUsedPartner(cfg.teamB, usedPartners)) continue;
+        const diff = Math.abs(teamUTR(cfg.teamA, playerLookup) - teamUTR(cfg.teamB, playerLookup));
         if (diff < bestDiff) {
           bestDiff = diff;
           bestConfig = cfg;
