@@ -700,7 +700,7 @@ Page({
         const ctx = canvas.getContext('2d');
         const width = 500;
         const height = 400;
-        const imageHeight = 260;
+        const imageHeight = 240;
         canvas.width = width;
         canvas.height = height;
 
@@ -708,39 +708,84 @@ Page({
         img.onload = () => {
           console.log('[shareImage] background image loaded');
 
-          // White background for entire canvas
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, width, height);
 
-          // Draw tennis image with padding
+          // Draw tennis image with rounded corners
           const pad = 16;
-          ctx.drawImage(img, pad, pad, width - pad * 2, imageHeight - pad);
-
-          // Subtle separator line
-          ctx.strokeStyle = '#e0e0e0';
-          ctx.lineWidth = 1;
+          const radius = 12;
+          ctx.save();
           ctx.beginPath();
-          ctx.moveTo(0, imageHeight);
-          ctx.lineTo(width, imageHeight);
-          ctx.stroke();
+          ctx.moveTo(pad + radius, pad);
+          ctx.lineTo(width - pad - radius, pad);
+          ctx.arcTo(width - pad, pad, width - pad, pad + radius, radius);
+          ctx.lineTo(width - pad, imageHeight - pad - radius);
+          ctx.arcTo(width - pad, imageHeight - pad, width - pad - radius, imageHeight - pad, radius);
+          ctx.lineTo(pad + radius, imageHeight - pad);
+          ctx.arcTo(pad, imageHeight - pad, pad, imageHeight - pad - radius, radius);
+          ctx.lineTo(pad, pad + radius);
+          ctx.arcTo(pad, pad, pad + radius, pad, radius);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, pad, pad, width - pad * 2, imageHeight - pad);
+          ctx.restore();
 
           const maxTextWidth = width - 40;
           const textX = 20;
 
           // Event title
           ctx.fillStyle = '#1a1a1a';
-          ctx.font = 'bold 22px sans-serif';
-          ctx.fillText(this._truncateText(ctx, event.title || '', maxTextWidth), textX, imageHeight + 32);
+          ctx.font = 'bold 32px sans-serif';
+          ctx.fillText(this._truncateText(ctx, event.title || '', maxTextWidth), textX, imageHeight + 40);
 
           // Date and time
-          ctx.font = '15px sans-serif';
+          ctx.font = '20px sans-serif';
           ctx.fillStyle = '#666666';
-          let dateLine = event.date || '';
+          var dateLine = event.date || '';
           if (event.startTime) {
             dateLine += (dateLine ? '  ' : '') + event.startTime;
             if (event.endTime) dateLine += ' - ' + event.endTime;
           }
-          if (dateLine) ctx.fillText(dateLine, textX, imageHeight + 60);
+          if (dateLine) ctx.fillText(dateLine, textX, imageHeight + 72);
+
+          // Status badge
+          var strs = this.data.i18n;
+          var statusMap = {
+            open: { label: strs.event_share_status_open || 'Not Started', color: '#F57C00' },
+            in_progress: { label: strs.event_share_status_in_progress || 'In Progress', color: '#1976D2' },
+            completed: { label: strs.event_share_status_completed || 'Completed', color: '#757575' }
+          };
+          var statusInfo = statusMap[event.status] || statusMap.open;
+          var badgeFont = 'bold 16px sans-serif';
+          ctx.font = badgeFont;
+          var badgeText = statusInfo.label;
+          var badgeTextWidth = ctx.measureText(badgeText).width;
+          var badgePadH = 12;
+          var badgeX = textX;
+          var badgeY = imageHeight + 88;
+          var badgeW = badgeTextWidth + badgePadH * 2;
+          var badgeH = 28;
+          var badgeR = 4;
+
+          // Rounded badge background
+          ctx.fillStyle = statusInfo.color;
+          ctx.beginPath();
+          ctx.moveTo(badgeX + badgeR, badgeY);
+          ctx.lineTo(badgeX + badgeW - badgeR, badgeY);
+          ctx.arcTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + badgeR, badgeR);
+          ctx.lineTo(badgeX + badgeW, badgeY + badgeH - badgeR);
+          ctx.arcTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - badgeR, badgeY + badgeH, badgeR);
+          ctx.lineTo(badgeX + badgeR, badgeY + badgeH);
+          ctx.arcTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - badgeR, badgeR);
+          ctx.lineTo(badgeX, badgeY + badgeR);
+          ctx.arcTo(badgeX, badgeY, badgeX + badgeR, badgeY, badgeR);
+          ctx.closePath();
+          ctx.fill();
+
+          // Badge text
+          ctx.fillStyle = '#ffffff';
+          ctx.font = badgeFont;
+          ctx.fillText(badgeText, badgeX + badgePadH, badgeY + badgeH - 8);
 
           console.log('[shareImage] drawing complete, exporting');
           wx.canvasToTempFilePath({

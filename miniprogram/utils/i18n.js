@@ -87,6 +87,9 @@ const strings = {
     event_winner: 'Winner',
     event_pending: 'Pending',
     event_completed_notice: 'This event has been completed',
+    event_share_status_open: 'Not Started',
+    event_share_status_in_progress: 'In Progress',
+    event_share_status_completed: 'Completed',
     event_signed_at: 'Signed up',
 
     // Profile page
@@ -393,6 +396,9 @@ const strings = {
     event_winner: '胜',
     event_pending: '待定',
     event_completed_notice: '此活动已结束',
+    event_share_status_open: '活动未开始',
+    event_share_status_in_progress: '进行中',
+    event_share_status_completed: '已结束',
     event_signed_at: '报名时间',
 
     // Profile page
