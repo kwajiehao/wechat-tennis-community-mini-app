@@ -371,6 +371,85 @@ describe('generateConstrainedMatchups', () => {
       }
     });
 
+    test('regression: finds full 9-match schedule for real 6M/3F roster with valid witness', () => {
+      const players = [
+        makePlayer('yijian', 'M', 3.0),
+        makePlayer('enid', 'F', 2.5),
+        makePlayer('k', 'M', 2.5),
+        makePlayer('momo', 'F', 2.0),
+        makePlayer('rosa', 'F', 2.0),
+        makePlayer('liuqi', 'M', 3.0),
+        makePlayer('daxi', 'M', 2.5),
+        makePlayer('dudu', 'M', 3.0),
+        makePlayer('kunlang', 'M', 3.0),
+      ];
+
+      const plan = planMatchDistribution(6, 3);
+      expect(plan).toMatchObject({
+        mensDoubles: 3,
+        womensDoubles: 0,
+        mixedDoubles: 6,
+        targetMatchesPerPlayer: 4
+      });
+
+      // Witness schedule from real event discussion: 6 mixed + 3 men's doubles.
+      const witness = [
+        { matchType: 'mixed_doubles', teamA: ['rosa', 'dudu'], teamB: ['momo', 'daxi'] },
+        { matchType: 'mixed_doubles', teamA: ['rosa', 'kunlang'], teamB: ['enid', 'k'] },
+        { matchType: 'mixed_doubles', teamA: ['enid', 'kunlang'], teamB: ['momo', 'yijian'] },
+        { matchType: 'mens_doubles', teamA: ['daxi', 'dudu'], teamB: ['k', 'yijian'] },
+        { matchType: 'mixed_doubles', teamA: ['rosa', 'liuqi'], teamB: ['enid', 'dudu'] },
+        { matchType: 'mens_doubles', teamA: ['liuqi', 'daxi'], teamB: ['dudu', 'kunlang'] },
+        { matchType: 'mixed_doubles', teamA: ['enid', 'yijian'], teamB: ['momo', 'k'] },
+        { matchType: 'mixed_doubles', teamA: ['rosa', 'daxi'], teamB: ['momo', 'liuqi'] },
+        { matchType: 'mens_doubles', teamA: ['kunlang', 'k'], teamB: ['yijian', 'liuqi'] },
+      ];
+
+      const maleIds = new Set(players.filter(p => p.gender === 'M').map(p => p._id));
+      const counts = new Map(players.map(p => [p._id, 0]));
+      const partnerPairs = new Set();
+
+      for (const match of witness) {
+        expect(['mens_doubles', 'mixed_doubles']).toContain(match.matchType);
+        expect(match.teamA).toHaveLength(2);
+        expect(match.teamB).toHaveLength(2);
+
+        const allIds = [...match.teamA, ...match.teamB];
+        for (const id of allIds) {
+          expect(counts.has(id)).toBe(true);
+          counts.set(id, counts.get(id) + 1);
+        }
+
+        if (match.matchType === 'mixed_doubles') {
+          for (const team of [match.teamA, match.teamB]) {
+            const maleCount = team.filter(id => maleIds.has(id)).length;
+            expect(maleCount).toBe(1);
+          }
+        }
+
+        if (match.matchType === 'mens_doubles') {
+          for (const id of allIds) {
+            expect(maleIds.has(id)).toBe(true);
+          }
+        }
+
+        for (const team of [match.teamA, match.teamB]) {
+          const key = [...team].sort().join('-');
+          expect(partnerPairs.has(key)).toBe(false);
+          partnerPairs.add(key);
+        }
+      }
+
+      for (const player of players) {
+        expect(counts.get(player._id)).toBe(4);
+      }
+
+      const { matches } = generateConstrainedMatchups(players, plan, ['mens_doubles', 'mixed_doubles']);
+
+      // Improved search should now find a full plan matching the 9-match target.
+      expect(matches).toHaveLength(9);
+    });
+
     test('eligible pool selects UTR-balanced group from 6+ candidates', () => {
       // 8 males with wide NTRP spread; eligible pool should pick
       // a balanced group, not just the 4 with fewest matches

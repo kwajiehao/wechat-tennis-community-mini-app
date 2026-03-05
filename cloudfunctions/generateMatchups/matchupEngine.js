@@ -104,126 +104,356 @@ function pickMostBalancedSplit(candidates, usedPartners, playerLookup) {
 function generateConstrainedMatchups(players, matchPlan, allowedTypes) {
   const { males, females } = classifyPlayers(players);
   const { mensDoubles, womensDoubles, mixedDoubles } = matchPlan;
-
-  const usedPartners = new Map();
-  const matchCounts = new Map();
-  const matches = [];
   const playerLookup = new Map(players.map(p => [p._id, p]));
+  const playerIds = players.map(p => p._id);
+  const playerIndex = new Map(playerIds.map((id, i) => [id, i]));
+  const target = matchPlan.targetMatchesPerPlayer;
+  const maleIds = males.map(p => p._id);
+  const femaleIds = females.map(p => p._id);
 
-  players.forEach(p => {
-    usedPartners.set(p._id, new Set());
-    matchCounts.set(p._id, 0);
-  });
+  const desiredByType = {
+    mens_doubles: allowedTypes.includes('mens_doubles') && maleIds.length >= 4 ? mensDoubles : 0,
+    womens_doubles: allowedTypes.includes('womens_doubles') && femaleIds.length >= 4 ? womensDoubles : 0,
+    mixed_doubles: allowedTypes.includes('mixed_doubles') && maleIds.length >= 2 && femaleIds.length >= 2 ? mixedDoubles : 0,
+  };
+  const totalDesired = desiredByType.mens_doubles + desiredByType.womens_doubles + desiredByType.mixed_doubles;
 
-  function recordPartnership(id1, id2) {
-    usedPartners.get(id1).add(id2);
-    usedPartners.get(id2).add(id1);
-  }
+  function generateGreedy() {
+    const usedPartners = new Map();
+    const matchCounts = new Map();
+    const matches = [];
 
-  function incrementMatchCount(ids) {
-    ids.forEach(id => matchCounts.set(id, matchCounts.get(id) + 1));
-  }
+    players.forEach(p => {
+      usedPartners.set(p._id, new Set());
+      matchCounts.set(p._id, 0);
+    });
 
-  function getEligiblePool(pool) {
-    const minCount = Math.min(...pool.map(p => matchCounts.get(p._id)));
-    return pool.filter(p => matchCounts.get(p._id) <= minCount + 1);
-  }
-
-  // Filter combo groups to prefer those including minimum-count players
-  function preferMinCountGroups(groups, minSize) {
-    const minCount = Math.min(...groups.flat().map(id => matchCounts.get(id)));
-    const minCountIds = new Set(
-      groups.flat().filter(id => matchCounts.get(id) === minCount)
-    );
-    const priority = groups.filter(g => g.some(id => minCountIds.has(id)));
-    return priority.length > 0 ? priority : groups;
-  }
-
-  function generateSameGenderDoubles(pool, count, matchType) {
-    for (let i = 0; i < count; i++) {
-      const available = pool.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
-      if (available.length < 4) break;
-
-      const eligible = getEligiblePool(available);
-      const candidates = eligible.length >= 4 ? eligible : available;
-      const allGroups = combinations(candidates.map(p => p._id), 4);
-      const groups = preferMinCountGroups(allGroups);
-
-      let bestSplit = null;
-      let bestDiff = Infinity;
-      for (const group of groups) {
-        const split = pickMostBalancedSplit(group, usedPartners, playerLookup);
-        if (!split) continue;
-        const diff = Math.abs(teamUTR(split[0], playerLookup) - teamUTR(split[1], playerLookup));
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestSplit = split;
-        }
-      }
-      if (!bestSplit) continue;
-
-      const [teamA, teamB] = bestSplit;
-      matches.push({ matchType, teamA, teamB });
-      recordPartnership(teamA[0], teamA[1]);
-      recordPartnership(teamB[0], teamB[1]);
-      incrementMatchCount([...teamA, ...teamB]);
+    function recordPartnership(id1, id2) {
+      usedPartners.get(id1).add(id2);
+      usedPartners.get(id2).add(id1);
     }
-  }
 
-  if (allowedTypes.includes('mens_doubles') && males.length >= 4) {
-    generateSameGenderDoubles(males, mensDoubles, 'mens_doubles');
-  }
+    function incrementMatchCount(ids) {
+      ids.forEach(id => matchCounts.set(id, matchCounts.get(id) + 1));
+    }
 
-  if (allowedTypes.includes('womens_doubles') && females.length >= 4) {
-    generateSameGenderDoubles(females, womensDoubles, 'womens_doubles');
-  }
+    function getEligiblePool(pool) {
+      const minCount = Math.min(...pool.map(p => matchCounts.get(p._id)));
+      return pool.filter(p => matchCounts.get(p._id) <= minCount + 1);
+    }
 
-  if (allowedTypes.includes('mixed_doubles') && males.length >= 2 && females.length >= 2) {
-    for (let i = 0; i < mixedDoubles; i++) {
-      const availMales = males.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
-      const availFemales = females.filter(p => matchCounts.get(p._id) < matchPlan.targetMatchesPerPlayer);
-      if (availMales.length < 2 || availFemales.length < 2) break;
+    function preferMinCountGroups(groups) {
+      const minCount = Math.min(...groups.flat().map(id => matchCounts.get(id)));
+      const minCountIds = new Set(
+        groups.flat().filter(id => matchCounts.get(id) === minCount)
+      );
+      const priority = groups.filter(g => g.some(id => minCountIds.has(id)));
+      return priority.length > 0 ? priority : groups;
+    }
 
-      const eligibleMales = getEligiblePool(availMales);
-      const eligibleFemales = getEligiblePool(availFemales);
-      const malePool = eligibleMales.length >= 2 ? eligibleMales : availMales;
-      const femalePool = eligibleFemales.length >= 2 ? eligibleFemales : availFemales;
-      const maleGroups = preferMinCountGroups(combinations(malePool.map(p => p._id), 2));
-      const femaleGroups = preferMinCountGroups(combinations(femalePool.map(p => p._id), 2));
+    function generateSameGenderDoubles(pool, count, matchType) {
+      for (let i = 0; i < count; i++) {
+        const available = pool.filter(p => matchCounts.get(p._id) < target);
+        if (available.length < 4) break;
 
-      let bestConfig = null;
-      let bestDiff = Infinity;
-      for (const mg of maleGroups) {
-        for (const fg of femaleGroups) {
-          const configs = [
-            { teamA: [mg[0], fg[0]], teamB: [mg[1], fg[1]] },
-            { teamA: [mg[0], fg[1]], teamB: [mg[1], fg[0]] },
-          ];
-          for (const cfg of configs) {
-            if (hasUsedPartner(cfg.teamA, usedPartners) || hasUsedPartner(cfg.teamB, usedPartners)) continue;
-            const diff = Math.abs(teamUTR(cfg.teamA, playerLookup) - teamUTR(cfg.teamB, playerLookup));
-            if (diff < bestDiff) {
-              bestDiff = diff;
-              bestConfig = cfg;
+        const eligible = getEligiblePool(available);
+        const candidates = eligible.length >= 4 ? eligible : available;
+        const allGroups = combinations(candidates.map(p => p._id), 4);
+        const groups = preferMinCountGroups(allGroups);
+
+        let bestSplit = null;
+        let bestDiff = Infinity;
+        for (const group of groups) {
+          const split = pickMostBalancedSplit(group, usedPartners, playerLookup);
+          if (!split) continue;
+          const diff = Math.abs(teamUTR(split[0], playerLookup) - teamUTR(split[1], playerLookup));
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            bestSplit = split;
+          }
+        }
+        if (!bestSplit) continue;
+
+        const [teamA, teamB] = bestSplit;
+        matches.push({ matchType, teamA, teamB });
+        recordPartnership(teamA[0], teamA[1]);
+        recordPartnership(teamB[0], teamB[1]);
+        incrementMatchCount([...teamA, ...teamB]);
+      }
+    }
+
+    if (desiredByType.mens_doubles > 0) {
+      generateSameGenderDoubles(males, desiredByType.mens_doubles, 'mens_doubles');
+    }
+
+    if (desiredByType.womens_doubles > 0) {
+      generateSameGenderDoubles(females, desiredByType.womens_doubles, 'womens_doubles');
+    }
+
+    if (desiredByType.mixed_doubles > 0) {
+      for (let i = 0; i < desiredByType.mixed_doubles; i++) {
+        const availMales = males.filter(p => matchCounts.get(p._id) < target);
+        const availFemales = females.filter(p => matchCounts.get(p._id) < target);
+        if (availMales.length < 2 || availFemales.length < 2) break;
+
+        const eligibleMales = getEligiblePool(availMales);
+        const eligibleFemales = getEligiblePool(availFemales);
+        const malePool = eligibleMales.length >= 2 ? eligibleMales : availMales;
+        const femalePool = eligibleFemales.length >= 2 ? eligibleFemales : availFemales;
+        const maleGroups = preferMinCountGroups(combinations(malePool.map(p => p._id), 2));
+        const femaleGroups = preferMinCountGroups(combinations(femalePool.map(p => p._id), 2));
+
+        let bestConfig = null;
+        let bestDiff = Infinity;
+        for (const mg of maleGroups) {
+          for (const fg of femaleGroups) {
+            const configs = [
+              { teamA: [mg[0], fg[0]], teamB: [mg[1], fg[1]] },
+              { teamA: [mg[0], fg[1]], teamB: [mg[1], fg[0]] },
+            ];
+            for (const cfg of configs) {
+              if (hasUsedPartner(cfg.teamA, usedPartners) || hasUsedPartner(cfg.teamB, usedPartners)) continue;
+              const diff = Math.abs(teamUTR(cfg.teamA, playerLookup) - teamUTR(cfg.teamB, playerLookup));
+              if (diff < bestDiff) {
+                bestDiff = diff;
+                bestConfig = cfg;
+              }
             }
           }
         }
+
+        if (!bestConfig) continue;
+
+        matches.push({
+          matchType: 'mixed_doubles',
+          teamA: bestConfig.teamA,
+          teamB: bestConfig.teamB
+        });
+        recordPartnership(bestConfig.teamA[0], bestConfig.teamA[1]);
+        recordPartnership(bestConfig.teamB[0], bestConfig.teamB[1]);
+        incrementMatchCount([...bestConfig.teamA, ...bestConfig.teamB]);
       }
+    }
 
-      if (!bestConfig) continue;
+    return { matches, matchCounts };
+  }
 
-      matches.push({
-        matchType: 'mixed_doubles',
-        teamA: bestConfig.teamA,
-        teamB: bestConfig.teamB
-      });
-      recordPartnership(bestConfig.teamA[0], bestConfig.teamA[1]);
-      recordPartnership(bestConfig.teamB[0], bestConfig.teamB[1]);
-      incrementMatchCount([...bestConfig.teamA, ...bestConfig.teamB]);
+  const greedyResult = generateGreedy();
+  const shouldOptimize =
+    greedyResult.matches.length < totalDesired
+    && desiredByType.mixed_doubles > 0
+    && (desiredByType.mens_doubles > 0 || desiredByType.womens_doubles > 0);
+  if (!shouldOptimize) {
+    return greedyResult;
+  }
+
+  function pairKey(a, b) {
+    return a < b ? `${a}|${b}` : `${b}|${a}`;
+  }
+
+  function makeCandidate(matchType, teamA, teamB) {
+    const participants = [...teamA, ...teamB];
+    const pairAKey = pairKey(teamA[0], teamA[1]);
+    const pairBKey = pairKey(teamB[0], teamB[1]);
+    const diff = Math.abs(teamUTR(teamA, playerLookup) - teamUTR(teamB, playerLookup));
+    return {
+      matchType,
+      teamA,
+      teamB,
+      participants,
+      pairAKey,
+      pairBKey,
+      diff,
+      key: `${matchType}:${teamA.join(',')}|${teamB.join(',')}`
+    };
+  }
+
+  function buildSameGenderCandidates(ids, matchType) {
+    if (ids.length < 4) return [];
+    const result = [];
+    for (const group of combinations(ids, 4)) {
+      const [a, b, c, d] = group;
+      result.push(makeCandidate(matchType, [a, b], [c, d]));
+      result.push(makeCandidate(matchType, [a, c], [b, d]));
+      result.push(makeCandidate(matchType, [a, d], [b, c]));
+    }
+    return result;
+  }
+
+  function buildMixedCandidates(mIds, fIds) {
+    if (mIds.length < 2 || fIds.length < 2) return [];
+    const result = [];
+    for (const mg of combinations(mIds, 2)) {
+      for (const fg of combinations(fIds, 2)) {
+        result.push(makeCandidate('mixed_doubles', [mg[0], fg[0]], [mg[1], fg[1]]));
+        result.push(makeCandidate('mixed_doubles', [mg[0], fg[1]], [mg[1], fg[0]]));
+      }
+    }
+    return result;
+  }
+
+  const candidatesByType = {
+    mens_doubles: buildSameGenderCandidates(maleIds, 'mens_doubles'),
+    womens_doubles: buildSameGenderCandidates(femaleIds, 'womens_doubles'),
+    mixed_doubles: buildMixedCandidates(maleIds, femaleIds),
+  };
+  for (const type of Object.keys(candidatesByType)) {
+    candidatesByType[type].sort((a, b) => a.diff - b.diff || a.key.localeCompare(b.key));
+  }
+
+  const remaining = { ...desiredByType };
+  const counts = Array(players.length).fill(0);
+  const usedPairs = new Set();
+  const selected = [];
+
+  const exactSearch = false;
+  const maxNodes = 180000;
+  const maxMs = 180;
+  const candidateCap = 60;
+  const startMs = Date.now();
+  let nodes = 0;
+  let timedOut = false;
+
+  const best = {
+    matches: [],
+    counts: counts.slice(),
+    totalDiff: Infinity,
+    minCount: 0,
+    spread: 0
+  };
+
+  function getRemainingQuotaTotal() {
+    return remaining.mens_doubles + remaining.womens_doubles + remaining.mixed_doubles;
+  }
+
+  function compareScore(currentMatchCount, currentMinCount, currentSpread, currentDiff) {
+    if (currentMatchCount !== best.matches.length) return currentMatchCount > best.matches.length;
+    if (currentMinCount !== best.minCount) return currentMinCount > best.minCount;
+    if (currentSpread !== best.spread) return currentSpread < best.spread;
+    return currentDiff < best.totalDiff;
+  }
+
+  function updateBest(totalDiff) {
+    const minCount = counts.length === 0 ? 0 : Math.min(...counts);
+    const maxCount = counts.length === 0 ? 0 : Math.max(...counts);
+    const spread = maxCount - minCount;
+    if (compareScore(selected.length, minCount, spread, totalDiff)) {
+      best.matches = selected.map(m => ({
+        matchType: m.matchType,
+        teamA: [...m.teamA],
+        teamB: [...m.teamB]
+      }));
+      best.counts = counts.slice();
+      best.totalDiff = totalDiff;
+      best.minCount = minCount;
+      best.spread = spread;
     }
   }
 
-  return { matches, matchCounts };
+  function isFeasibleCandidate(candidate) {
+    if (usedPairs.has(candidate.pairAKey) || usedPairs.has(candidate.pairBKey)) return false;
+    for (const id of candidate.participants) {
+      if (counts[playerIndex.get(id)] >= target) return false;
+    }
+    return true;
+  }
+
+  function collectFeasible(type) {
+    if (remaining[type] <= 0) return [];
+    const feasible = [];
+    for (const candidate of candidatesByType[type]) {
+      if (!isFeasibleCandidate(candidate)) continue;
+      let sumCounts = 0;
+      for (const id of candidate.participants) {
+        sumCounts += counts[playerIndex.get(id)];
+      }
+      feasible.push({ candidate, sumCounts });
+    }
+    feasible.sort((a, b) =>
+      a.sumCounts - b.sumCounts
+      || a.candidate.diff - b.candidate.diff
+      || a.candidate.key.localeCompare(b.candidate.key)
+    );
+    return feasible.map(x => x.candidate);
+  }
+
+  function applyCandidate(candidate) {
+    selected.push(candidate);
+    usedPairs.add(candidate.pairAKey);
+    usedPairs.add(candidate.pairBKey);
+    remaining[candidate.matchType] -= 1;
+    for (const id of candidate.participants) {
+      counts[playerIndex.get(id)] += 1;
+    }
+  }
+
+  function rollbackCandidate(candidate) {
+    for (const id of candidate.participants) {
+      counts[playerIndex.get(id)] -= 1;
+    }
+    remaining[candidate.matchType] += 1;
+    usedPairs.delete(candidate.pairAKey);
+    usedPairs.delete(candidate.pairBKey);
+    selected.pop();
+  }
+
+  function dfs(totalDiff) {
+    nodes += 1;
+    if (nodes > maxNodes || (Date.now() - startMs) > maxMs) {
+      timedOut = true;
+      return;
+    }
+
+    updateBest(totalDiff);
+
+    const remainingQuota = getRemainingQuotaTotal();
+    if (remainingQuota === 0) return;
+
+    const remainingPlayerSlots = counts.reduce((sum, c) => sum + Math.max(0, target - c), 0);
+    const upperBound = selected.length + Math.min(remainingQuota, Math.floor(remainingPlayerSlots / 4));
+    if (exactSearch ? upperBound < best.matches.length : upperBound <= best.matches.length) return;
+
+    const types = ['mixed_doubles', 'mens_doubles', 'womens_doubles'];
+    let chosenType = null;
+    let chosenFeasible = [];
+    for (const type of types) {
+      if (remaining[type] <= 0) continue;
+      const feasible = collectFeasible(type);
+      if (feasible.length === 0) continue;
+      if (chosenType == null || feasible.length < chosenFeasible.length) {
+        chosenType = type;
+        chosenFeasible = feasible;
+      }
+    }
+    if (!chosenType) return;
+
+    const limit = Math.min(chosenFeasible.length, candidateCap);
+    for (let i = 0; i < limit; i++) {
+      const candidate = chosenFeasible[i];
+      applyCandidate(candidate);
+      dfs(totalDiff + candidate.diff);
+      rollbackCandidate(candidate);
+      if (timedOut && !exactSearch) break;
+    }
+
+    // Option to skip one planned slot of this type when it blocks better overall outcomes.
+    remaining[chosenType] -= 1;
+    dfs(totalDiff);
+    remaining[chosenType] += 1;
+  }
+
+  dfs(0);
+
+  const optimized = {
+    matches: best.matches,
+    matchCounts: new Map(players.map((p, idx) => [p._id, best.counts[idx] || 0]))
+  };
+
+  // Only replace greedy output when optimization improves total matches.
+  if (optimized.matches.length > greedyResult.matches.length) {
+    return optimized;
+  }
+  return greedyResult;
 }
 
 // From eligible pool (players with count ≤ min + 1), find the pair
