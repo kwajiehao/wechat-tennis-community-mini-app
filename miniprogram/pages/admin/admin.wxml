@@ -63,6 +63,17 @@
     <picker mode="time" value="{{newEvent.endTime}}" bindchange="onEventEndTimeChange">
       <view class="input picker-value">{{newEvent.endTime || i18n.common_select}}</view>
     </picker>
+    <view class="label">{{i18n.admin_event_cost || i18n.event_cost_to_join || 'Cost to Join'}}</view>
+    <input class="input" data-field="cost" bindinput="onNewEventInput" value="{{newEvent.cost}}" />
+    <view class="label">{{i18n.admin_event_details || i18n.event_activity_details || '活动详情'}}</view>
+    <textarea
+      class="input textarea-input"
+      data-field="details"
+      bindinput="onNewEventInput"
+      value="{{newEvent.details}}"
+      auto-height
+      maxlength="-1"
+    />
     <view class="label">{{i18n.admin_event_type}}</view>
     <picker mode="selector" range="{{eventTypeLabels}}" value="{{eventTypeIndex}}" bindchange="onEventTypeChange">
       <view class="input picker-value">{{eventTypeLabels[eventTypeIndex] || i18n.common_select}}</view>

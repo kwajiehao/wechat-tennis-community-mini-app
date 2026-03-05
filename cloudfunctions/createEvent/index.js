@@ -76,6 +76,11 @@ async function assertAdmin(openid) {
   }
 }
 
+function normalizeOptionalText(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   await assertAdmin(OPENID);
@@ -87,6 +92,8 @@ exports.main = async (event, context) => {
     location,
     startTime = '',
     endTime = '',
+    cost = '',
+    details = '',
     eventType: rawEventType,
     matchTypesAllowed = VALID_MATCH_TYPES,
     seasonId: providedSeasonId
@@ -114,6 +121,8 @@ exports.main = async (event, context) => {
 
   const seasonId = providedSeasonId || await ensureActiveSeason(OPENID, date);
   const now = new Date().toISOString();
+  const normalizedCost = normalizeOptionalText(cost);
+  const normalizedDetails = normalizeOptionalText(details);
   const res = await db.collection('events').add({
     data: {
       title,
@@ -121,6 +130,8 @@ exports.main = async (event, context) => {
       location: location || '',
       startTime,
       endTime,
+      cost: normalizedCost,
+      details: normalizedDetails,
       eventType,
       matchTypesAllowed: validatedMatchTypes,
       status: 'open',

@@ -16,6 +16,11 @@
   margin-bottom: 10rpx;
 }
 
+.textarea-input {
+  min-height: 150rpx;
+  line-height: 1.5;
+}
+
 .picker-value.disabled {
   background: #f5f5f5;
   color: #999;

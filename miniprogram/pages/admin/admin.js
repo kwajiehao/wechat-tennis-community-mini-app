@@ -44,6 +44,8 @@ Page({
       location: '',
       startTime: '',
       endTime: '',
+      cost: '',
+      details: '',
       eventType: 'doubles'
     },
     resultEntry: {
@@ -323,10 +325,24 @@ Page({
       location: data.location,
       startTime: data.startTime,
       endTime: data.endTime,
+      cost: data.cost,
+      details: data.details,
       eventType: data.eventType
     })
       .then(() => {
         wx.showToast({ title: this.data.i18n.toast_event_created, icon: 'success' });
+        this.setData({
+          newEvent: {
+            title: '',
+            date: '',
+            location: '',
+            startTime: '',
+            endTime: '',
+            cost: '',
+            details: '',
+            eventType: this.data.newEvent.eventType
+          }
+        });
         this.fetchEvents();
       })
       .catch(err => {

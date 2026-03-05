@@ -37,12 +37,63 @@ function formatSignupTime(isoString) {
   return `${year}/${month}/${day} ${hours}:${minutes}`;
 }
 
+function normalizeOptionalText(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function formatEventTime(date, startTime, endTime) {
+  const eventDate = normalizeOptionalText(date);
+  const start = normalizeOptionalText(startTime);
+  const end = normalizeOptionalText(endTime);
+  if (!eventDate && !start && !end) return '';
+  const timeRange = !start && !end
+    ? ''
+    : (!end ? start : (!start ? end : `${start} - ${end}`));
+  if (!eventDate) return timeRange;
+  if (!timeRange) return eventDate;
+  return `${eventDate}  ${timeRange}`;
+}
+
+function formatEventCost(cost) {
+  const raw = normalizeOptionalText(cost);
+  if (!raw) return '';
+  if (/^[¥￥$]/.test(raw)) return raw;
+  return `¥ ${raw}`;
+}
+
+function formatEventStatus(status, strs) {
+  const statusMap = {
+    open: strs.event_share_status_open || 'Not Started',
+    in_progress: strs.event_share_status_in_progress || 'In Progress',
+    match_started: strs.event_status_match_started || 'Match Started',
+    completed: strs.event_share_status_completed || 'Completed'
+  };
+  return statusMap[status] || status || '';
+}
+
+function formatRemainingSlots(maxPlayers, signedCount, strs) {
+  if (!Number.isFinite(maxPlayers) || maxPlayers <= 0) return '';
+  const remaining = Math.max(maxPlayers - signedCount, 0);
+  const isZh = i18n.getLang() === 'zh';
+  return isZh
+    ? `仅剩${remaining}个名额`
+    : `${strs.event_remaining_slots || 'Remaining'} ${remaining}`;
+}
+
 Page({
   data: {
     i18n: {},
     matchTypes: [],
     eventId: '',
     event: null,
+    eventStatusText: '',
+    eventTimeText: '',
+    eventCostText: '',
+    hasEventCost: false,
+    eventDetailsText: '',
+    hasEventDetails: false,
+    remainingSlotsText: '',
     signupStatus: '',
     signedUpPlayers: [],
     matches: [],
@@ -118,9 +169,12 @@ Page({
   },
   fetchEventData() {
     const eventId = this.data.eventId;
+    let loadedEvent = null;
     return callFunction('listEvents', { eventId })
       .then(res => {
+        const strs = this.data.i18n || i18n.getStrings();
         const event = (res.result.events || [])[0] || null;
+        loadedEvent = event;
 
         // Compute showGameDiff: show game difference if any adjacent rankings have same wins
         let showGameDiff = false;
@@ -135,7 +189,21 @@ Page({
         }
 
         const minPlayersForMatchups = (event && event.eventType === 'singles') ? 2 : 4;
-        this.setData({ event, showGameDiff, minPlayersForMatchups });
+        const eventStatusText = event ? formatEventStatus(event.status, strs) : '';
+        const eventTimeText = event ? formatEventTime(event.date, event.startTime, event.endTime) : '';
+        const eventCostText = event ? formatEventCost(event.cost) : '';
+        const eventDetailsText = event ? normalizeOptionalText(event.details) : '';
+        this.setData({
+          event,
+          showGameDiff,
+          minPlayersForMatchups,
+          eventStatusText,
+          eventTimeText,
+          eventCostText,
+          hasEventCost: !!eventCostText,
+          eventDetailsText,
+          hasEventDetails: !!eventDetailsText
+        });
         return Promise.all([
           callFunction('listSignups', { eventId, mine: true })
             .catch(err => { console.error('[event] listSignups mine failed:', err); return { result: {} }; }),
@@ -181,13 +249,16 @@ Page({
 
         const pendingMatches = matches.filter(m => m.status !== 'completed');
         const hasCompletedMatches = matches.some(m => m.status === 'completed');
+        const maxPlayers = Number(loadedEvent && loadedEvent.maxPlayers);
+        const remainingSlotsText = formatRemainingSlots(maxPlayers, signedUpPlayers.length, this.data.i18n || i18n.getStrings());
 
         this.setData({
           signupStatus: mySignup ? mySignup.status : '',
           signedUpPlayers,
           matches,
           pendingMatches,
-          hasCompletedMatches
+          hasCompletedMatches,
+          remainingSlotsText
         });
       })
       .catch(err => {
@@ -753,6 +824,7 @@ Page({
           var statusMap = {
             open: { label: strs.event_share_status_open || 'Not Started', color: '#F57C00' },
             in_progress: { label: strs.event_share_status_in_progress || 'In Progress', color: '#1976D2' },
+            match_started: { label: strs.event_status_match_started || 'Match Started', color: '#2E7D32' },
             completed: { label: strs.event_share_status_completed || 'Completed', color: '#757575' }
           };
           var statusInfo = statusMap[event.status] || statusMap.open;

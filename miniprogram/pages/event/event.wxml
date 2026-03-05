@@ -6,13 +6,90 @@
     </view>
   </block>
   <block wx:else>
-    <view class="card">
+    <view class="card event-overview-card">
       <view class="event-header">
-        <view class="title">{{event.title}}</view>
-        <view class="status-badge {{event.status}}">{{event.status}}</view>
+        <view class="title event-main-title">{{event.title}}</view>
       </view>
-      <view class="label">{{event.date}} - {{event.location}}</view>
-      <view class="label" wx:if="{{event.startTime}}">{{event.startTime}} - {{event.endTime}}</view>
+
+      <view class="status-line">
+        <view class="event-meta-value status-pill status-{{event.status}}">{{eventStatusText || event.status}}</view>
+      </view>
+
+      <view class="event-meta-list">
+        <view class="event-meta-item" wx:if="{{eventTimeText}}">
+          <view class="event-meta-icon">🕒</view>
+          <view class="event-meta-content">
+            <text class="event-meta-label-inline">{{i18n.event_time || i18n.event_time_slots || 'Time'}}:</text>
+            <text class="event-meta-value-inline">{{eventTimeText}}</text>
+          </view>
+        </view>
+        <view class="event-meta-item" wx:if="{{event.location}}">
+          <view class="event-meta-icon">📍</view>
+          <view class="event-meta-content">
+            <text class="event-meta-label-inline">{{i18n.event_location}}:</text>
+            <text class="event-meta-value-inline">{{event.location}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="event-cost-row" wx:if="{{hasEventCost}}">
+        <text class="event-meta-value cost">{{eventCostText}}</text>
+      </view>
+
+      <view class="divider section-divider details-divider"></view>
+
+      <view class="section-row">
+        <view class="section-title-inline">{{i18n.event_signed_players}} {{signedUpPlayers.length}}{{event.maxPlayers ? '/' + event.maxPlayers : ''}}</view>
+        <view class="section-note" wx:if="{{remainingSlotsText}}">{{remainingSlotsText}}</view>
+      </view>
+      <block wx:if="{{signedUpPlayers.length === 0}}">
+        <view class="label">{{i18n.event_no_players}}</view>
+      </block>
+      <block wx:else>
+        <view class="player-list">
+          <view wx:for="{{signedUpPlayers}}" wx:key="playerId" class="player-item">
+            <view class="player-info">
+              <view class="player-name-row">
+                <text class="player-name">{{item.name}}</text>
+                <text class="player-signup-time" wx:if="{{item.signedUpAt}}">{{item.signedUpAt}}</text>
+              </view>
+              <view class="player-badges">
+                <text class="player-badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
+                <text class="player-badge gender {{item.gender === 'F' ? 'female' : 'male'}}">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
+                <text class="player-badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player}}</text>
+              </view>
+            </view>
+            <view class="player-remove" wx:if="{{isAdmin && event.status !== 'completed'}}" data-player-id="{{item.playerId}}" catchtap="removePlayer">×</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{isAdmin && event.status !== 'completed'}}">
+        <view class="divider"></view>
+        <view class="button secondary" bindtap="toggleAddPlayer" wx:if="{{!showAddPlayer}}">{{i18n.admin_add_player || '+ Add Player'}}</view>
+        <block wx:if="{{showAddPlayer}}">
+          <view class="add-player-form">
+            <view class="label">{{i18n.admin_select_player}}</view>
+            <searchable-picker
+              items="{{availablePlayersForSignup}}"
+              selectedIds="{{selectedPlayerToAdd}}"
+              placeholder="{{i18n.common_search}}"
+              maxSelect="{{1}}"
+              bind:change="onAddPlayerChange"
+            />
+            <view class="button-row">
+              <view class="button" bindtap="addPlayerToEvent">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
+              <view class="button secondary" bindtap="toggleAddPlayer">{{i18n.common_cancel}}</view>
+            </view>
+          </view>
+        </block>
+      </block>
+
+      <block wx:if="{{hasEventDetails}}">
+        <view class="divider section-divider activity-divider"></view>
+        <view class="section-title-inline activity-title">{{i18n.event_activity_details || '活动详情'}}</view>
+        <view class="event-description">{{eventDetailsText}}</view>
+      </block>
     </view>
 
     <block wx:if="{{isAdmin}}">
@@ -142,52 +219,6 @@
         </view>
       </view>
     </block>
-
-    <view class="card">
-      <view class="title">{{i18n.event_signed_players}} ({{signedUpPlayers.length}})</view>
-      <block wx:if="{{signedUpPlayers.length === 0}}">
-        <view class="label">{{i18n.event_no_players}}</view>
-      </block>
-      <block wx:else>
-        <view class="player-list">
-          <view wx:for="{{signedUpPlayers}}" wx:key="playerId" class="player-item">
-            <view class="player-info">
-              <view class="player-name-row">
-                <text class="player-name">{{item.name}}</text>
-                <text class="player-signup-time" wx:if="{{item.signedUpAt}}">{{item.signedUpAt}}</text>
-              </view>
-              <view class="player-badges">
-                <text class="player-badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
-                <text class="player-badge gender {{item.gender === 'F' ? 'female' : 'male'}}">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
-                <text class="player-badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player}}</text>
-              </view>
-            </view>
-            <view class="player-remove" wx:if="{{isAdmin && event.status !== 'completed'}}" data-player-id="{{item.playerId}}" catchtap="removePlayer">×</view>
-          </view>
-        </view>
-      </block>
-
-      <block wx:if="{{isAdmin && event.status !== 'completed'}}">
-        <view class="divider"></view>
-        <view class="button secondary" bindtap="toggleAddPlayer" wx:if="{{!showAddPlayer}}">{{i18n.admin_add_player || '+ Add Player'}}</view>
-        <block wx:if="{{showAddPlayer}}">
-          <view class="add-player-form">
-            <view class="label">{{i18n.admin_select_player}}</view>
-            <searchable-picker
-              items="{{availablePlayersForSignup}}"
-              selectedIds="{{selectedPlayerToAdd}}"
-              placeholder="{{i18n.common_search}}"
-              maxSelect="{{1}}"
-              bind:change="onAddPlayerChange"
-            />
-            <view class="button-row">
-              <view class="button" bindtap="addPlayerToEvent">{{i18n.admin_signup_player || 'Sign Up Player'}}</view>
-              <view class="button secondary" bindtap="toggleAddPlayer">{{i18n.common_cancel}}</view>
-            </view>
-          </view>
-        </block>
-      </block>
-    </view>
 
     <block wx:if="{{matches.length > 0}}">
       <view class="card">

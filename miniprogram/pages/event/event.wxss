@@ -9,8 +9,165 @@
   color: #888;
 }
 
+.event-overview-card {
+  padding: 28rpx 24rpx;
+}
+
+.event-main-title {
+  font-size: 44rpx;
+  line-height: 1.35;
+  margin-bottom: 0;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  margin-top: 18rpx;
+  margin-bottom: 42rpx;
+}
+
+.event-meta-list {
+  margin-top: 0;
+  margin-bottom: 34rpx;
+}
+
+.event-meta-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+  gap: 14rpx;
+}
+
+.event-meta-item:last-child {
+  margin-bottom: 0;
+}
+
+.event-meta-icon {
+  width: 34rpx;
+  text-align: center;
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.event-meta-content {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 8rpx;
+  row-gap: 6rpx;
+}
+
+.event-meta-label {
+  width: auto;
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+.event-meta-label-inline {
+  color: #767676;
+  font-size: 26rpx;
+}
+
+.event-meta-value {
+  flex: none;
+  font-size: 26rpx;
+  color: #222;
+  line-height: 1.4;
+}
+
+.event-meta-value-inline {
+  color: #222;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.status-pill.status-open {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-pill.status-in_progress {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-pill.status-match_started {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pill.status-completed {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.event-meta-value.cost {
+  color: #e65100;
+  font-size: 46rpx;
+  font-weight: 600;
+}
+
+.event-cost-row {
+  margin-top: 38rpx;
+}
+
+.section-divider {
+  margin: 0;
+}
+
+.details-divider {
+  margin: 72rpx 0 44rpx;
+}
+
+.activity-divider {
+  margin: 76rpx 0 48rpx;
+}
+
+.section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title-inline {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e2a3a;
+}
+
+.section-note {
+  font-size: 24rpx;
+  color: #666;
+  text-align: right;
+}
+
+.event-description {
+  margin-top: 34rpx;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.activity-title {
+  margin-top: 2rpx;
+}
+
 .player-list {
-  margin-top: 10rpx;
+  margin-top: 14rpx;
 }
 
 .player-item {
@@ -219,7 +376,6 @@
 
 .event-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 8rpx;
 }
