@@ -41,6 +41,12 @@ async function ensureSettings(openid) {
   return existing;
 }
 
+function buildMatchupKey(teamA, teamB) {
+  const sortedA = [...teamA].sort().join('+');
+  const sortedB = [...teamB].sort().join('+');
+  return [sortedA, sortedB].sort().join('-vs-');
+}
+
 async function assertAdmin(openid) {
   const settings = await ensureSettings(openid);
   if (!settings.adminOpenIds.includes(openid)) {
@@ -78,6 +84,7 @@ exports.main = async (event, context) => {
       teamA,
       teamB,
       participants: teamA.concat(teamB),
+      matchupKey: buildMatchupKey(teamA, teamB),
       status: 'approved',
       seasonId: eventRes.data.seasonId || (settings ? settings.activeSeasonId : null),
       createdAt: now,

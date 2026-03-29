@@ -8,7 +8,8 @@ const {
   planMatchDistribution,
   generateConstrainedMatchups,
   generateSinglesMatchups,
-  scheduleMatches
+  scheduleMatches,
+  buildMatchupKey
 } = require('./matchupEngine');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -161,6 +162,7 @@ exports.main = async (event, context) => {
     teamA: match.teamA,
     teamB: match.teamB,
     participants: match.participants,
+    matchupKey: buildMatchupKey(match.teamA, match.teamB),
     status: 'approved',
     generatedAt: now,
     approvedBy: null

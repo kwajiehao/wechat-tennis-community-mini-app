@@ -69,6 +69,12 @@ async function assertAdmin(openid) {
   return settings;
 }
 
+function buildMatchupKey(teamA, teamB) {
+  const sortedA = [...teamA].sort().join('+');
+  const sortedB = [...teamB].sort().join('+');
+  return [sortedA, sortedB].sort().join('-vs-');
+}
+
 function ntrpToUTR(ntrp) {
   // Convert NTRP (1.0-7.0) to UTR scale (1.0-16.5)
   // NTRP 2.5 ≈ UTR 2, NTRP 4.0 ≈ UTR 6, NTRP 5.5 ≈ UTR 10
@@ -308,6 +314,7 @@ exports.main = async (event, context) => {
         teamA,
         teamB,
         participants: teamA.concat(teamB),
+        matchupKey: buildMatchupKey(teamA, teamB),
         status: 'adhoc',
         generatedAt: now,
         approvedBy: null
