@@ -29,8 +29,7 @@ Page({
   onShareAppMessage() {
     return {
       title: this.data.i18n.app_title || 'Tennis Community',
-      path: '/pages/index/index',
-      imageUrl: '/images/share.jpg'
+      path: '/pages/index/index'
     };
   },
   onShareTimeline() {

@@ -160,8 +160,7 @@ Page({
       title: season ? season.name : (this.data.i18n.leaderboard_title || 'Leaderboard'),
       path: seasonId
         ? `/pages/leaderboard/leaderboard?seasonId=${seasonId}`
-        : '/pages/leaderboard/leaderboard',
-      imageUrl: '/images/share.jpg'
+        : '/pages/leaderboard/leaderboard'
     };
   },
   onShareTimeline() {

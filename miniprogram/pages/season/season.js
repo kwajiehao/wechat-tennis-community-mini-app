@@ -127,8 +127,7 @@ Page({
   onShareAppMessage() {
     return {
       title: this.data.seasonName || 'Tennis Community',
-      path: `/pages/season/season?seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`,
-      imageUrl: '/images/share.jpg'
+      path: `/pages/season/season?seasonId=${this.data.seasonId}&seasonName=${encodeURIComponent(this.data.seasonName)}`
     };
   },
   onShareTimeline() {

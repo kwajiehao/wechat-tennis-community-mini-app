@@ -161,8 +161,7 @@ Page({
   onShareAppMessage() {
     return {
       title: this._playerName || this.data.i18n.stats_title || 'Player Stats',
-      path: this._getSharePath(),
-      imageUrl: '/images/share.jpg'
+      path: this._getSharePath()
     };
   },
   onShareTimeline() {
