@@ -68,6 +68,19 @@ describe('getUTR', () => {
     const result = getUTR({ ntrp: 4.0, utr: 0 });
     expect(result).toBeCloseTo(4.25);
   });
+
+  test('returns default UTR 6.0 when NTRP is null and no explicit UTR', () => {
+    expect(getUTR({ ntrp: null })).toBeCloseTo(6.0);
+  });
+
+  test('returns default UTR 6.0 when NTRP is undefined and no explicit UTR', () => {
+    expect(getUTR({})).toBeCloseTo(6.0);
+  });
+
+  test('averages default NTRP-based UTR with explicit UTR when NTRP is null', () => {
+    // ntrpToUTR(null) = 6.0, average with 7.5 = 6.75
+    expect(getUTR({ ntrp: null, utr: 7.5 })).toBeCloseTo(6.75);
+  });
 });
 
 // --- classifyPlayers ---

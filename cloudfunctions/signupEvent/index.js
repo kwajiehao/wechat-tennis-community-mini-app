@@ -67,7 +67,7 @@ exports.main = async (event, context) => {
     }
   }
 
-  if (!player.name || !player.gender || player.ntrp === null || player.ntrp === undefined) {
+  if (!player.name || !player.gender) {
     throw new Error('PROFILE_INCOMPLETE');
   }
 

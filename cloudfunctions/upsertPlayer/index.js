@@ -97,29 +97,27 @@ exports.main = async (event, context) => {
   const res = await db.collection('players').where({ wechatOpenId: OPENID }).get();
   if (res.data.length > 0) {
     const existingId = res.data[0]._id;
+    const updateData = { name, gender, updatedAt: now };
+    if (ntrp !== undefined) updateData.ntrp = ntrp;
     await db.collection('players').doc(existingId).update({
-      data: {
-        name,
-        gender,
-        ntrp,
-        updatedAt: now
-      }
+      data: updateData
     });
     const updated = await db.collection('players').doc(existingId).get();
     return { player: updated.data };
   }
 
+  const createData = {
+    wechatOpenId: OPENID,
+    name,
+    gender,
+    isActive: true,
+    notes: '',
+    createdAt: now,
+    updatedAt: now
+  };
+  if (ntrp !== undefined) createData.ntrp = ntrp;
   const created = await db.collection('players').add({
-    data: {
-      wechatOpenId: OPENID,
-      name,
-      gender,
-      ntrp,
-      isActive: true,
-      notes: '',
-      createdAt: now,
-      updatedAt: now
-    }
+    data: createData
   });
   await db.collection('players').doc(created._id).update({ data: { playerId: created._id } });
   const player = await db.collection('players').doc(created._id).get();

@@ -14,9 +14,7 @@ Page({
     genderCodes: ['M', 'F'],
     genderLabels: [],
     genderIndex: 0,
-    ntrp: '',
-    ntrpOptions: ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'],
-    ntrpIndex: -1
+    dltrDisplay: ''
   },
   onLoad() {
     initCloud();
@@ -39,16 +37,15 @@ Page({
         const player = res.result.player || null;
         if (player) {
           const gender = player.gender || 'M';
-          const ntrpStr = player.ntrp ? String(player.ntrp) : '';
-          const ntrpIndex = this.data.ntrpOptions.indexOf(ntrpStr);
+          const strs = i18n.getStrings();
+          const dltrDisplay = player.utr != null ? String(player.utr) : strs.profile_unrated;
           this.setData({
             player,
             isNewUser: false,
             name: player.name || '',
             gender: gender.toUpperCase(),
             genderIndex: this.data.genderCodes.indexOf(gender.toUpperCase()),
-            ntrp: ntrpStr,
-            ntrpIndex: ntrpIndex
+            dltrDisplay
           });
         } else {
           this.setData({ isNewUser: true });
@@ -69,19 +66,10 @@ Page({
       gender: this.data.genderCodes[index]
     });
   },
-  onNtrpChange(e) {
-    const index = parseInt(e.detail.value);
-    this.setData({
-      ntrpIndex: index,
-      ntrp: this.data.ntrpOptions[index]
-    });
-  },
   saveProfile() {
-    const ntrpValue = parseFloat(this.data.ntrp);
     callFunction('upsertPlayer', {
       name: this.data.name,
-      gender: this.data.gender,
-      ntrp: Number.isNaN(ntrpValue) ? null : ntrpValue
+      gender: this.data.gender
     })
       .then(res => {
         this.setData({ player: res.result.player, isNewUser: false });
