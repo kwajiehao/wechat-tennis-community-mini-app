@@ -733,6 +733,63 @@
   flex: 1;
 }
 
+/* Matchup history modal */
+.history-modal {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.history-loading,
+.history-empty {
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+  padding: 40rpx 0;
+}
+
+.history-list {
+  margin-top: 16rpx;
+}
+
+.history-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-date {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.history-teams {
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.history-vs {
+  color: #999;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.history-winner {
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.history-score {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 6rpx;
+}
+
 /* Danger button */
 .button.danger {
   background: #c62828;

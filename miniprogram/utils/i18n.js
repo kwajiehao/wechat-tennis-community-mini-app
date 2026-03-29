@@ -18,6 +18,7 @@ const strings = {
     common_loading: 'Loading...',
     common_save: 'Save',
     common_cancel: 'Cancel',
+    common_close: 'Close',
     common_submit: 'Submit',
     common_search: 'Search',
     common_select: 'Select',
@@ -95,6 +96,9 @@ const strings = {
     event_share_status_in_progress: 'In Progress',
     event_share_status_completed: 'Completed',
     event_signed_at: 'Signed up',
+    event_matchup_history: 'Head-to-Head History',
+    event_no_history: 'No previous matchups',
+    event_history_loading: 'Loading history...',
 
     // Profile page
     profile_title: 'My Profile',
@@ -334,6 +338,7 @@ const strings = {
     common_loading: '加载中...',
     common_save: '保存',
     common_cancel: '取消',
+    common_close: '关闭',
     common_submit: '提交',
     common_search: '搜索',
     common_select: '选择',
@@ -411,6 +416,9 @@ const strings = {
     event_share_status_in_progress: '进行中',
     event_share_status_completed: '已结束',
     event_signed_at: '报名时间',
+    event_matchup_history: '历史对战记录',
+    event_no_history: '暂无历史对战',
+    event_history_loading: '加载中...',
 
     // Profile page
     profile_title: '我的资料',

@@ -125,7 +125,11 @@ Page({
     tiedPlayers: [],
     selectedChampion: '',
     showGameDiff: false,
-    minPlayersForMatchups: 4
+    minPlayersForMatchups: 4,
+    showMatchupHistory: false,
+    matchupHistoryTitle: '',
+    matchupHistoryMatches: [],
+    matchupHistoryLoading: false
   },
   onLoad(query) {
     initCloud();
@@ -741,6 +745,43 @@ Page({
             });
         }
       }
+    });
+  },
+  showMatchupHistory(e) {
+    const matchId = e.currentTarget.dataset.id;
+    const match = this.data.matches.find(m => m._id === matchId);
+    if (!match) return;
+
+    const title = `${match.teamANames} vs ${match.teamBNames}`;
+    this.setData({
+      showMatchupHistory: true,
+      matchupHistoryTitle: title,
+      matchupHistoryMatches: [],
+      matchupHistoryLoading: true
+    });
+
+    callFunction('getMatchupHistory', {
+      teamA: match.teamA,
+      teamB: match.teamB
+    })
+      .then(res => {
+        const history = (res.result.matches || []).slice(0, 10);
+        this.setData({
+          matchupHistoryMatches: history,
+          matchupHistoryLoading: false
+        });
+      })
+      .catch(err => {
+        console.error('[matchupHistory] failed:', err);
+        this.setData({ matchupHistoryLoading: false });
+      });
+  },
+  closeMatchupHistory() {
+    this.setData({
+      showMatchupHistory: false,
+      matchupHistoryTitle: '',
+      matchupHistoryMatches: [],
+      matchupHistoryLoading: false
     });
   },
   closeTieBreaker() {

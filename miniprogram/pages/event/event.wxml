@@ -220,10 +220,44 @@
       </view>
     </block>
 
+    <!-- Matchup history modal -->
+    <block wx:if="{{showMatchupHistory}}">
+      <view class="modal-overlay" bindtap="closeMatchupHistory">
+        <view class="modal-content history-modal" catchtap="">
+          <view class="modal-title">{{i18n.event_matchup_history}}</view>
+          <view class="modal-body">
+            <text class="modal-desc">{{matchupHistoryTitle}}</text>
+            <block wx:if="{{matchupHistoryLoading}}">
+              <view class="history-loading">{{i18n.event_history_loading}}</view>
+            </block>
+            <block wx:elif="{{matchupHistoryMatches.length === 0}}">
+              <view class="history-empty">{{i18n.event_no_history}}</view>
+            </block>
+            <block wx:else>
+              <view class="history-list">
+                <view wx:for="{{matchupHistoryMatches}}" wx:key="_id" class="history-item">
+                  <view class="history-date">{{item.eventDate || '--'}}</view>
+                  <view class="history-teams">
+                    <text class="{{item.winner === 'A' ? 'history-winner' : ''}}">{{item.teamANames}}</text>
+                    <text class="history-vs">vs</text>
+                    <text class="{{item.winner === 'B' ? 'history-winner' : ''}}">{{item.teamBNames}}</text>
+                  </view>
+                  <view class="history-score" wx:if="{{item.score}}">{{item.score}}</view>
+                </view>
+              </view>
+            </block>
+          </view>
+          <view class="modal-actions">
+            <view class="button secondary" bindtap="closeMatchupHistory">{{i18n.common_close || 'Close'}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+
     <block wx:if="{{matches.length > 0}}">
       <view class="card">
         <view class="title">{{i18n.event_matches || 'Matches'}}</view>
-        <view wx:for="{{matches}}" wx:key="_id" class="matchup-item {{item.status === 'completed' ? 'completed' : ''}}">
+        <view wx:for="{{matches}}" wx:key="_id" class="matchup-item {{item.status === 'completed' ? 'completed' : ''}}" data-id="{{item._id}}" bindtap="showMatchupHistory">
           <view class="matchup-row">
             <view class="matchup-content">
               <view class="matchup-header">
