@@ -10,7 +10,8 @@ const {
   generateSinglesMatchups,
   pickBestSinglesPair,
   combinations,
-  scheduleMatches
+  scheduleMatches,
+  buildMatchupKey
 } = require('./matchupEngine');
 
 // --- Test helpers ---
@@ -1082,5 +1083,44 @@ describe('scheduleMatches', () => {
     expect(scheduled[0].extra).toBe('data');
     expect(scheduled[0]._id).toBe('m1');
     expect(scheduled[0].matchNumber).toBe(1);
+  });
+});
+
+// --- buildMatchupKey ---
+
+describe('buildMatchupKey', () => {
+  test('singles: produces same key regardless of team order', () => {
+    const key1 = buildMatchupKey(['alice'], ['bob']);
+    const key2 = buildMatchupKey(['bob'], ['alice']);
+    expect(key1).toBe(key2);
+  });
+
+  test('singles: key contains both player IDs', () => {
+    const key = buildMatchupKey(['alice'], ['bob']);
+    expect(key).toBe('alice-vs-bob');
+  });
+
+  test('doubles: produces same key regardless of team order', () => {
+    const key1 = buildMatchupKey(['alice', 'bob'], ['carol', 'david']);
+    const key2 = buildMatchupKey(['carol', 'david'], ['alice', 'bob']);
+    expect(key1).toBe(key2);
+  });
+
+  test('doubles: produces same key regardless of player order within teams', () => {
+    const key1 = buildMatchupKey(['bob', 'alice'], ['david', 'carol']);
+    const key2 = buildMatchupKey(['alice', 'bob'], ['carol', 'david']);
+    expect(key1).toBe(key2);
+  });
+
+  test('doubles: different team compositions produce different keys', () => {
+    const key1 = buildMatchupKey(['alice', 'bob'], ['carol', 'david']);
+    const key2 = buildMatchupKey(['alice', 'carol'], ['bob', 'david']);
+    expect(key1).not.toBe(key2);
+  });
+
+  test('singles: different players produce different keys', () => {
+    const key1 = buildMatchupKey(['alice'], ['bob']);
+    const key2 = buildMatchupKey(['alice'], ['carol']);
+    expect(key1).not.toBe(key2);
   });
 });

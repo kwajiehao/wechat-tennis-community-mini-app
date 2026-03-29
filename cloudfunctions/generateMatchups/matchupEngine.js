@@ -581,6 +581,12 @@ function scheduleMatches(matches) {
   return scheduled;
 }
 
+function buildMatchupKey(teamA, teamB) {
+  const sortedA = [...teamA].sort().join('+');
+  const sortedB = [...teamB].sort().join('+');
+  return [sortedA, sortedB].sort().join('-vs-');
+}
+
 module.exports = {
   VALID_MATCH_TYPES,
   combinations,
@@ -592,5 +598,6 @@ module.exports = {
   generateConstrainedMatchups,
   generateSinglesMatchups,
   pickBestSinglesPair,
-  scheduleMatches
+  scheduleMatches,
+  buildMatchupKey
 };
