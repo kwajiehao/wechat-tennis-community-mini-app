@@ -26,9 +26,9 @@ miniprogram/           # Client-side WeChat Mini Program
 docs/                  # Documentation
   DATABASE_GUIDE.md    # Database操作指南 (Mandarin)
 
-cloudfunctions/        # 30 serverless functions (Node.js)
+cloudfunctions/        # 32 serverless functions (Node.js)
   # Player: upsertPlayer, getPlayer, listPlayers, deletePlayer
-  # Matchups: addMatchup, deleteMatchup
+  # Matchups: addMatchup, deleteMatchup, getMatchupHistory
   # Auth: checkAdmin
   # Events: createEvent, listEvents, updateEvent, completeEvent, reopenEvent, computeEventScore
   # Signups: signupEvent, listSignups
@@ -37,6 +37,7 @@ cloudfunctions/        # 30 serverless functions (Node.js)
   # Stats: getStats, recalculateStats, getSeasonStats
   # Seasons: createSeason, listSeasons, setActiveSeason, adminAdjustSeasonPoints
   # Data: adminExportCSV, adminImportCSV
+  # Migration: backfillMatchupKeys
 ```
 
 ## Database Collections
@@ -44,7 +45,7 @@ cloudfunctions/        # 30 serverless functions (Node.js)
 - `players` - Player profiles (name, gender, NTRP, wechatOpenId, isTestPlayer)
 - `events` - Tennis events (date, location, startTime, endTime, eventType, matchTypesAllowed, seasonId, status, playerPoints, completedAt, leaderboard)
 - `signups` - Event signups (playerId, eventId, preferredMatchTypes, seasonId)
-- `matches` - Generated matches (teamsA/B, matchType, status, seasonId)
+- `matches` - Generated matches (teamsA/B, matchType, status, seasonId, matchupKey)
 - `results` - Match results (matchId, score, sets, winner, winnerPlayers)
 - `stats` - Overall player stats (wins, losses, points, attendance)
 - `settings` - App config; single doc at `settings/core` with adminOpenIds, activeSeasonId
