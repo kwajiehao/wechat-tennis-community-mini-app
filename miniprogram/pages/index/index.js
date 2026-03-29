@@ -119,24 +119,6 @@ Page({
   goSettings() {
     wx.navigateTo({ url: '/pages/settings/settings' });
   },
-  runBackfill() {
-    wx.showLoading({ title: 'Running...' });
-    callFunction('backfillMatchupKeys', {})
-      .then(res => {
-        wx.hideLoading();
-        const r = res.result;
-        wx.showModal({
-          title: 'Backfill Complete',
-          content: `Updated: ${r.updated}, Skipped: ${r.skipped}, Total: ${r.total}`,
-          showCancel: false
-        });
-      })
-      .catch(err => {
-        wx.hideLoading();
-        console.error('[backfill] failed:', err);
-        wx.showToast({ title: 'Backfill failed', icon: 'none' });
-      });
-  },
   onShareAppMessage() {
     return {
       title: this.data.i18n.app_title || 'Tennis Community',
