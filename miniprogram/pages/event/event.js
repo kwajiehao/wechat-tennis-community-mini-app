@@ -120,6 +120,7 @@ Page({
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
     },
+    savingResult: false,
     scoreOptions: ['0', '1', '2', '3', '4'],
     showTieBreaker: false,
     tiedPlayers: [],
@@ -623,6 +624,8 @@ Page({
     this.setData({ 'resultEntry.winner': winner });
   },
   enterResult() {
+    if (this.data.savingResult) return;
+
     const entry = this.data.resultEntry;
     const sets = entry.sets.filter(s => s.teamAGames !== '' || s.teamBGames !== '');
 
@@ -658,6 +661,8 @@ Page({
       }
     }
 
+    this.setData({ savingResult: true });
+
     callFunction('enterResult', {
       matchId: entry.selectedMatchId,
       winner: entry.winner,
@@ -677,6 +682,9 @@ Page({
         console.error(err);
         const msg = i18n.translateError(err.message) || 'Save failed';
         wx.showToast({ title: msg, icon: 'none' });
+      })
+      .finally(() => {
+        this.setData({ savingResult: false });
       });
   },
   computeScore() {

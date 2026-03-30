@@ -337,6 +337,14 @@ exports.main = async (event, context) => {
     });
   }
 
+  const existingResultsRes = await db.collection('results')
+    .where({ matchId: actualMatchId })
+    .limit(1)
+    .get();
+  if ((existingResultsRes.data || []).length > 0 || match.status === 'completed') {
+    throw new Error('RESULT_ALREADY_EXISTS');
+  }
+
   const winnerSide = winner.toUpperCase() === 'B' ? 'B' : 'A';
   const winnerPlayers = winnerSide === 'A' ? match.teamA : match.teamB;
 

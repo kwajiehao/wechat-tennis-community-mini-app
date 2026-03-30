@@ -3,6 +3,7 @@
 
 const cloud = require('wx-server-sdk');
 const { computePerfectEventCounts } = require('./perfectEvents');
+const { computeSeasonMatchStats } = require('./seasonStats');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -98,23 +99,13 @@ exports.main = async (event, context) => {
 
     console.log('[getSeasonStats] results:', results.length);
 
-    // Build wins/losses/matchesPlayed per player
-    const playerWins = {};
-    const playerMatchesPlayed = {};
-    for (const match of completedMatches) {
-      const players = [...(match.teamA || []), ...(match.teamB || [])];
-      for (const pid of players) {
-        playerMatchesPlayed[pid] = (playerMatchesPlayed[pid] || 0) + 1;
-      }
-    }
+    const statsByPlayer = computeSeasonMatchStats(completedMatches, results);
 
-    console.log('[getSeasonStats] playerMatchesPlayed sample:', JSON.stringify(Object.entries(playerMatchesPlayed).slice(0, 5)));
-    for (const result of results) {
-      const winners = result.winnerPlayers || [];
-      for (const pid of winners) {
-        playerWins[pid] = (playerWins[pid] || 0) + 1;
-      }
-    }
+    console.log('[getSeasonStats] playerMatchesPlayed sample:', JSON.stringify(
+      Object.entries(statsByPlayer)
+        .slice(0, 5)
+        .map(([playerId, stats]) => [playerId, stats.matchesPlayed])
+    ));
 
     const perfectEventCounts = computePerfectEventCounts(completedMatches, results, scoredEventIds);
 
@@ -123,18 +114,16 @@ exports.main = async (event, context) => {
       const playerId = player._id;
       const eventPts = playerPoints[playerId] || 0;
       const adjustmentPts = adjustmentsByPlayer[playerId] || 0;
-      const wins = playerWins[playerId] || 0;
-      const matchesPlayed = playerMatchesPlayed[playerId] || 0;
-      const losses = matchesPlayed - wins;
+      const matchStats = statsByPlayer[playerId] || { wins: 0, losses: 0, matchesPlayed: 0 };
       return {
         playerId,
         playerName: player.name,
         points: eventPts + adjustmentPts,
         eventPoints: eventPts,
         adjustmentPoints: adjustmentPts,
-        wins,
-        losses,
-        matchesPlayed,
+        wins: matchStats.wins,
+        losses: matchStats.losses,
+        matchesPlayed: matchStats.matchesPlayed,
         perfectEventCount: perfectEventCounts[playerId] || 0
       };
     });
@@ -200,21 +189,8 @@ exports.main = async (event, context) => {
 
   const results = await batchIn('results', 'matchId', matchIds);
 
-  let wins = 0;
-  let matchesPlayed = 0;
-  for (const match of completedMatches) {
-    const players = [...(match.teamA || []), ...(match.teamB || [])];
-    if (players.includes(playerId)) {
-      matchesPlayed++;
-    }
-  }
-  for (const result of results) {
-    const winners = result.winnerPlayers || [];
-    if (winners.includes(playerId)) {
-      wins++;
-    }
-  }
-  const losses = matchesPlayed - wins;
+  const statsByPlayer = computeSeasonMatchStats(completedMatches, results);
+  const playerStats = statsByPlayer[playerId] || { wins: 0, losses: 0, matchesPlayed: 0 };
 
   const adjustmentData = await getAll(() => db.collection('season_point_adjustments')
     .where({ seasonId, playerId }));
@@ -234,9 +210,9 @@ exports.main = async (event, context) => {
       eventPoints: totalEventPoints,
       adjustmentPoints,
       eventBreakdown,
-      wins,
-      losses,
-      matchesPlayed
+      wins: playerStats.wins,
+      losses: playerStats.losses,
+      matchesPlayed: playerStats.matchesPlayed
     }
   };
 };

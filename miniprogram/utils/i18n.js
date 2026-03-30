@@ -42,6 +42,7 @@ const strings = {
     error_event_not_completed: 'Complete the event before computing score',
     error_event_not_open: 'Cannot withdraw once event is in progress',
     error_event_full: 'Event is full (max 20 players)',
+    error_result_already_exists: 'This match already has a saved result',
 
     // Gender
     gender_male: 'Male',
@@ -362,6 +363,7 @@ const strings = {
     error_event_not_completed: '请先完成活动再计算积分',
     error_event_not_open: '活动进行中无法取消报名',
     error_event_full: '活动已满（最多20人）',
+    error_result_already_exists: '这场比赛已经保存过结果',
 
     // Gender
     gender_male: '男',
@@ -691,6 +693,7 @@ const errorCodeMap = {
   'EVENT_FULL': 'error_event_full',
   'MISSING_PROFILE': 'event_no_profile',
   'PROFILE_INCOMPLETE': 'event_profile_incomplete',
+  'RESULT_ALREADY_EXISTS': 'error_result_already_exists',
   'EVENT_LOCKED': 'error_event_locked',
   'SCORE_ALREADY_COMPUTED': 'error_score_already_computed',
   'INVALID_CHAMPION': 'error_invalid_champion'

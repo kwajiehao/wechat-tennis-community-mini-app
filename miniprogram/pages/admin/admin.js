@@ -65,6 +65,7 @@ Page({
       sets: [{ teamAGames: '', teamBGames: '' }],
       winner: ''
     },
+    savingResult: false,
     eventTypeCodes: ['doubles', 'singles'],
     eventTypeLabels: [],
     eventTypeIndex: 0,
@@ -654,6 +655,8 @@ Page({
   },
 
   enterResult() {
+    if (this.data.savingResult) return;
+
     const entry = this.data.resultEntry;
     const sets = entry.sets.filter(s => s.teamAGames !== '' || s.teamBGames !== '');
 
@@ -683,6 +686,8 @@ Page({
       payload.matchType = entry.matchType;
     }
 
+    this.setData({ savingResult: true });
+
     callFunction('enterResult', payload)
       .then(() => {
         wx.showToast({ title: this.data.i18n.toast_result_saved, icon: 'success' });
@@ -705,6 +710,9 @@ Page({
         console.error(err);
         const msg = i18n.translateError(err.message) || 'Save failed';
         wx.showToast({ title: msg, icon: 'none' });
+      })
+      .finally(() => {
+        this.setData({ savingResult: false });
       });
   },
   viewSeasonResults(e) {
