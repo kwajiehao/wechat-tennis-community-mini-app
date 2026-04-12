@@ -67,7 +67,7 @@
   gap: 12rpx;
 }
 
-.badge.ntrp {
+.badge.dltr {
   background: #f3e5f5;
   color: #7b1fa2;
 }

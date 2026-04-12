@@ -76,9 +76,15 @@ function buildMatchupKey(teamA, teamB) {
 }
 
 // Elo rating constants
-const K_FACTOR = 32;
+const K_PROVISIONAL = 64;
+const K_ESTABLISHED = 32;
+const PROVISIONAL_THRESHOLD = 20;
 const MIN_ELO = 100;
 const MAX_ELO = 3000;
+
+function getKFactor(matchCount) {
+  return matchCount < PROVISIONAL_THRESHOLD ? K_PROVISIONAL : K_ESTABLISHED;
+}
 
 function ntrpToElo(ntrp) {
   // NTRP 4.0 → 1500 (center), ±300 per NTRP level
@@ -110,7 +116,7 @@ function extractGamesFromSets(sets, isTeamA) {
   return { won, lost };
 }
 
-function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost) {
+function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, kFactor) {
   const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
   const actualA = aWins ? 1 : 0;
 
@@ -122,7 +128,7 @@ function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost) {
     marginMultiplier = Math.max(1.0, Math.min(1.5, marginMultiplier));
   }
 
-  return K_FACTOR * marginMultiplier * (actualA - expectedA);
+  return kFactor * marginMultiplier * (actualA - expectedA);
 }
 
 async function updatePlayerRatings(match, winnerSide, sets) {
@@ -139,6 +145,15 @@ async function updatePlayerRatings(match, winnerSide, sets) {
     return ntrpToElo(p ? p.ntrp : null);
   };
 
+  // Count completed matches per player for provisional K-factor
+  const matchCountMap = new Map();
+  for (const id of allIds) {
+    const countRes = await db.collection('matches')
+      .where({ status: 'completed', participants: _.in([id]) })
+      .count();
+    matchCountMap.set(id, countRes.total || 0);
+  }
+
   const ratingA = teamA.reduce((sum, id) => sum + getElo(id), 0) / teamA.length;
   const ratingB = teamB.reduce((sum, id) => sum + getElo(id), 0) / teamB.length;
 
@@ -147,16 +162,18 @@ async function updatePlayerRatings(match, winnerSide, sets) {
   const gamesWon = aWins ? games.won : games.lost;
   const gamesLost = aWins ? games.lost : games.won;
 
-  const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost);
-
   const now = new Date().toISOString();
   for (const id of teamA) {
+    const k = getKFactor(matchCountMap.get(id) || 0);
+    const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, k);
     const newElo = Math.max(MIN_ELO, Math.min(MAX_ELO, getElo(id) + delta));
     await db.collection('players').doc(id).update({
       data: { dltrElo: Math.round(newElo), dltr: eloToDisplay(newElo), dltrUpdatedAt: now }
     });
   }
   for (const id of teamB) {
+    const k = getKFactor(matchCountMap.get(id) || 0);
+    const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, k);
     const newElo = Math.max(MIN_ELO, Math.min(MAX_ELO, getElo(id) - delta));
     await db.collection('players').doc(id).update({
       data: { dltrElo: Math.round(newElo), dltr: eloToDisplay(newElo), dltrUpdatedAt: now }

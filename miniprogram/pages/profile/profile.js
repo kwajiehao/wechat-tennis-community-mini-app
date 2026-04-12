@@ -38,7 +38,7 @@ Page({
         if (player) {
           const gender = player.gender || 'M';
           const strs = i18n.getStrings();
-          const dltrDisplay = player.utr != null ? String(player.utr) : strs.profile_unrated;
+          const dltrDisplay = player.dltr != null ? String(player.dltr) : strs.profile_unrated;
           this.setData({
             player,
             isNewUser: false,

@@ -65,6 +65,7 @@ exports.main = async (event, context) => {
       playerId: p.playerId,
       name: p.name,
       ntrp: p.ntrp,
+      dltr: p.dltr,
       gender: p.gender,
       isTestPlayer: p.isTestPlayer,
       isActive: p.isActive

@@ -13,12 +13,13 @@ Page({
     loading: false,
     isAdmin: false,
     genderFilter: 'all',
-    sortBy: 'ntrp',
+    sortBy: 'dltr',
     // Player detail modal
     modal: {
       visible: false,
       player: null,
-      stats: null
+      stats: null,
+      dltrDisplay: ''
     }
   },
 
@@ -104,10 +105,11 @@ Page({
     const sortBy = this.data.sortBy;
     const stats = this.data.playerStats;
 
-    // Add stats to each player
+    const strs = this.data.i18n;
     players = players.map(p => ({
       ...p,
-      points: stats[p._id] ? stats[p._id].points : 0
+      points: stats[p._id] ? stats[p._id].points : 0,
+      dltrDisplay: p.dltr != null ? String(p.dltr) : strs.profile_unrated || 'Unrated'
     }));
 
     if (genderFilter === 'M') {
@@ -116,11 +118,11 @@ Page({
       players = players.filter(p => (p.gender || '').toUpperCase() === 'F');
     }
 
-    if (sortBy === 'ntrp') {
+    if (sortBy === 'dltr') {
       players.sort((a, b) => {
-        const ntrpA = a.ntrp || 0;
-        const ntrpB = b.ntrp || 0;
-        if (ntrpB !== ntrpA) return ntrpB - ntrpA;
+        const dltrA = a.dltr || 0;
+        const dltrB = b.dltr || 0;
+        if (dltrB !== dltrA) return dltrB - dltrA;
         return (a.name || '').localeCompare(b.name || '');
       });
     } else if (sortBy === 'name') {
@@ -137,10 +139,13 @@ Page({
     if (!player) return;
 
     const stats = this.data.playerStats[playerId] || null;
+    const strs = this.data.i18n;
+    const dltrDisplay = player.dltr != null ? String(player.dltr) : strs.profile_unrated || 'Unrated';
     this.setData({
       'modal.visible': true,
       'modal.player': player,
-      'modal.stats': stats
+      'modal.stats': stats,
+      'modal.dltrDisplay': dltrDisplay
     });
   },
 
@@ -148,7 +153,8 @@ Page({
     this.setData({
       'modal.visible': false,
       'modal.player': null,
-      'modal.stats': null
+      'modal.stats': null,
+      'modal.dltrDisplay': ''
     });
   },
 

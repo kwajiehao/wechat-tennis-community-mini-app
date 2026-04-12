@@ -68,9 +68,15 @@ async function assertAdmin(openid) {
 }
 
 // Elo rating constants
-const K_FACTOR = 32;
+const K_PROVISIONAL = 64;
+const K_ESTABLISHED = 32;
+const PROVISIONAL_THRESHOLD = 20;
 const MIN_ELO = 100;
 const MAX_ELO = 3000;
+
+function getKFactor(matchCount) {
+  return matchCount < PROVISIONAL_THRESHOLD ? K_PROVISIONAL : K_ESTABLISHED;
+}
 
 function ntrpToElo(ntrp) {
   const elo = 1500 + ((ntrp || 3.0) - 4.0) * 300;
@@ -100,7 +106,7 @@ function extractGamesFromSets(sets, isTeamA) {
   return { won, lost };
 }
 
-function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost) {
+function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, kFactor) {
   const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
   const actualA = aWins ? 1 : 0;
 
@@ -112,7 +118,7 @@ function computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost) {
     marginMultiplier = Math.max(1.0, Math.min(1.5, marginMultiplier));
   }
 
-  return K_FACTOR * marginMultiplier * (actualA - expectedA);
+  return kFactor * marginMultiplier * (actualA - expectedA);
 }
 
 exports.main = async (event, context) => {
@@ -140,8 +146,10 @@ exports.main = async (event, context) => {
 
   // Seed initial ratings from NTRP
   const ratings = new Map();
+  const matchCounts = new Map();
   for (const p of players) {
     ratings.set(p._id, ntrpToElo(p.ntrp));
+    matchCounts.set(p._id, 0);
   }
 
   // Replay matches chronologically
@@ -157,6 +165,7 @@ exports.main = async (event, context) => {
     // Ensure all participants have a rating (unknown players seed from default NTRP)
     for (const id of [...teamA, ...teamB]) {
       if (!ratings.has(id)) ratings.set(id, ntrpToElo(null));
+      if (!matchCounts.has(id)) matchCounts.set(id, 0);
     }
 
     // Team ratings = average of members
@@ -171,13 +180,17 @@ exports.main = async (event, context) => {
     const gamesWon = aWins ? games.won : games.lost;
     const gamesLost = aWins ? games.lost : games.won;
 
-    const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost);
-
     for (const id of teamA) {
+      const k = getKFactor(matchCounts.get(id));
+      const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, k);
       ratings.set(id, Math.max(MIN_ELO, Math.min(MAX_ELO, ratings.get(id) + delta)));
+      matchCounts.set(id, matchCounts.get(id) + 1);
     }
     for (const id of teamB) {
+      const k = getKFactor(matchCounts.get(id));
+      const delta = computeEloDelta(ratingA, ratingB, aWins, gamesWon, gamesLost, k);
       ratings.set(id, Math.max(MIN_ELO, Math.min(MAX_ELO, ratings.get(id) - delta)));
+      matchCounts.set(id, matchCounts.get(id) + 1);
     }
     matchesProcessed++;
   }

@@ -21,7 +21,7 @@
       <text class="filter-label">{{i18n.players_sort_by}}</text>
       <radio-group bindchange="onSortChange" class="filter-options">
         <label class="filter-option">
-          <radio value="ntrp" checked="{{sortBy === 'ntrp'}}" />NTRP
+          <radio value="dltr" checked="{{sortBy === 'dltr'}}" />DLTR
         </label>
         <label class="filter-option">
           <radio value="name" checked="{{sortBy === 'name'}}" />{{i18n.players_sort_name}}
@@ -41,7 +41,7 @@
       <view class="player-info">
         <view class="player-name">{{item.name || i18n.common_unnamed}}</view>
         <view class="player-details">
-          <text class="badge ntrp">NTRP {{item.ntrp || 'N/A'}}</text>
+          <text class="badge dltr">DLTR {{item.dltrDisplay}}</text>
           <text class="badge gender {{item.gender === 'F' ? 'female' : 'male'}}">{{item.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
           <text class="badge test" wx:if="{{item.isTestPlayer}}">{{i18n.players_test_player || 'Test'}}</text>
           <text class="badge points" wx:if="{{item.points > 0}}">{{item.points}} {{i18n.season_points || 'pts'}}</text>
@@ -65,8 +65,8 @@
           <text class="detail-value">{{modal.player.gender === 'F' ? i18n.gender_female : i18n.gender_male}}</text>
         </view>
         <view class="detail-row">
-          <text class="detail-label">{{i18n.profile_ntrp}}</text>
-          <text class="detail-value">{{modal.player.ntrp || 'N/A'}}</text>
+          <text class="detail-label">{{i18n.profile_dltr}}</text>
+          <text class="detail-value">{{modal.dltrDisplay}}</text>
         </view>
         <view class="detail-row" wx:if="{{modal.stats}}">
           <text class="detail-label">{{i18n.season_points || 'Season Points'}}</text>
