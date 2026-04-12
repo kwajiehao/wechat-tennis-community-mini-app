@@ -100,7 +100,9 @@ Page({
     deleteTestPlayerInput: {
       playerId: '',
       playerName: ''
-    }
+    },
+    replayingRatings: false,
+    replayResult: ''
   },
   onLoad() {
     initCloud();
@@ -811,6 +813,22 @@ Page({
         }
       }
     });
+  },
+  replayRatings() {
+    this.setData({ replayingRatings: true, replayResult: '' });
+    callFunction('replayRatings', {})
+      .then(res => {
+        const r = res.result || {};
+        const msg = `Done: ${r.matchesProcessed || 0} matches, ${r.playersUpdated || 0} players`;
+        this.setData({ replayingRatings: false, replayResult: msg });
+        wx.showToast({ title: 'Ratings replayed', icon: 'success' });
+      })
+      .catch(err => {
+        console.error(err);
+        const msg = i18n.translateError(err.message) || 'Replay failed';
+        this.setData({ replayingRatings: false, replayResult: msg });
+        wx.showToast({ title: msg, icon: 'none' });
+      });
   },
   onShareAppMessage() {
     return {

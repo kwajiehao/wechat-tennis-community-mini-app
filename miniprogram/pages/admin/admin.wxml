@@ -104,4 +104,12 @@
     <view class="button secondary" bindtap="deleteTestPlayer">{{i18n.admin_delete_player}}</view>
   </view>
 
+  <view class="card">
+    <view class="title">{{i18n.admin_replay_ratings || 'Replay Ratings'}}</view>
+    <view class="label">{{i18n.admin_replay_ratings_desc || 'Recalculate all DLTR ratings from match history. Safe to run multiple times.'}}</view>
+    <view class="button" bindtap="replayRatings" wx:if="{{!replayingRatings}}">{{i18n.admin_replay_ratings_btn || 'Replay All Ratings'}}</view>
+    <view class="button disabled" wx:if="{{replayingRatings}}">{{i18n.admin_replay_ratings_running || 'Replaying...'}}</view>
+    <view class="label" wx:if="{{replayResult}}">{{replayResult}}</view>
+  </view>
+
 </view>

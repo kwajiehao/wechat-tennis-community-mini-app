@@ -36,6 +36,19 @@ async function assertAdmin(openid) {
   }
 }
 
+const MIN_ELO = 100;
+const MAX_ELO = 3000;
+
+function ntrpToElo(ntrp) {
+  const elo = 1500 + ((ntrp || 3.0) - 4.0) * 300;
+  return Math.max(MIN_ELO, Math.min(MAX_ELO, Math.round(elo)));
+}
+
+function eloToDisplay(elo) {
+  const dltr = 1.0 + (elo - MIN_ELO) * 15.5 / (MAX_ELO - MIN_ELO);
+  return Math.round(Math.max(1.0, Math.min(16.5, dltr)) * 100) / 100;
+}
+
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
   const {
@@ -54,6 +67,7 @@ exports.main = async (event, context) => {
   // Admin creating a test player (no OPENID link)
   if (createNew) {
     await assertAdmin(OPENID);
+    const initialElo = ntrpToElo(ntrp);
     const res = await db.collection('players').add({
       data: {
         wechatOpenId: null,
@@ -61,6 +75,8 @@ exports.main = async (event, context) => {
         name,
         gender,
         ntrp,
+        dltrElo: initialElo,
+        dltr: eloToDisplay(initialElo),
         isActive,
         notes,
         createdAt: now,
@@ -77,15 +93,15 @@ exports.main = async (event, context) => {
     await assertAdmin(OPENID);
     const existing = await db.collection('players').doc(playerId).get().catch(() => null);
     if (existing && existing.data) {
+      const updateData = { name, gender, ntrp, isActive, notes, updatedAt: now };
+      // Seed DLTR from NTRP if player has no match-derived rating yet
+      if (existing.data.dltrElo == null) {
+        const elo = ntrpToElo(ntrp);
+        updateData.dltrElo = elo;
+        updateData.dltr = eloToDisplay(elo);
+      }
       await db.collection('players').doc(playerId).update({
-        data: {
-          name,
-          gender,
-          ntrp,
-          isActive,
-          notes,
-          updatedAt: now
-        }
+        data: updateData
       });
       const updated = await db.collection('players').doc(playerId).get();
       return { player: updated.data };
@@ -96,20 +112,29 @@ exports.main = async (event, context) => {
   // User self-registration: create or update their own profile
   const res = await db.collection('players').where({ wechatOpenId: OPENID }).get();
   if (res.data.length > 0) {
-    const existingId = res.data[0]._id;
+    const existingPlayer = res.data[0];
     const updateData = { name, gender, updatedAt: now };
     if (ntrp !== undefined) updateData.ntrp = ntrp;
-    await db.collection('players').doc(existingId).update({
+    // Seed DLTR from NTRP if player has no match-derived rating yet
+    if (existingPlayer.dltrElo == null && ntrp !== undefined) {
+      const elo = ntrpToElo(ntrp);
+      updateData.dltrElo = elo;
+      updateData.dltr = eloToDisplay(elo);
+    }
+    await db.collection('players').doc(existingPlayer._id).update({
       data: updateData
     });
-    const updated = await db.collection('players').doc(existingId).get();
+    const updated = await db.collection('players').doc(existingPlayer._id).get();
     return { player: updated.data };
   }
 
+  const initialElo = ntrpToElo(ntrp);
   const createData = {
     wechatOpenId: OPENID,
     name,
     gender,
+    dltrElo: initialElo,
+    dltr: eloToDisplay(initialElo),
     isActive: true,
     notes: '',
     createdAt: now,
