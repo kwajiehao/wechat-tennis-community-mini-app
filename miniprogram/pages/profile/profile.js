@@ -14,6 +14,10 @@ Page({
     genderCodes: ['M', 'F'],
     genderLabels: [],
     genderIndex: 0,
+    ntrpOptions: ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'],
+    ntrp: '',
+    ntrpIndex: -1,
+    showNtrpPicker: true,
     dltrDisplay: ''
   },
   onLoad() {
@@ -39,12 +43,17 @@ Page({
           const gender = player.gender || 'M';
           const strs = i18n.getStrings();
           const dltrDisplay = player.dltr != null ? String(player.dltr) : strs.profile_unrated;
+          const ntrpStr = player.ntrp != null ? String(player.ntrp) : '';
+          const ntrpIndex = this.data.ntrpOptions.indexOf(ntrpStr);
           this.setData({
             player,
             isNewUser: false,
             name: player.name || '',
             gender: gender.toUpperCase(),
             genderIndex: this.data.genderCodes.indexOf(gender.toUpperCase()),
+            ntrp: ntrpStr,
+            ntrpIndex: ntrpIndex,
+            showNtrpPicker: player.dltrElo == null,
             dltrDisplay
           });
         } else {
@@ -66,14 +75,25 @@ Page({
       gender: this.data.genderCodes[index]
     });
   },
+  onNtrpChange(e) {
+    const index = parseInt(e.detail.value);
+    this.setData({
+      ntrpIndex: index,
+      ntrp: this.data.ntrpOptions[index]
+    });
+  },
   saveProfile() {
-    callFunction('upsertPlayer', {
+    const params = {
       name: this.data.name,
       gender: this.data.gender
-    })
-      .then(res => {
-        this.setData({ player: res.result.player, isNewUser: false });
+    };
+    if (this.data.ntrp) {
+      params.ntrp = parseFloat(this.data.ntrp);
+    }
+    callFunction('upsertPlayer', params)
+      .then(() => {
         wx.showToast({ title: this.data.i18n.toast_saved, icon: 'success' });
+        this.fetchProfile();
       })
       .catch(err => {
         console.error(err);

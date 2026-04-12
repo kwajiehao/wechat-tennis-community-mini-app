@@ -7,6 +7,10 @@
     <picker mode="selector" range="{{genderLabels}}" value="{{genderIndex}}" bindchange="onGenderChange">
       <view class="input picker-value">{{genderLabels[genderIndex] || '-- Select --'}}</view>
     </picker>
+    <view wx:if="{{showNtrpPicker}}" class="label">{{i18n.profile_ntrp}}</view>
+    <picker wx:if="{{showNtrpPicker}}" mode="selector" range="{{ntrpOptions}}" value="{{ntrpIndex}}" bindchange="onNtrpChange">
+      <view class="input picker-value">{{ntrp || i18n.common_select || '-- Select --'}}</view>
+    </picker>
     <view wx:if="{{!isNewUser}}" class="label">{{i18n.profile_dltr}}</view>
     <view wx:if="{{!isNewUser}}" class="input readonly">{{dltrDisplay}}</view>
     <view class="button" bindtap="saveProfile">{{isNewUser ? i18n.nav_register : i18n.profile_save}}</view>
