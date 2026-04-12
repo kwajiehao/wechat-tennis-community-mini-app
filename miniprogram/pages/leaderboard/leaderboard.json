@@ -1,6 +1,4 @@
 {
   "navigationBarTitleText": "Leaderboard",
-  "enablePullDownRefresh": true,
-  "enableShareAppMessage": true,
-  "enableShareTimeline": true
+  "enablePullDownRefresh": true
 }

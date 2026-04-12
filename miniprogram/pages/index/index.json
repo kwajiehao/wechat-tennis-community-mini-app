@@ -1,6 +1,4 @@
 {
   "navigationBarTitleText": "Events",
-  "enablePullDownRefresh": true,
-  "enableShareAppMessage": true,
-  "enableShareTimeline": true
+  "enablePullDownRefresh": true
 }
