@@ -800,9 +800,13 @@ Page({
     });
   },
   generateShareImage() {
+    this._shareImagePromise = new Promise((resolve) => {
+      this._resolveShareImage = resolve;
+    });
     const event = this.data.event;
     if (!event) {
       console.log('[shareImage] no event data, skipping');
+      this._resolveShareImage(null);
       return;
     }
 
@@ -813,6 +817,7 @@ Page({
       .exec((res) => {
         if (!res[0] || !res[0].node) {
           console.error('[shareImage] canvas not found:', res);
+          this._resolveShareImage(null);
           return;
         }
         console.log('[shareImage] canvas found');
@@ -922,14 +927,17 @@ Page({
             success: (result) => {
               console.log('[shareImage] export success:', result.tempFilePath);
               this.setData({ shareImageUrl: result.tempFilePath });
+              this._resolveShareImage(result.tempFilePath);
             },
             fail: (err) => {
               console.error('[shareImage] export failed:', err);
+              this._resolveShareImage(null);
             }
           });
         };
         img.onerror = (err) => {
           console.error('[shareImage] background image load failed:', err);
+          this._resolveShareImage(null);
         };
         img.src = '/images/share.jpg';
       });
@@ -951,12 +959,21 @@ Page({
     return parts.join(' | ');
   },
   onShareAppMessage() {
-    const imageUrl = this.data.shareImageUrl || '/images/share.jpg';
-    console.log('[shareImage] onShareAppMessage imageUrl:', imageUrl);
+    const title = this._getShareTitle();
+    const path = `/pages/event/event?eventId=${this.data.eventId}`;
+    if (this.data.shareImageUrl) {
+      return { title, path, imageUrl: this.data.shareImageUrl };
+    }
+    const promise = (this._shareImagePromise || Promise.resolve(null)).then(tempPath => ({
+      title,
+      path,
+      imageUrl: tempPath || '/images/share.jpg'
+    }));
     return {
-      title: this._getShareTitle(),
-      path: `/pages/event/event?eventId=${this.data.eventId}`,
-      imageUrl
+      title,
+      path,
+      imageUrl: '/images/share.jpg',
+      promise
     };
   },
   onShareTimeline() {
